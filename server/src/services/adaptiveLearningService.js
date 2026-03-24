@@ -29,7 +29,10 @@ const PRESET_NAMES = {
 export async function generatePersonalizedPath(userId, options = {}) {
   const targetDays = Math.max(1, Math.min(30, Number(options.targetDays) || DEFAULT_TARGET_DAYS));
   const preset = options.preset && PRESET_NAMES[options.preset] ? options.preset : null;
-  const goalText = (options.goalText && String(options.goalText).trim()) || (preset ? `目标：${preset}`) || '个性化学习计划';
+  const goalText =
+    (options.goalText && String(options.goalText).trim()) ||
+    (preset ? `目标：${preset}` : '') ||
+    '个性化学习计划';
 
   const [pathRecs, examPred, allNodes] = await Promise.all([
     getPathRecommendations(userId, { days: 90, maxRecommendations: 15 }),
