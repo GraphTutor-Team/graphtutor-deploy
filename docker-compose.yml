@@ -36,9 +36,7 @@ services:
       REDIS_URL: redis://redis:6379
       REDIS_HOST: redis
       REDIS_PORT: "6379"
-      # 前端与 OAuth 回调同一端口（单容器部署）
-      FRONTEND_URL: http://localhost:5000
-      CLIENT_URL: http://localhost:5000
+      # FRONTEND_URL / CLIENT_URL / GITHUB_* 请写在 server/.env（勿在下方写死公网地址）
       JWT_SECRET: ${JWT_SECRET:-change-this-in-production}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-this-in-production}
       ENABLE_SWAGGER: "false"

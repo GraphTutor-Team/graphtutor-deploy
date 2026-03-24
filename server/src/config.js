@@ -22,8 +22,9 @@ export const USE_REDIS = process.env.USE_REDIS !== 'false'; // 默认启用
 // GitHub OAuth（第三方登录）
 export const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID || "";
 export const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET || "";
-/** 前端根 URL，用于 OAuth 回调重定向，如 http://localhost:3000 */
-export const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
+/** 前端根 URL，用于 OAuth 回调重定向（须与浏览器访问地址一致） */
+export const FRONTEND_URL =
+  process.env.FRONTEND_URL || process.env.CLIENT_URL || "http://localhost:5000";
 
 // 微信开放平台（网站应用扫码登录）
 export const WECHAT_APP_ID = process.env.WECHAT_APP_ID || "";

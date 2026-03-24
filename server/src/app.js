@@ -82,7 +82,12 @@ export async function createServer() {
     process.env.CLIENT_URL || 'http://localhost:5173',
     'http://127.0.0.1:5173',
     'http://localhost:5000',
+    'http://127.0.0.1:5000',
   ];
+  const fe = process.env.FRONTEND_URL?.replace(/\/$/, '');
+  if (fe && !allowedOrigins.includes(fe)) {
+    allowedOrigins.push(fe);
+  }
   if (process.env.MINIPROGRAM_ORIGIN) {
     allowedOrigins.push(process.env.MINIPROGRAM_ORIGIN);
   }
