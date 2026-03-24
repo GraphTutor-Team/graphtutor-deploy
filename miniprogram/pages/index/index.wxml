@@ -1,0 +1,26 @@
+<view class="container">
+  <view class="card">
+    <view class="grid-header">
+      <view class="grid-title">功能入口</view>
+      <view class="grid-sub">图标统一为蓝色数据可视化风格（iconfont 同系列）</view>
+    </view>
+
+    <view class="menu-grid">
+      <view class="menu-cell" wx:for="{{menuItems}}" wx:key="id" data-id="{{item.id}}" bindtap="nav">
+        <view class="thumb">
+          <image wx:if="{{item.img}}" class="thumb-img" src="{{item.img}}" mode="aspectFit" />
+          <view wx:else class="thumb-placeholder">
+            <image wx:if="{{item.icon}}" class="thumb-icon" src="{{item.icon}}" mode="aspectFit" />
+            <view wx:else class="thumb-text">图</view>
+          </view>
+        </view>
+        <view class="meta">
+          <view class="name">{{item.name}}</view>
+          <view class="desc">{{item.desc}}</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="grid-hint">换图标：编辑 pages/index/index.js 中 menuItems 的 img（支持同目录下任意 .svg / .png）。</view>
+  </view>
+</view>

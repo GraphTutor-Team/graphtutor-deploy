@@ -1,0 +1,44 @@
+<view class="container">
+  <view class="user-header" wx:if="{{isLoggedIn}}">
+    <image wx:if="{{userInfo.avatarUrl}}" class="avatar-img" src="{{userInfo.avatarUrl}}" mode="aspectFill" />
+    <view wx:else class="avatar">{{userFirstChar}}</view>
+    <view class="user-name">{{userInfo.name || '未设置昵称'}}</view>
+    <view class="user-email">{{userInfo.email || '—'}}</view>
+  </view>
+
+  <view class="card card--list" wx:if="{{isLoggedIn}}">
+    <view class="list-item">
+      <text class="list-label">角色</text>
+      <text class="list-value">{{roleText}}</text>
+    </view>
+    <view class="list-item" wx:if="{{userInfo.phoneNumber}}">
+      <text class="list-label">手机号</text>
+      <text class="list-value">{{userInfo.phoneNumber}}</text>
+    </view>
+    <view class="list-item" wx:if="{{userInfo.gender}}">
+      <text class="list-label">性别</text>
+      <text class="list-value">{{userInfo.gender}}</text>
+    </view>
+    <view class="list-item" wx:if="{{userInfo.school}}">
+      <text class="list-label">学校</text>
+      <text class="list-value">{{userInfo.school}}</text>
+    </view>
+    <view class="list-item" wx:if="{{userInfo.grade}}">
+      <text class="list-label">年级</text>
+      <text class="list-value">{{userInfo.grade}}</text>
+    </view>
+    <view class="list-item">
+      <text class="list-label">账号 ID</text>
+      <text class="list-value list-value--muted">{{userInfo.id || '—'}}</text>
+    </view>
+  </view>
+
+  <view class="card card--empty" wx:if="{{isLoggedIn}}">
+    <button class="btn btn--outline" bindtap="logout">退出登录</button>
+  </view>
+
+  <view class="card card--empty" wx:else>
+    <view class="empty-desc">未登录</view>
+    <button class="btn btn--primary btn--block" bindtap="goLogin">去登录</button>
+  </view>
+</view>

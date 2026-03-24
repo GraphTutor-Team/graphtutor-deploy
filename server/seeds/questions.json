@@ -1,0 +1,57 @@
+[
+  {
+    "id": "q_js_0001",
+    "knowledgeNodeId": "js:closure",
+    "difficulty": 1,
+    "type": "single",
+    "content": "JavaScript 闭包最直接的作用是？",
+    "options": [
+      "保存函数执行时的词法环境",
+      "提升变量到全局",
+      "强制垃圾回收",
+      "加快 for 循环"
+    ],
+    "answerIndex": 0,
+    "tags": [
+      "js",
+      "closure",
+      "基础"
+    ]
+  },
+  {
+    "id": "q_js_0002",
+    "knowledgeNodeId": "js:scope",
+    "difficulty": 1,
+    "type": "single",
+    "content": "下列哪个描述最符合“作用域”的定义？",
+    "options": [
+      "变量和函数的可见性规则",
+      "函数返回值的类型",
+      "对象原型链的终点",
+      "浏览器的渲染流程"
+    ],
+    "answerIndex": 0,
+    "tags": [
+      "js",
+      "scope"
+    ]
+  },
+  {
+    "id": "q_js_0003",
+    "knowledgeNodeId": "js:function",
+    "difficulty": 2,
+    "type": "single",
+    "content": "关于函数的说法正确的是？",
+    "options": [
+      "函数可以作为值赋给变量",
+      "函数不能嵌套定义",
+      "函数调用必定改变 this",
+      "函数必须有返回值"
+    ],
+    "answerIndex": 0,
+    "tags": [
+      "js",
+      "function"
+    ]
+  }
+]

@@ -1,0 +1,173 @@
+/* 登录页 */
+.login-header {
+  padding: 32rpx 0 40rpx;
+}
+
+.login-dot {
+  width: 20rpx;
+  height: 20rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-primary-light), var(--color-primary));
+  margin-bottom: 24rpx;
+}
+
+.login-title {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 8rpx;
+}
+
+.login-desc {
+  font-size: 26rpx;
+  color: var(--color-text-muted);
+}
+
+.card--form {
+  padding: 40rpx 40rpx 48rpx;
+}
+
+.form-group--avatar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.form-group--avatar .form-label {
+  width: 100%;
+  margin-bottom: 16rpx;
+}
+
+.avatar-wrap {
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  line-height: 1;
+}
+
+.avatar-wrap::after {
+  border: none;
+}
+
+.avatar-img {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 50%;
+  display: block;
+}
+
+.avatar-placeholder {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 50%;
+  background: var(--color-bg);
+  border: 4rpx dashed var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-placeholder-text {
+  font-size: 24rpx;
+  color: var(--color-text-muted);
+}
+
+.form-section-label {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 32rpx 0 16rpx;
+}
+
+.form-label {
+  display: block;
+  font-size: 26rpx;
+  color: var(--color-text-muted);
+  margin-bottom: 12rpx;
+}
+
+.btn-phone {
+  width: 100%;
+  margin-bottom: 16rpx;
+  padding: 20rpx;
+  font-size: 26rpx;
+  color: var(--color-primary);
+  background: var(--color-bg);
+  border: 2rpx solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.btn-phone::after {
+  border: none;
+}
+
+.form-picker {
+  height: 88rpx;
+  padding: 0 24rpx;
+  line-height: 88rpx;
+  font-size: 30rpx;
+  color: var(--color-text);
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+  border: 2rpx solid var(--color-border);
+}
+
+.form-input--small {
+  height: 72rpx;
+  font-size: 28rpx;
+}
+
+.form-input {
+  width: 100%;
+  height: 88rpx;
+  padding: 0 24rpx;
+  font-size: 30rpx;
+  color: var(--color-text);
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+  border: 2rpx solid var(--color-border);
+  box-sizing: border-box;
+}
+
+.form-input:focus {
+  border-color: var(--color-primary-light);
+}
+
+.form-error {
+  font-size: 26rpx;
+  color: var(--color-error);
+  margin-bottom: 24rpx;
+}
+
+.btn--block {
+  width: 100%;
+  margin-top: 16rpx;
+}
+
+.btn--primary {
+  background: linear-gradient(135deg, var(--color-primary-light), var(--color-primary));
+  color: #fff;
+  border: none;
+  font-weight: 500;
+  height: 96rpx;
+  line-height: 96rpx;
+}
+
+.btn--primary::after {
+  border: none;
+}
+
+.login-tip {
+  margin-top: 40rpx;
+  padding: 24rpx 28rpx;
+  background: rgba(21, 101, 192, 0.06);
+  border-radius: var(--radius-sm);
+  border-left: 6rpx solid var(--color-primary-light);
+}
+
+.login-tip text {
+  font-size: 24rpx;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}

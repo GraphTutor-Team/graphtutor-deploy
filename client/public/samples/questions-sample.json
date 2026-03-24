@@ -1,0 +1,44 @@
+[
+  {
+    "id": "HTML-001",
+    "knowledgeNodeId": "html",
+    "content": "HTML 标题标签从哪一个到哪一个？",
+    "options": [
+      "h0 到 h5",
+      "h1 到 h6",
+      "header 到 header6",
+      "title 到 title6"
+    ],
+    "correctIndex": 1,
+    "difficulty": 1,
+    "explain": "标准 HTML 标题标签为 h1~h6。"
+  },
+  {
+    "id": "CSS-001",
+    "knowledgeNodeId": "css",
+    "content": "将段落文本颜色设置为红色的 CSS 是？",
+    "options": [
+      "color:red;",
+      "text-color:red;",
+      "font:red;",
+      "foreground:red;"
+    ],
+    "correctIndex": 0,
+    "difficulty": 1,
+    "explain": "使用 color 属性设置前景色。"
+  },
+  {
+    "id": "JS-001",
+    "knowledgeNodeId": "js",
+    "content": "在浏览器中输出调试信息的函数是？",
+    "options": [
+      "log()",
+      "console.log()",
+      "print()",
+      "echo()"
+    ],
+    "correctIndex": 1,
+    "difficulty": 1,
+    "explain": "console.log() 会在控制台打印信息。"
+  }
+]

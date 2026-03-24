@@ -1,0 +1,20 @@
+[
+  {
+    "id": "js:function",
+    "label": "函数",
+    "group": "js",
+    "description": "可被调用的代码块，拥有自己的作用域和参数。"
+  },
+  {
+    "id": "js:closure",
+    "label": "闭包",
+    "group": "js",
+    "description": "函数与其引用的词法环境的组合。"
+  },
+  {
+    "id": "js:scope",
+    "label": "作用域",
+    "group": "js",
+    "description": "标识符（变量/函数）的可见性规则。"
+  }
+]

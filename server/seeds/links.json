@@ -1,0 +1,12 @@
+[
+  {
+    "source": "js:function",
+    "target": "js:closure",
+    "type": "rel"
+  },
+  {
+    "source": "js:scope",
+    "target": "js:closure",
+    "type": "rel"
+  }
+]

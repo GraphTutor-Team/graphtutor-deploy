@@ -1,0 +1,366 @@
+[
+  {
+    "id": "html-001",
+    "knowledgeNodeId": "html-basics",
+    "difficulty": 1,
+    "content": "HTML 的全称是？",
+    "options": [
+      "Hyper Trainer Marking Language",
+      "Hyper Text Markup Language",
+      "High Text Markup Language",
+      "Hyperlinks and Text Markup Language"
+    ],
+    "answerIndex": 1
+  },
+  {
+    "id": "html-002",
+    "knowledgeNodeId": "html-tags",
+    "difficulty": 1,
+    "content": "用于定义最重要标题的标签是？",
+    "options": [
+      "<h6>",
+      "<header>",
+      "<title>",
+      "<h1>"
+    ],
+    "answerIndex": 3
+  },
+  {
+    "id": "html-003",
+    "knowledgeNodeId": "html-links",
+    "difficulty": 1,
+    "content": "创建超链接使用的标签是？",
+    "options": [
+      "<a>",
+      "<link>",
+      "<href>",
+      "<url>"
+    ],
+    "answerIndex": 0
+  },
+  {
+    "id": "html-004",
+    "knowledgeNodeId": "html-images",
+    "difficulty": 1,
+    "content": "插入图片使用的标签是？",
+    "options": [
+      "<image>",
+      "<img>",
+      "<pic>",
+      "<figure>"
+    ],
+    "answerIndex": 1
+  },
+  {
+    "id": "html-005",
+    "knowledgeNodeId": "html-forms",
+    "difficulty": 2,
+    "content": "提交表单的按钮使用的控件是？",
+    "options": [
+      "<input type=\"button\">",
+      "<input type=\"submit\">",
+      "<button type=\"reset\">",
+      "<btn>"
+    ],
+    "answerIndex": 1
+  },
+  {
+    "id": "html-006",
+    "knowledgeNodeId": "html-semantic",
+    "difficulty": 2,
+    "content": "语义化标签中表示主要内容区域的是？",
+    "options": [
+      "<article>",
+      "<main>",
+      "<section>",
+      "<aside>"
+    ],
+    "answerIndex": 1
+  },
+  {
+    "id": "html-007",
+    "knowledgeNodeId": "html-table",
+    "difficulty": 2,
+    "content": "表格单元格合并列使用的属性是？",
+    "options": [
+      "rowspan",
+      "colspan",
+      "merge",
+      "span"
+    ],
+    "answerIndex": 1
+  },
+  {
+    "id": "html-008",
+    "knowledgeNodeId": "html-meta",
+    "difficulty": 2,
+    "content": "设置页面字符集应使用的标签/属性组合是？",
+    "options": [
+      "<meta type='utf-8'>",
+      "<meta charset='utf-8'>",
+      "<charset>utf-8</charset>",
+      "<meta encoding='utf-8'>"
+    ],
+    "answerIndex": 1
+  },
+  {
+    "id": "css-001",
+    "knowledgeNodeId": "css-selectors",
+    "difficulty": 1,
+    "content": "选择所有 <p> 元素的选择器是？",
+    "options": [
+      "#p",
+      ".p",
+      "p",
+      "*"
+    ],
+    "answerIndex": 2
+  },
+  {
+    "id": "css-002",
+    "knowledgeNodeId": "css-color",
+    "difficulty": 1,
+    "content": "设置文本颜色的属性是？",
+    "options": [
+      "text-color",
+      "color",
+      "font-style",
+      "foreground"
+    ],
+    "answerIndex": 1
+  },
+  {
+    "id": "css-003",
+    "knowledgeNodeId": "css-box",
+    "difficulty": 1,
+    "content": "以下哪个不属于盒模型的组成？",
+    "options": [
+      "margin",
+      "padding",
+      "border",
+      "cursor"
+    ],
+    "answerIndex": 3
+  },
+  {
+    "id": "css-004",
+    "knowledgeNodeId": "css-display",
+    "difficulty": 2,
+    "content": "让元素脱离文档流并不占据空间应使用？",
+    "options": [
+      "display:none",
+      "visibility:hidden",
+      "opacity:0",
+      "position:absolute"
+    ],
+    "answerIndex": 0
+  },
+  {
+    "id": "css-005",
+    "knowledgeNodeId": "css-flex",
+    "difficulty": 2,
+    "content": "让子元素横向等分容器宽度的父容器设置是？",
+    "options": [
+      "display:block",
+      "display:flex; justify-content:space-between;",
+      "display:flex; justify-content:space-around;",
+      "display:flex;"
+    ],
+    "answerIndex": 3
+  },
+  {
+    "id": "css-006",
+    "knowledgeNodeId": "css-position",
+    "difficulty": 2,
+    "content": "使元素相对自身原位置进行偏移应使用？",
+    "options": [
+      "position:absolute",
+      "position:static",
+      "position:relative",
+      "position:fixed"
+    ],
+    "answerIndex": 2
+  },
+  {
+    "id": "css-007",
+    "knowledgeNodeId": "css-grid",
+    "difficulty": 3,
+    "content": "CSS Grid 中跨两列应使用的属性是？",
+    "options": [
+      "grid-row: span 2;",
+      "grid-column: span 2;",
+      "grid-area: 2;",
+      "columns:2"
+    ],
+    "answerIndex": 1
+  },
+  {
+    "id": "css-008",
+    "knowledgeNodeId": "css-media",
+    "difficulty": 3,
+    "content": "在屏幕宽度 ≤ 600px 时应用样式的媒体查询是？",
+    "options": [
+      "@media (max-width: 600px) { }",
+      "@media screen and (min-width: 600px) { }",
+      "@media print and (max-width: 600px) { }",
+      "@media width <= 600px { }"
+    ],
+    "answerIndex": 0
+  },
+  {
+    "id": "js-001",
+    "knowledgeNodeId": "js-var",
+    "difficulty": 1,
+    "content": "声明常量应使用的关键字是？",
+    "options": [
+      "let",
+      "const",
+      "var",
+      "static"
+    ],
+    "answerIndex": 1
+  },
+  {
+    "id": "js-002",
+    "knowledgeNodeId": "js-eq",
+    "difficulty": 1,
+    "content": "仅比较值且进行类型转换的等号是？",
+    "options": [
+      "=",
+      "==",
+      "===",
+      "!=="
+    ],
+    "answerIndex": 1
+  },
+  {
+    "id": "js-003",
+    "knowledgeNodeId": "js-array",
+    "difficulty": 1,
+    "content": "向数组末尾添加元素应使用？",
+    "options": [
+      "push",
+      "pop",
+      "shift",
+      "unshift"
+    ],
+    "answerIndex": 0
+  },
+  {
+    "id": "js-004",
+    "knowledgeNodeId": "js-obj",
+    "difficulty": 1,
+    "content": "读取对象属性不确定是否存在时更安全的语法是？",
+    "options": [
+      "obj.prop",
+      "obj['prop']",
+      "obj?.prop",
+      "obj??.prop"
+    ],
+    "answerIndex": 2
+  },
+  {
+    "id": "js-005",
+    "knowledgeNodeId": "js-json",
+    "difficulty": 2,
+    "content": "将对象转换为 JSON 字符串的方法是？",
+    "options": [
+      "JSON.toString(obj)",
+      "String(obj)",
+      "JSON.stringify(obj)",
+      "obj.stringify()"
+    ],
+    "answerIndex": 2
+  },
+  {
+    "id": "js-006",
+    "knowledgeNodeId": "js-async",
+    "difficulty": 2,
+    "content": "声明异步函数的关键字是？",
+    "options": [
+      "await",
+      "async",
+      "defer",
+      "then"
+    ],
+    "answerIndex": 1
+  },
+  {
+    "id": "js-007",
+    "knowledgeNodeId": "js-promise",
+    "difficulty": 2,
+    "content": "Promise 的成功回调方法是？",
+    "options": [
+      "catch",
+      "then",
+      "final",
+      "done"
+    ],
+    "answerIndex": 1
+  },
+  {
+    "id": "js-008",
+    "knowledgeNodeId": "js-dom",
+    "difficulty": 2,
+    "content": "选择 id 为 app 的元素应使用？",
+    "options": [
+      "document.getElement('app')",
+      "document.query('#app')",
+      "document.getElementById('app')",
+      "$('#app')"
+    ],
+    "answerIndex": 2
+  },
+  {
+    "id": "js-009",
+    "knowledgeNodeId": "js-fetch",
+    "difficulty": 2,
+    "content": "使用 fetch 发送 GET 请求正确的是？",
+    "options": [
+      "fetch('/api')",
+      "fetch.get('/api')",
+      "$.get('/api')",
+      "http.get('/api')"
+    ],
+    "answerIndex": 0
+  },
+  {
+    "id": "js-010",
+    "knowledgeNodeId": "js-module",
+    "difficulty": 3,
+    "content": "在 ESM 中默认导出的导入语法是？",
+    "options": [
+      "import * as x from './m.js'",
+      "import {x} from './m.js'",
+      "import x from './m.js'",
+      "require('./m.js')"
+    ],
+    "answerIndex": 2
+  },
+  {
+    "id": "js-011",
+    "knowledgeNodeId": "js-map",
+    "difficulty": 3,
+    "content": "将数组每项 *2 的正确写法是？",
+    "options": [
+      "arr.forEach(x=>x*2)",
+      "arr.map(x=>x*2)",
+      "arr.filter(x=>x*2)",
+      "arr.reduce((a,x)=>a*2)"
+    ],
+    "answerIndex": 1
+  },
+  {
+    "id": "js-012",
+    "knowledgeNodeId": "js-error",
+    "difficulty": 3,
+    "content": "捕获同步/异步异常最通用的写法是？",
+    "options": [
+      "try { await do() } catch(e) {}",
+      "try { do() } catch(e) {}",
+      "do().catch(e=>{})",
+      "window.onerror = fn"
+    ],
+    "answerIndex": 0
+  }
+]

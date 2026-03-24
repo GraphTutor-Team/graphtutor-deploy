@@ -1,0 +1,59 @@
+<view class="container">
+  <view class="login-header">
+    <view class="login-dot"></view>
+    <view class="login-title">微信头像昵称登录</view>
+    <view class="login-desc">选择头像、填写昵称后登录</view>
+  </view>
+
+  <view class="card card--form">
+    <view class="form-group form-group--avatar">
+      <text class="form-label">头像</text>
+      <button class="avatar-wrap" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+        <image wx:if="{{avatarUrl}}" class="avatar-img" src="{{avatarUrl}}" mode="aspectFill" />
+        <view wx:else class="avatar-placeholder">
+          <text class="avatar-placeholder-text">点击选择</text>
+        </view>
+      </button>
+    </view>
+    <view class="form-group">
+      <text class="form-label">昵称</text>
+      <input
+        class="form-input"
+        type="nickname"
+        placeholder="请输入昵称（可获取微信昵称）"
+        value="{{nickname}}"
+        bindinput="onNicknameInput"
+        bindblur="onNicknameInput"
+      />
+    </view>
+
+    <view class="form-section-label">更多信息（选填）</view>
+    <view class="form-group">
+      <text class="form-label">手机号</text>
+      <button class="btn-phone" open-type="getPhoneNumber" bindgetphonenumber="onGetPhoneNumber">微信授权获取手机号（目前不可用）</button>
+      <input class="form-input form-input--small" placeholder="或手动填写手机号" value="{{phoneNumber}}" bindinput="onPhoneInput" />
+    </view>
+    <view class="form-group">
+      <text class="form-label">性别</text>
+      <picker mode="selector" range="{{genderOptions}}" value="{{genderIndex}}" bindchange="onGenderChange">
+        <view class="form-picker">{{genderOptions[genderIndex] || '请选择'}}</view>
+      </picker>
+    </view>
+    <view class="form-group">
+      <text class="form-label">学校</text>
+      <input class="form-input" placeholder="选填" value="{{school}}" bindinput="onSchoolInput" />
+    </view>
+    <view class="form-group">
+      <text class="form-label">年级</text>
+      <input class="form-input" placeholder="如：大一、研一" value="{{grade}}" bindinput="onGradeInput" />
+    </view>
+
+    <view class="form-error" wx:if="{{error}}">{{error}}</view>
+    <button class="btn btn--primary btn--block" loading="{{loading}}" disabled="{{loading}}" bindtap="submit">登录</button>
+  </view>
+
+  <view class="login-tip" wx:if="{{useVirtual}}">
+    <text>当前为虚拟登录，使用微信头像与昵称进入。
+    后端接入预留 utils/config.js </text>
+  </view>
+</view>

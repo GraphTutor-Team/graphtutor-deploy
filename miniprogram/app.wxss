@@ -1,0 +1,32 @@
+/** GraphTutor 小程序 - 全局样式与设计变量 */
+page {
+  --color-primary: #1565c0;
+  --color-primary-light: #42a5f5;
+  --color-primary-dark: #0d47a1;
+  --color-bg: #f0f4f8;
+  --color-card: #ffffff;
+  --color-text: #1a237e;
+  --color-text-secondary: #5c6bc0;
+  --color-text-muted: #7986cb;
+  --color-border: #e8eaf6;
+  --color-error: #c62828;
+  --color-success: #2e7d32;
+  --radius-sm: 16rpx;
+  --radius-md: 24rpx;
+  --radius-lg: 32rpx;
+  --shadow: 0 8rpx 32rpx rgba(21, 101, 192, 0.08);
+  --shadow-hover: 0 12rpx 40rpx rgba(21, 101, 192, 0.12);
+
+  background-color: var(--color-bg);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  font-size: 28rpx;
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+.container {
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: 24rpx 32rpx calc(env(safe-area-inset-bottom) + 120rpx);
+  overflow-x: hidden;
+}

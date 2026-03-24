@@ -1,0 +1,43 @@
+<view class="container">
+  <view class="sub-header">
+    <view class="sub-title">练习</view>
+    <view class="sub-desc">先用占位数据体验入口，后续接入后端同步练习记录。</view>
+  </view>
+
+  <view class="card">
+    <view class="section-title">快速开始</view>
+    <view class="grid">
+      <view class="tile" bindtap="goGraph">
+        <view class="tile-icon">
+          <image class="tile-icon-img" src="/images/ic-graph.svg" mode="aspectFit" />
+        </view>
+        <view class="tile-title">知识图谱练习</view>
+        <view class="tile-desc">按知识点推进</view>
+      </view>
+      <view class="tile" bindtap="goWrong">
+        <view class="tile-icon">
+          <image class="tile-icon-img" src="/images/ic-wrong.svg" mode="aspectFit" />
+        </view>
+        <view class="tile-title">错题巩固</view>
+        <view class="tile-desc">专注薄弱点</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="section-title">今日目标（示意）</view>
+    <view class="row">
+      <text class="row-left">完成练习</text>
+      <text class="row-right">3 组</text>
+    </view>
+    <view class="row">
+      <text class="row-left">错题复习</text>
+      <text class="row-right">5 题</text>
+    </view>
+    <view class="row">
+      <text class="row-left">建议专注</text>
+      <text class="row-right">BFS/DFS</text>
+    </view>
+  </view>
+</view>
+

@@ -1,0 +1,115 @@
+/* 我的 */
+.user-header {
+  padding: 24rpx 0 32rpx;
+  text-align: center;
+}
+
+.avatar {
+  width: 128rpx;
+  height: 128rpx;
+  margin: 0 auto 24rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-primary-light), var(--color-primary));
+  color: #fff;
+  font-size: 48rpx;
+  font-weight: 600;
+  line-height: 128rpx;
+  text-align: center;
+}
+
+.avatar-img {
+  width: 128rpx;
+  height: 128rpx;
+  margin: 0 auto 24rpx;
+  border-radius: 50%;
+  display: block;
+}
+
+.user-name {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 8rpx;
+}
+
+.user-email {
+  font-size: 26rpx;
+  color: var(--color-text-muted);
+}
+
+.card--list {
+  padding: 0;
+  overflow: hidden;
+}
+
+.list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 32rpx 40rpx;
+  border-bottom: 1rpx solid var(--color-border);
+}
+
+.list-item:last-child {
+  border-bottom: none;
+}
+
+.list-label {
+  font-size: 28rpx;
+  color: var(--color-text-muted);
+}
+
+.list-value {
+  font-size: 28rpx;
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.list-value--muted {
+  font-weight: 400;
+  color: var(--color-text-muted);
+  font-size: 24rpx;
+}
+
+.card--empty {
+  padding: 40rpx;
+  text-align: center;
+}
+
+.empty-desc {
+  font-size: 28rpx;
+  color: var(--color-text-muted);
+  margin-bottom: 32rpx;
+}
+
+.btn--block {
+  width: 100%;
+}
+
+.btn--primary {
+  background: linear-gradient(135deg, var(--color-primary-light), var(--color-primary));
+  color: #fff;
+  border: none;
+  font-weight: 500;
+  height: 88rpx;
+  line-height: 88rpx;
+}
+
+.btn--primary::after {
+  border: none;
+}
+
+.btn--outline {
+  width: 100%;
+  height: 88rpx;
+  line-height: 88rpx;
+  color: var(--color-error);
+  background: transparent;
+  border: 2rpx solid var(--color-error);
+  border-radius: var(--radius-sm);
+  font-size: 28rpx;
+}
+
+.btn--outline::after {
+  border: none;
+}

@@ -1,0 +1,55 @@
+/* client/src/styles/theme.css */
+/* 统一主题样式配置 - 优化颜色方案 */
+
+:root {
+  /* 主色调 - 使用更柔和的蓝色系 */
+  --color-primary: #3b82f6;        /* blue-500 - 主按钮、链接 */
+  --color-primary-hover: #2563eb;  /* blue-600 */
+  --color-primary-light: #dbeafe;  /* blue-100 - 背景高亮 */
+  
+  /* 辅助色 - 绿色系（成功、正确） */
+  --color-success: #10b981;       /* emerald-500 */
+  --color-success-light: #d1fae5;  /* emerald-100 */
+  
+  /* 警告色 - 橙色系 */
+  --color-warning: #f59e0b;        /* amber-500 */
+  --color-warning-light: #fef3c7;  /* amber-100 */
+  
+  /* 错误色 - 红色系 */
+  --color-error: #ef4444;          /* red-500 */
+  --color-error-light: #fee2e2;    /* red-100 */
+  
+  /* 中性色 - 灰色系 */
+  --color-text-primary: #1e293b;    /* slate-800 */
+  --color-text-secondary: #64748b;  /* slate-500 */
+  --color-text-tertiary: #94a3b8;   /* slate-400 */
+  
+  /* 背景色 */
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f8fafc;    /* slate-50 */
+  --color-bg-tertiary: #f1f5f9;     /* slate-100 */
+  
+  /* 边框色 */
+  --color-border: #e2e8f0;          /* slate-200 */
+  --color-border-hover: #cbd5e1;    /* slate-300 */
+  
+  /* 阴影 */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+}
+
+.dark {
+  /* 深色模式 */
+  --color-text-primary: #f1f5f9;    /* slate-100 */
+  --color-text-secondary: #cbd5e1;  /* slate-300 */
+  --color-text-tertiary: #94a3b8;   /* slate-400 */
+  
+  --color-bg-primary: #0f172a;     /* slate-900 */
+  --color-bg-secondary: #1e293b;    /* slate-800 */
+  --color-bg-tertiary: #334155;     /* slate-700 */
+  
+  --color-border: #334155;          /* slate-700 */
+  --color-border-hover: #475569;    /* slate-600 */
+}
+

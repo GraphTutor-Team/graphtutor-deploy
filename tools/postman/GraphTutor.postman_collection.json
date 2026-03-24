@@ -1,0 +1,57 @@
+{
+  "info": {
+    "name": "GraphTutor Consolidated Update",
+    "_postman_id": "graphtutor-collection",
+    "description": "All new endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Admin - Stats",
+      "request": {
+        "method": "GET",
+        "url": "{{base}}/api/admin/stats"
+      }
+    },
+    {
+      "name": "Questions - Bulk Upsert",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base}}/api/questions/bulk-upsert",
+        "body": {
+          "mode": "raw",
+          "raw": "[]"
+        }
+      }
+    },
+    {
+      "name": "QG - Generate From Text",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base}}/api/qg/generate-from-text",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"text\":\"示例文本……\",\n  \"node\":\"js\",\n  \"difficulty\":1,\n  \"upsert\":true,\n  \"limit\":8\n}"
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base",
+      "value": "http://localhost:5000"
+    }
+  ]
+}

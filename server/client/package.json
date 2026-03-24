@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "graphtutor-server": "file:..",
+    "xlsx": "^0.18.5"
+  }
+}

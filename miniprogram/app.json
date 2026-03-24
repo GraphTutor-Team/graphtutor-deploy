@@ -1,0 +1,51 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/login/login",
+    "pages/user/user",
+    "pages/practice/practice",
+    "pages/graph/graph",
+    "pages/wrong/wrong",
+    "pages/plan/plan"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#1565c0",
+    "navigationBarTitleText": "GraphTutor",
+    "navigationBarTextStyle": "white"
+  },
+  "tabBar": {
+    "color": "#7986cb",
+    "selectedColor": "#1565c0",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "images/tab-home.png",
+        "selectedIconPath": "images/tab-home-active.png"
+      },
+      {
+        "pagePath": "pages/practice/practice",
+        "text": "练习",
+        "iconPath": "images/tab-practice.png",
+        "selectedIconPath": "images/tab-practice-active.png"
+      },
+      {
+        "pagePath": "pages/plan/plan",
+        "text": "计划",
+        "iconPath": "images/tab-plan.png",
+        "selectedIconPath": "images/tab-plan-active.png"
+      },
+      {
+        "pagePath": "pages/user/user",
+        "text": "我的",
+        "iconPath": "images/tab-user.png",
+        "selectedIconPath": "images/tab-user-active.png"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

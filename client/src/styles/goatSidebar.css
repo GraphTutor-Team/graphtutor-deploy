@@ -1,0 +1,160 @@
+侧边栏内部容器：模仿山羊の前端小窝效果，但不改整体布局
+.shell {
+  position: relative;
+  width: 84px;              /* 默认窄一点，只显示图标和一点文字 */
+  height: 100%;
+  background: #000000;
+  padding-left: 10px;
+  overflow: hidden;
+  transition: width 0.5s;
+}
+
+/* Hover 时在 240px 宽的 aside 里稍微展开，类似你原来的效果 */
+.shell:hover {
+  width: 220px;
+}
+
+/* 菜单 ul */
+.shell ul {
+  position: relative;
+  height: 100%;
+}
+
+/* 每一行 li */
+.shell ul li {
+  position: relative;
+  padding: 5px;
+}
+
+/* 顶部 logo 行 */
+#logo {
+  margin: 40px 0 60px 0;
+}
+
+/* 顶部 logo 用的行容器 */
+.nav-logo-link {
+  display: flex;
+  white-space: nowrap;
+  align-items: center;
+}
+
+/* 头像容器 */
+.imageBox {
+  position: relative;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.imageBox img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 菜单链接整体（NavLink） */
+.nav-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+/* 图标区域 */
+.icon {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 60px;
+  padding-left: 10px;
+  height: 70px;
+  color: #ffffff;
+  transition: 0.5s;
+}
+
+.icon i {
+  font-size: 30px;
+  z-index: 1;
+}
+
+/* 文本区域 */
+.text {
+  position: relative;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+  color: #ffad32c1;
+  padding-left: 15px;
+  letter-spacing: 1px;
+  transition: 0.5s;
+}
+
+/* hover 颜色变化：图标 + 文本 */
+.shell ul li:hover a .icon,
+.shell ul li:hover a .text {
+  color: #ffa117;
+}
+
+/* 激活行外层背景，和你 HTML 里的 .active 类似 */
+.nav-link-active {
+  background: #e4e9f5;
+  border-top-left-radius: 50px;
+  border-bottom-left-radius: 50px;
+}
+
+/* 激活项的上下弧形 */
+.nav-link-active::before {
+  content: "";
+  position: absolute;
+  top: -30px;
+  right: 0;
+  width: 30px;
+  height: 30px;
+  border-bottom-right-radius: 25px;
+  box-shadow: 5px 5px 0 5px #e4e9f5;
+  background: transparent;
+}
+
+.nav-link-active::after {
+  content: "";
+  position: absolute;
+  bottom: -30px;
+  right: 0;
+  width: 30px;
+  height: 30px;
+  border-top-right-radius: 25px;
+  box-shadow: 5px -5px 0 5px #e4e9f5;
+  background: transparent;
+}
+
+/* 激活项图标外面的圆环 */
+.nav-link-active .icon::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  width: 60px;
+  background: #000000;
+  border-radius: 50%;
+  transition: 0.5s;
+  border: 7px solid #ffa117;
+  box-sizing: border-box;
+}
+
+/* 顶部 logo 行也用浅色高亮底 */
+#logo.active {
+  background: #e4e9f5;
+  border-top-left-radius: 50px;
+  border-bottom-left-radius: 50px;
+}
+
+/* 工具区标题 */
+.menu-section {
+  margin: 20px 0 4px 20px;
+  font-size: 12px;
+  color: #888;
+  letter-spacing: 2px;
+}

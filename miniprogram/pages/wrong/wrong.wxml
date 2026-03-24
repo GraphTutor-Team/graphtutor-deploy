@@ -1,0 +1,24 @@
+<view class="container">
+  <view class="sub-header">
+    <view class="sub-title">错题巩固</view>
+    <view class="sub-desc">后续会从 GraphTutor 的错题本同步你在 Web 端做错的题。</view>
+  </view>
+
+  <view class="card">
+    <view class="section-title">示例错题分布</view>
+    <view class="section-text">
+      - 图的基本概念：3 题待复习{"\n"}
+      - 图的遍历：5 题待复习{"\n"}
+      - 最短路径：2 题待复习
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="section-title">功能规划</view>
+    <view class="section-text">
+      小程序端将提供「轻量错题卡片练习」，支持按知识点快速刷题、标记已掌握/待巩固，
+      并与 Web 端的错题记录保持一致。
+    </view>
+  </view>
+</view>
+

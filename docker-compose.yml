@@ -1,0 +1,56 @@
+services:
+  mongodb:
+    image: mongo:7
+    container_name: graphtutor-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: graphtutor
+
+  redis:
+    image: redis:7-alpine
+    container_name: graphtutor-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: graphtutor-server
+    container_name: graphtutor-server
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      MONGODB_URI: mongodb://mongodb:27017/graphtutor
+      REDIS_URL: redis://redis:6379
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      # 前端与 OAuth 回调同一端口（单容器部署）
+      FRONTEND_URL: http://localhost:5000
+      CLIENT_URL: http://localhost:5000
+      JWT_SECRET: ${JWT_SECRET:-change-this-in-production}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-this-in-production}
+      ENABLE_SWAGGER: "false"
+    depends_on:
+      - mongodb
+      - redis
+    volumes:
+      - ./server/uploads:/app/server/uploads
+    env_file:
+      - ./server/.env
+
+volumes:
+  mongodb_data:
+  redis_data:
+

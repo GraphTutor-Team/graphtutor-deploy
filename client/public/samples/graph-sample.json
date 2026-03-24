@@ -1,0 +1,30 @@
+[
+  {
+    "key": "web",
+    "name": "Web 开发",
+    "order": 0,
+    "meta": {},
+    "parentKey": null
+  },
+  {
+    "key": "html",
+    "name": "HTML 基础",
+    "order": 1,
+    "meta": {},
+    "parentKey": "web"
+  },
+  {
+    "key": "css",
+    "name": "CSS 基础",
+    "order": 2,
+    "meta": {},
+    "parentKey": "web"
+  },
+  {
+    "key": "js",
+    "name": "JavaScript 基础",
+    "order": 3,
+    "meta": {},
+    "parentKey": "web"
+  }
+]
