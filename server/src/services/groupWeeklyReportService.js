@@ -44,7 +44,7 @@ async function getGroupMemberStats(groupId, days = 7) {
             { $gt: ['$totalQuestions', 0] },
             { $multiply: [{ $divide: ['$correctQuestions', '$totalQuestions'] }, 100] },
             0,
-          },
+          ],
         },
       },
     },
