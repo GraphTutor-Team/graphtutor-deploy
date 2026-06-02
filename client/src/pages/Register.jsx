@@ -100,8 +100,9 @@ export default function Register(){
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">注册</h1>
-          <p className="text-sm font-medium text-slate-600">创建新账号，开始学习之旅</p>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">注册 GraphTutor</h1>
+          <p className="text-sm font-medium text-slate-600">使用邮箱创建账号</p>
+          <p className="text-xs text-slate-500">已有 GitHub 账号？请前往登录页使用 GitHub 登录</p>
         </div>
         {err && (
           <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-lg text-sm animate-fade-in">
@@ -202,7 +203,7 @@ export default function Register(){
         </button>
         <div className="text-sm font-medium text-slate-600 text-center pt-4 border-t border-slate-200">
           <span>已有账号？</span>
-          <Link to="/login" className="ml-2 font-semibold text-indigo-600 hover:text-indigo-700 transition-colors">去登录</Link>
+          <Link to="/login" className="ml-2 font-semibold text-indigo-600 hover:text-indigo-700 transition-colors">去登录（邮箱 / GitHub）</Link>
         </div>
       </form>
     </div>

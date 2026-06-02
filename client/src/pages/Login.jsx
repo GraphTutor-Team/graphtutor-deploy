@@ -1,19 +1,10 @@
 /**
  * GraphTutor V3.0 - 用户登录页面
- * 
- * 作用：提供用户登录功能，支持邮箱密码登录，登录成功后跳转到目标页面或首页
- * 关联页面：
- *   - pages/Register.jsx (注册页面)
- *   - context/AuthContext.jsx (认证上下文，处理登录逻辑)
- *   - api/auth.js (登录API)
- * 技术栈：
- *   - React Hooks (useState)
- *   - React Router (useNavigate, useLocation)
- *   - 表单验证
- *   - 密码显示/隐藏切换
+ *
+ * 支持：邮箱密码、GitHub OAuth
  */
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/api";
@@ -21,80 +12,16 @@ import api from "../api/api";
 export default function Login() {
   const nav = useNavigate();
   const location = useLocation();
-  const { login: authLogin, loginWithSms } = useAuth();
+  const { login: authLogin } = useAuth();
 
-  const [loginMode, setLoginMode] = useState("password");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
-  const [phone, setPhone] = useState("");
-  const [smsCode, setSmsCode] = useState("");
-  const [sendCooldown, setSendCooldown] = useState(0);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [githubBusy, setGithubBusy] = useState(false);
-  const [smsSendBusy, setSmsSendBusy] = useState(false);
 
-  // 登录后跳回来源页（比如 /exam），没有就去 /home
   const from = location.state?.from || "/home";
-
-  useEffect(() => {
-    if (sendCooldown <= 0) return;
-    const t = setInterval(() => setSendCooldown((c) => (c <= 1 ? 0 : c - 1)), 1000);
-    return () => clearInterval(t);
-  }, [sendCooldown]);
-
-  function normalizePhone(str) {
-    return (str || "").replace(/\D/g, "");
-  }
-
-  async function handleSendCode() {
-    const p = normalizePhone(phone);
-    if (p.length !== 11 || !p.startsWith("1")) {
-      setErr("请输入正确的 11 位手机号");
-      return;
-    }
-    setSmsSendBusy(true);
-    setErr("");
-    try {
-      const { data } = await api.post("/auth/sms/send", { phone: p });
-      if (data?.success) {
-        setSendCooldown(60);
-      } else {
-        setErr(data?.message || "发送失败");
-      }
-    } catch (e) {
-      const msg = e?.response?.data?.message || "发送验证码失败";
-      const cooldown = e?.response?.data?.cooldown;
-      if (typeof cooldown === "number") setSendCooldown(cooldown);
-      setErr(msg);
-    } finally {
-      setSmsSendBusy(false);
-    }
-  }
-
-  async function submitSms(e) {
-    e.preventDefault();
-    setErr("");
-    const p = normalizePhone(phone);
-    if (p.length !== 11 || !p.startsWith("1")) {
-      setErr("请输入正确的 11 位手机号");
-      return;
-    }
-    if (!/^\d{6}$/.test(smsCode)) {
-      setErr("请输入 6 位数字验证码");
-      return;
-    }
-    setBusy(true);
-    try {
-      await loginWithSms(p, smsCode);
-      nav(from, { replace: true });
-    } catch (e2) {
-      setErr(e2?.message || "验证码错误或已过期");
-    } finally {
-      setBusy(false);
-    }
-  }
 
   async function handleGitHubLogin() {
     setGithubBusy(true);
@@ -129,15 +56,11 @@ export default function Login() {
 
     setBusy(true);
     try {
-      // 使用 AuthContext 的 login 方法
-      const user = await authLogin(email, password);
-      
-      // 登录成功，跳转
+      await authLogin(email, password);
       nav(from, { replace: true });
     } catch (e2) {
       console.error("登录失败：", e2);
-      const errorMessage = e2?.message || "登录失败，请检查邮箱和密码";
-      setErr(errorMessage);
+      setErr(e2?.message || "登录失败，请检查邮箱和密码");
     } finally {
       setBusy(false);
     }
@@ -156,34 +79,14 @@ export default function Login() {
             登录 GraphTutor
           </h1>
           <p className="text-sm font-medium text-slate-600">
-            使用你的账号登录，开始练习与考试
+            使用邮箱密码或 GitHub 登录
           </p>
-          <p className="text-xs text-slate-500">
-            支持：邮箱密码、手机验证码、GitHub（微信登录暂未开放）
-          </p>
-        </div>
-
-        <div className="flex rounded-lg bg-slate-100 p-1">
-          <button
-            type="button"
-            onClick={() => { setLoginMode("password"); setErr(""); }}
-            className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${loginMode === "password" ? "bg-white text-blue-600 shadow" : "text-slate-600 hover:text-slate-900"}`}
-          >
-            邮箱密码
-          </button>
-          <button
-            type="button"
-            onClick={() => { setLoginMode("sms"); setErr(""); }}
-            className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${loginMode === "sms" ? "bg-white text-blue-600 shadow" : "text-slate-600 hover:text-slate-900"}`}
-          >
-            手机验证码
-          </button>
         </div>
 
         {err && (
           <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-lg text-sm animate-fade-in">
             <div className="flex items-center">
-              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-5 h-5 mr-2 shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
               </svg>
               {err}
@@ -191,26 +94,21 @@ export default function Login() {
           </div>
         )}
 
-        {loginMode === "password" && (
         <form className="space-y-4" onSubmit={submit}>
           <div className="flex flex-col gap-2">
-            <label className="label">
-              邮箱
-            </label>
+            <label className="label">邮箱</label>
             <input
               type="email"
               className="input"
               placeholder="your@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              disabled={busy}
+              disabled={busy || githubBusy}
             />
           </div>
 
           <div className="flex flex-col gap-2">
-            <label className="label">
-              密码
-            </label>
+            <label className="label">密码</label>
             <div className="relative">
               <input
                 type={show ? "text" : "password"}
@@ -218,11 +116,11 @@ export default function Login() {
                 placeholder="至少 6 位"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                disabled={busy}
+                disabled={busy || githubBusy}
               />
               <button
                 type="button"
-                className="absolute inset-y-0 right-3 flex items-center text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                className="absolute inset-y-0 right-3 flex items-center text-sm text-slate-500 hover:text-slate-700"
                 onClick={() => setShow((s) => !s)}
               >
                 {show ? "隐藏" : "显示"}
@@ -233,13 +131,13 @@ export default function Login() {
           <button
             type="submit"
             className="w-full mt-4 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold py-3 px-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-            disabled={busy}
+            disabled={busy || githubBusy}
           >
             {busy ? (
               <>
                 <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
                 登录中…
               </>
@@ -248,55 +146,6 @@ export default function Login() {
             )}
           </button>
         </form>
-        )}
-
-        {loginMode === "sms" && (
-        <form className="space-y-4" onSubmit={submitSms}>
-          <div className="flex flex-col gap-2">
-            <label className="label">手机号</label>
-            <input
-              type="tel"
-              className="input"
-              placeholder="11 位手机号"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              maxLength={11}
-              disabled={busy}
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <label className="label">验证码</label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                inputMode="numeric"
-                pattern="\d*"
-                className="input flex-1"
-                placeholder="6 位验证码"
-                value={smsCode}
-                onChange={(e) => setSmsCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                maxLength={6}
-                disabled={busy}
-              />
-              <button
-                type="button"
-                onClick={handleSendCode}
-                disabled={smsSendBusy || busy || sendCooldown > 0 || normalizePhone(phone).length !== 11}
-                className="px-4 py-2 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-              >
-                {sendCooldown > 0 ? `${sendCooldown}s 后重发` : "获取验证码"}
-              </button>
-            </div>
-          </div>
-          <button
-            type="submit"
-            className="w-full mt-4 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold py-3 px-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-            disabled={busy}
-          >
-            {busy ? "登录中…" : "登录"}
-          </button>
-        </form>
-        )}
 
         <div className="relative my-4">
           <div className="absolute inset-0 flex items-center">
@@ -337,7 +186,7 @@ export default function Login() {
             to="/register"
             className="ml-2 font-semibold text-blue-600 hover:text-blue-700 transition-colors"
           >
-            去注册
+            邮箱注册
           </Link>
         </div>
       </div>
