@@ -65,6 +65,7 @@ import v3MessagesRoutes from "./routes/v3/messages.js";
 import v3FriendChallengesRoutes from "./routes/v3/friendChallenges.js";
 import v3LearningPostsRoutes from "./routes/v3/learningPosts.js";
 import v3DailyChallengeRoutes from "./routes/v3/dailyChallenge.js";
+import homeworkInviteRoutes from "./routes/homeworkInvite.js";
 import { securityHeaders } from "./middleware/security.js";
 import { defaultResponseTimeLogger } from "./middleware/responseTime.js";
 import { apiRateLimiter, strictRateLimiter } from "./middleware/rateLimiter.js";
@@ -114,6 +115,9 @@ export async function createServer() {
   
   // 静态文件服务（用于上传的文件）
   app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+  // 实验三邀请函：视频素材（将 1.mp4 / 2.mp4 放入 server/homework-media/）
+  app.use('/homework-media', express.static(path.join(__dirname, '../homework-media')));
 
   // CSRF token生成端点（在CSRF保护之前）
   app.get("/api/auth/csrf-token", csrfTokenHandler);
@@ -184,6 +188,7 @@ export async function createServer() {
   app.use("/api/v3/friend-challenges", v3FriendChallengesRoutes);
   app.use("/api/v3/learning-posts", v3LearningPostsRoutes);
   app.use("/api/v3/daily-challenge", v3DailyChallengeRoutes);
+  app.use("/api/homework/invite", homeworkInviteRoutes);
   app.use("/api/v3/equipment", (await import("./routes/v3/equipment.js")).default);
   app.use("/api/v3/shop", (await import("./routes/v3/shop.js")).default);
   app.use("/api/v3/leaderboard", (await import("./routes/v3/leaderboard.js")).default);

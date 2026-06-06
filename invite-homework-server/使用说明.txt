@@ -1,0 +1,30 @@
+
+1. 准备工作
+安装 Node.js
+启动命令行，切换工作目录到 invite-homework-server 目录。
+
+2. 安装依赖并启动
+npm install
+node index.js
+
+3. 将音频或视频文件放入 htdocs 目录
+（已附带 1.mp4、2.mp4，可直接替换）
+
+4. 访问地址
+
+健康检查：http://127.0.0.1:3000/api/health
+报名提交：POST http://127.0.0.1:3000/api/register
+报名列表：GET  http://127.0.0.1:3000/api/register
+视频文件：  http://127.0.0.1:3000/1.mp4
+            http://127.0.0.1:3000/2.mp4
+
+服务器默认监听 0.0.0.0:3000，支持真机局域网访问。
+
+5. 小程序配置
+编辑 invite-homework-miniprogram/utils/config.js：
+  USE_LOCAL = true  → 本地 http://127.0.0.1:3000
+  USE_LOCAL = false → 远程服务器地址
+真机预览请用电脑局域网 IP，开发者工具勾选「不校验合法域名」。
+
+6. 报名数据
+提交成功后写入 registrations.json（与本目录同级）。

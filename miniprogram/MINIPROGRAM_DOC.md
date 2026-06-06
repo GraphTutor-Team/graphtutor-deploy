@@ -66,6 +66,19 @@ miniprogram/
 
 ---
 
+## 三点一、图库资源配置（新增）
+
+- 统一图库配置文件：`utils/image-library.js`
+- 当前已接入免费图库源（商城、首页、通讯录动态、练习/计划/图谱/错题页 banner 均可使用）：
+  - `https://images.unsplash.com`
+  - `https://images.pexels.com`
+  - `https://cdn.pixabay.com`
+- 说明：
+  - 页面图片都保留本地 `fallback`，当线上图失败时会自动回退本地图标。
+  - 上线前需要在小程序后台配置以上域名到 `downloadFile/image` 合法域名。
+
+---
+
 ## 四、技术要点
 
 - **配置与模式**：`utils/config.js` 中 `USE_VIRTUAL_LOGIN`、`BASE_URL` 控制虚拟登录或接后端。

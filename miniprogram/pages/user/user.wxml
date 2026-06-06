@@ -33,6 +33,20 @@
     </view>
   </view>
 
+  <view class="card card--dev">
+    <view class="dev-title">连接与模式</view>
+    <view class="dev-row">
+      <text class="dev-label">登录模式</text>
+      <text class="dev-value">{{useVirtualLogin ? '虚拟登录（本地）' : '真实后端'}}</text>
+    </view>
+    <view class="dev-row">
+      <text class="dev-label">BASE_URL</text>
+      <text class="dev-value dev-value--url">{{baseUrlDisplay}}</text>
+    </view>
+    <button class="btn btn--ghost" bindtap="checkBackend">检测后端 /api/health</button>
+    <view class="dev-hint">修改地址请编辑 utils/config.js</view>
+  </view>
+
   <view class="card card--empty" wx:if="{{isLoggedIn}}">
     <button class="btn btn--outline" bindtap="logout">退出登录</button>
   </view>

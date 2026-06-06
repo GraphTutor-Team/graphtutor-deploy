@@ -1,40 +1,43 @@
 /* 我的 */
 .user-header {
-  padding: 24rpx 0 32rpx;
+  padding: 32rpx 0 40rpx;
   text-align: center;
 }
 
 .avatar {
   width: 128rpx;
   height: 128rpx;
-  margin: 0 auto 24rpx;
+  margin: 0 auto 28rpx;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-primary-light), var(--color-primary));
+  background: linear-gradient(145deg, var(--color-primary-light), var(--color-primary));
   color: #fff;
   font-size: 48rpx;
   font-weight: 600;
   line-height: 128rpx;
   text-align: center;
+  box-shadow: 0 12rpx 40rpx rgba(21, 101, 192, 0.28), 0 0 0 6rpx rgba(255, 255, 255, 0.95), 0 0 0 8rpx rgba(21, 101, 192, 0.12);
 }
 
 .avatar-img {
   width: 128rpx;
   height: 128rpx;
-  margin: 0 auto 24rpx;
+  margin: 0 auto 28rpx;
   border-radius: 50%;
   display: block;
+  box-shadow: 0 12rpx 40rpx rgba(21, 101, 192, 0.22), 0 0 0 6rpx rgba(255, 255, 255, 0.95), 0 0 0 8rpx rgba(21, 101, 192, 0.12);
 }
 
 .user-name {
-  font-size: 40rpx;
-  font-weight: 700;
+  font-size: 42rpx;
+  font-weight: 800;
   color: var(--color-text);
-  margin-bottom: 8rpx;
+  margin-bottom: 10rpx;
+  letter-spacing: 0.5rpx;
 }
 
 .user-email {
   font-size: 26rpx;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
 }
 
 .card--list {
@@ -46,8 +49,9 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 32rpx 40rpx;
+  padding: 34rpx 36rpx;
   border-bottom: 1rpx solid var(--color-border);
+  background: #fff;
 }
 
 .list-item:last-child {
@@ -104,12 +108,85 @@
   height: 88rpx;
   line-height: 88rpx;
   color: var(--color-error);
-  background: transparent;
-  border: 2rpx solid var(--color-error);
-  border-radius: var(--radius-sm);
+  background: rgba(198, 40, 40, 0.04);
+  border: 2rpx solid rgba(198, 40, 40, 0.45);
+  border-radius: 44rpx;
   font-size: 28rpx;
+  font-weight: 600;
 }
 
 .btn--outline::after {
   border: none;
+}
+
+.card--dev {
+  padding: 32rpx 32rpx 36rpx;
+  background: linear-gradient(165deg, #ffffff 0%, #f7f9ff 100%);
+}
+
+.dev-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 22rpx;
+  display: flex;
+  align-items: center;
+}
+
+.dev-title::before {
+  content: '';
+  width: 8rpx;
+  height: 28rpx;
+  margin-right: 14rpx;
+  border-radius: 6rpx;
+  background: linear-gradient(180deg, var(--color-primary-light), var(--color-primary));
+}
+
+.dev-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16rpx;
+  margin-bottom: 14rpx;
+}
+
+.dev-label {
+  font-size: 24rpx;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.dev-value {
+  font-size: 24rpx;
+  color: var(--color-text);
+  font-weight: 500;
+  text-align: right;
+  word-break: break-all;
+}
+
+.dev-value--url {
+  font-weight: 400;
+  color: var(--color-primary);
+}
+
+.btn--ghost {
+  width: 100%;
+  margin-top: 16rpx;
+  height: 72rpx;
+  line-height: 72rpx;
+  font-size: 26rpx;
+  color: var(--color-primary);
+  background: #f5f8ff;
+  border: 1rpx solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.btn--ghost::after {
+  border: none;
+}
+
+.dev-hint {
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  color: var(--color-text-muted);
 }

@@ -1,27 +1,26 @@
 <view class="container">
   <view class="sub-header">
     <view class="sub-title">知识图谱练习</view>
-    <view class="sub-desc">这里将展示与你课程相关的图结构题与练习路径。</view>
+    <view class="sub-desc">图谱节点、路径推荐、进度将由后端返回。</view>
+  </view>
+
+  <view class="page-banner">
+    <image class="page-banner-bg" src="{{bannerImage}}" mode="aspectFill" binderror="onBannerError" />
+    <view class="page-banner-mask"></view>
+    <view class="page-banner-content">
+      <view class="page-banner-title">{{bannerTitle}}</view>
+      <view class="page-banner-sub">{{bannerSubTitle}}</view>
+    </view>
   </view>
 
   <view class="card">
-    <view class="section-title">当前进度（示意）</view>
-    <view class="progress-row">
-      <text class="progress-label">已掌握节点</text>
-      <text class="progress-value">12 / 50</text>
-    </view>
-    <view class="progress-row">
-      <text class="progress-label">推荐下一个知识点</text>
-      <text class="progress-value">图的遍历（BFS）</text>
-    </view>
+    <view class="section-title">当前进度</view>
+    <view class="section-text">当前不显示假进度，待接入后端后显示真实学习进度。</view>
   </view>
 
   <view class="card">
-    <view class="section-title">功能说明</view>
-    <view class="section-text">
-      未来这里会接入 GraphTutor 后端的「知识图谱」与「题目推荐」接口，根据你在 Web 端的练习记录，
-      自动生成图结构相关的练习路径，并在小程序端展示简化版练习入口。
-    </view>
+    <view class="section-title">学习路径</view>
+    <view class="section-text">路径节点与状态待接入后端知识图谱服务。</view>
+    <button class="review-btn" bindtap="waitBackend">待接入后端</button>
   </view>
 </view>
-

@@ -1,0 +1,13 @@
+<view class="container">
+  <view class="card" wx:if="{{product}}">
+    <image class="cover" src="{{product.currentCover}}" mode="aspectFill" binderror="onCoverError" />
+    <view class="name">{{product.name}}</view>
+    <view class="meta">{{product.category}} · 库存 {{product.stock}}</view>
+    <view class="price">¥{{product.price}}</view>
+    <view class="desc">{{product.desc}}</view>
+  </view>
+  <view class="card" wx:else>
+    <view class="section-title">商品不存在</view>
+    <view class="section-text">请返回商城列表重新选择。</view>
+  </view>
+</view>

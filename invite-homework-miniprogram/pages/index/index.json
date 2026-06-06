@@ -1,0 +1,9 @@
+{
+  "navigationBarTitleText": "GraphTutor 图论挑战赛",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
+  "usingComponents": {
+    "section-header": "/components/section-header/section-header",
+    "signup-form": "/components/signup-form/signup-form"
+  }
+}

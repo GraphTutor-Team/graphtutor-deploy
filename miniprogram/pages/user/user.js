@@ -1,4 +1,5 @@
 const api = require('../../utils/api.js');
+const config = require('../../utils/config.js');
 
 const roleMap = { student: '学生', question_manager: '出题负责人', admin: '管理员', user: '用户' };
 
@@ -8,6 +9,8 @@ Page({
     userInfo: null,
     roleText: '学生',
     userFirstChar: '用',
+    useVirtualLogin: config.USE_VIRTUAL_LOGIN,
+    baseUrlDisplay: config.BASE_URL,
   },
 
   onShow() {
@@ -56,5 +59,23 @@ Page({
     getApp().globalData.userInfo = null;
     this.setData({ isLoggedIn: false, userInfo: null });
     wx.showToast({ title: '已退出', icon: 'none' });
+  },
+
+  checkBackend() {
+    if (config.USE_VIRTUAL_LOGIN) {
+      wx.showToast({ title: '当前为虚拟登录，未请求后端', icon: 'none' });
+      return;
+    }
+    wx.showLoading({ title: '检测中', mask: true });
+    api
+      .health()
+      .then(() => {
+        wx.hideLoading();
+        wx.showToast({ title: '后端可访问', icon: 'success' });
+      })
+      .catch(() => {
+        wx.hideLoading();
+        wx.showToast({ title: '无法连接后端', icon: 'none' });
+      });
   },
 });

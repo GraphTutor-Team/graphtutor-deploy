@@ -1,24 +1,21 @@
 <view class="container">
   <view class="sub-header">
     <view class="sub-title">错题巩固</view>
-    <view class="sub-desc">后续会从 GraphTutor 的错题本同步你在 Web 端做错的题。</view>
+    <view class="sub-desc">错题分布、错题卡片与巩固计划待接入后端。</view>
   </view>
 
-  <view class="card">
-    <view class="section-title">示例错题分布</view>
-    <view class="section-text">
-      - 图的基本概念：3 题待复习{"\n"}
-      - 图的遍历：5 题待复习{"\n"}
-      - 最短路径：2 题待复习
+  <view class="page-banner">
+    <image class="page-banner-bg" src="{{bannerImage}}" mode="aspectFill" binderror="onBannerError" />
+    <view class="page-banner-mask"></view>
+    <view class="page-banner-content">
+      <view class="page-banner-title">{{bannerTitle}}</view>
+      <view class="page-banner-sub">{{bannerSubTitle}}</view>
     </view>
   </view>
 
   <view class="card">
-    <view class="section-title">功能规划</view>
-    <view class="section-text">
-      小程序端将提供「轻量错题卡片练习」，支持按知识点快速刷题、标记已掌握/待巩固，
-      并与 Web 端的错题记录保持一致。
-    </view>
+    <view class="section-title">错题数据</view>
+    <view class="section-text">当前不展示假错题，待接入后端后显示真实错题清单。</view>
+    <button class="review-btn" bindtap="waitBackend">待接入后端</button>
   </view>
 </view>
-

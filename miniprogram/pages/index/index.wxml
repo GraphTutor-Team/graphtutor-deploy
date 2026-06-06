@@ -1,8 +1,44 @@
 <view class="container">
-  <view class="card">
+  <view class="auth-card" wx:if="{{isLoggedIn}}">
+    <view class="auth-left">
+      <image
+        wx:if="{{userInfo.avatarUrl}}"
+        class="auth-avatar-img"
+        src="{{userInfo.avatarUrl}}"
+        mode="aspectFill"
+      />
+      <view wx:else class="auth-avatar-char">{{userFirstChar}}</view>
+
+      <view class="auth-meta">
+        <view class="auth-name">{{userDisplayName}} 欢迎您</view>
+        <view class="auth-sub">
+          <text class="auth-role">{{roleText}}</text>
+          <text class="auth-email">{{userInfo.email || '—'}}</text>
+        </view>
+      </view>
+    </view>
+
+    <button class="auth-btn auth-btn--primary" bindtap="goMy">我的</button>
+  </view>
+
+  <view class="auth-card auth-card--empty" wx:else>
+    <view class="auth-empty-title">欢迎使用 GraphTutor</view>
+    <view class="auth-empty-desc">登录后可同步练习、计划与通讯录</view>
+    <button class="auth-btn auth-btn--primary" bindtap="goLogin">去登录</button>
+  </view>
+
+  <view class="index-hero">
+    <image class="index-hero-bg" src="{{heroImage}}" mode="aspectFill" binderror="onHeroImageError" />
+    <view class="index-hero-mask"></view>
+    <view class="index-hero-badge">GraphTutor</view>
+    <view class="index-hero-title">图结构 · 智能练习</view>
+    <view class="index-hero-desc">知识图谱、练习与计划，一站入口</view>
+  </view>
+
+  <view class="card index-card">
     <view class="grid-header">
       <view class="grid-title">功能入口</view>
-      <view class="grid-sub">图标统一为蓝色数据可视化风格（iconfont 同系列）</view>
+      <view class="grid-sub">蓝色数据可视化图标，与练习页风格一致</view>
     </view>
 
     <view class="menu-grid">
@@ -21,6 +57,9 @@
       </view>
     </view>
 
-    <view class="grid-hint">换图标：编辑 pages/index/index.js 中 menuItems 的 img（支持同目录下任意 .svg / .png）。</view>
+    <view class="grid-hint">
+      <text class="grid-hint-label">提示</text>
+      <text class="grid-hint-text">换图标可编辑 index.js 中 menuItems 的 img（.svg / .png）。</text>
+    </view>
   </view>
 </view>

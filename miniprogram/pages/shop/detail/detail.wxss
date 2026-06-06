@@ -1,0 +1,5 @@
+.cover { width: 100%; height: 260rpx; margin-bottom: 14rpx; border-radius: 16rpx; background: #f4f7fc; }
+.name { font-size: 34rpx; font-weight: 800; color: var(--color-text); }
+.meta { margin-top: 6rpx; font-size: 24rpx; color: var(--color-text-muted); }
+.price { margin-top: 14rpx; font-size: 38rpx; color: var(--color-primary); font-weight: 900; }
+.desc { margin-top: 12rpx; font-size: 26rpx; color: var(--color-text-secondary); line-height: 1.6; }

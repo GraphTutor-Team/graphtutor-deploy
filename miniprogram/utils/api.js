@@ -98,9 +98,35 @@ function loginWithAvatar(nickname, avatarUrl, extra) {
  */
 function login(email, password) {
   if (config.USE_VIRTUAL_LOGIN) {
-    return virtualLogin(email, email);
+    return virtualLogin((email || '').trim(), '', { password: password || '' });
   }
   return request('/api/auth/login', { method: 'POST', data: { email, password } });
+}
+
+/** 发送短信验证码 */
+function sendSmsCode(phone) {
+  if (config.USE_VIRTUAL_LOGIN) {
+    return Promise.resolve({ success: true, message: 'ok', cooldown: 60 });
+  }
+  return request('/api/auth/sms/send', { method: 'POST', data: { phone } });
+}
+
+/** 手机验证码登录 */
+function loginWithSms(phone, code) {
+  if (config.USE_VIRTUAL_LOGIN) {
+    const masked = String(phone || '').replace(/^(\d{3})\d{4}(\d{4})$/, '$1****$2');
+    return virtualLogin(masked || '手机号用户', '', { phoneNumber: phone || '', smsCode: code || '' });
+  }
+  return request('/api/auth/sms/login', { method: 'POST', data: { phone, code } });
+}
+
+/** 微信小程序识别登录（wx.login code） */
+function loginWithMiniProgram(wxCode) {
+  if (config.USE_VIRTUAL_LOGIN) {
+    const suffix = String(wxCode || '').slice(-6) || String(Date.now()).slice(-6);
+    return virtualLogin(`微信用户${suffix}`, '', { wxCode: wxCode || '' });
+  }
+  return request('/api/auth/mp/login', { method: 'POST', data: { code: wxCode } });
 }
 
 /**
@@ -119,4 +145,17 @@ function health() {
   return request('/api/health', { method: 'GET' });
 }
 
-module.exports = { request, getBaseUrl, getToken, login, loginWithAvatar, getMe, health, isVirtualToken, virtualLogin };
+module.exports = {
+  request,
+  getBaseUrl,
+  getToken,
+  login,
+  sendSmsCode,
+  loginWithSms,
+  loginWithMiniProgram,
+  loginWithAvatar,
+  getMe,
+  health,
+  isVirtualToken,
+  virtualLogin,
+};

@@ -1,24 +1,26 @@
 <view class="container">
   <view class="sub-header">
     <view class="sub-title">学习计划</view>
-    <view class="sub-desc">先在 Web 端设置学习目标，这里展示精简版计划与提醒。</view>
+    <view class="sub-desc">计划任务、打卡、提醒将由后端统一下发。</view>
   </view>
 
-  <view class="card">
-    <view class="section-title">今日计划（示意）</view>
-    <view class="section-text">
-      - 完成 3 道图的遍历练习{"\n"}
-      - 回顾昨天的错题 5 题{"\n"}
-      - 预习最短路径算法（Dijkstra）
+  <view class="page-banner">
+    <image class="page-banner-bg" src="{{bannerImage}}" mode="aspectFill" binderror="onBannerError" />
+    <view class="page-banner-mask"></view>
+    <view class="page-banner-content">
+      <view class="page-banner-title">{{bannerTitle}}</view>
+      <view class="page-banner-sub">{{bannerSubTitle}}</view>
     </view>
   </view>
 
   <view class="card">
-    <view class="section-title">功能规划</view>
-    <view class="section-text">
-      未来这里会与 GraphTutor 的「学习计划 / 复习计划」模块打通，
-      支持在小程序端查看今日任务、打卡签到、接收学习提醒。
-    </view>
+    <view class="section-title">今日计划</view>
+    <view class="section-text">当前无本地假数据展示，待接入后端后显示真实任务。</view>
+  </view>
+
+  <view class="card">
+    <view class="section-title">本周节奏</view>
+    <view class="section-text">本周打卡与连续天数待接入后端统计。</view>
+    <button class="review-btn" bindtap="waitBackend">待接入后端</button>
   </view>
 </view>
-
