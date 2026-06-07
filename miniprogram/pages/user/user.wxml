@@ -7,6 +7,10 @@
   </view>
 
   <view class="card card--list" wx:if="{{isLoggedIn}}">
+    <view class="list-item list-item--warn" wx:if="{{needsComplete}}">
+      <text class="list-label">账号状态</text>
+      <text class="list-value list-value--warn">待完善</text>
+    </view>
     <view class="list-item">
       <text class="list-label">角色</text>
       <text class="list-value">{{roleText}}</text>
@@ -48,6 +52,7 @@
   </view>
 
   <view class="card card--empty" wx:if="{{isLoggedIn}}">
+    <button wx:if="{{needsComplete}}" class="btn btn--primary btn--block" bindtap="goCompleteAccount">去完善账号</button>
     <button class="btn btn--outline" bindtap="logout">退出登录</button>
   </view>
 

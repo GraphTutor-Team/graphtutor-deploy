@@ -75,6 +75,18 @@
   font-size: 24rpx;
 }
 
+.list-value--warn {
+  color: #e65100;
+}
+
+.list-item--warn {
+  background: rgba(230, 81, 0, 0.04);
+}
+
+.card--empty .btn--primary {
+  margin-bottom: 20rpx;
+}
+
 .card--empty {
   padding: 40rpx;
   text-align: center;

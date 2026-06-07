@@ -14,10 +14,73 @@ function getToken() {
   return app ? app.globalData.token : wx.getStorageSync('token');
 }
 
+function getRefreshToken() {
+  return app && app.globalData.refreshToken
+    ? app.globalData.refreshToken
+    : wx.getStorageSync('refreshToken');
+}
+
+function saveTokens(accessToken, refreshToken) {
+  if (app) {
+    app.globalData.token = accessToken;
+    if (refreshToken) app.globalData.refreshToken = refreshToken;
+  }
+  wx.setStorageSync('token', accessToken);
+  if (refreshToken) wx.setStorageSync('refreshToken', refreshToken);
+}
+
+function clearSession() {
+  if (app) {
+    app.globalData.token = null;
+    app.globalData.userInfo = null;
+    app.globalData.refreshToken = null;
+  }
+  wx.removeStorageSync('token');
+  wx.removeStorageSync('userInfo');
+  wx.removeStorageSync('refreshToken');
+}
+
 /** 是否为虚拟登录（token 以 virtual- 开头） */
 function isVirtualToken() {
   const t = getToken();
   return typeof t === 'string' && t.indexOf('virtual-') === 0;
+}
+
+let refreshingPromise = null;
+
+function refreshAccessToken() {
+  if (refreshingPromise) return refreshingPromise;
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) {
+    return Promise.reject(new Error('登录已过期，请重新登录'));
+  }
+  refreshingPromise = new Promise((resolve, reject) => {
+    const baseUrl = getBaseUrl();
+    wx.request({
+      url: baseUrl.replace(/\/$/, '') + '/api/auth/refresh',
+      method: 'POST',
+      data: { refreshToken },
+      header: { 'Content-Type': 'application/json', 'X-Client': 'miniprogram' },
+      success(res) {
+        const data = res.data || {};
+        if (res.statusCode >= 200 && res.statusCode < 300 && data.success && data.accessToken) {
+          saveTokens(data.accessToken, data.refreshToken || refreshToken);
+          resolve(data.accessToken);
+          return;
+        }
+        clearSession();
+        reject(new Error((data && data.message) || '登录已过期，请重新登录'));
+      },
+      fail(err) {
+        clearSession();
+        reject(err || new Error('刷新登录失败'));
+      },
+      complete() {
+        refreshingPromise = null;
+      },
+    });
+  });
+  return refreshingPromise;
 }
 
 // ========== 以下为请求后端用，接后端时无需改逻辑，只需在 config.js 关闭虚拟登录 ==========
@@ -26,9 +89,9 @@ function isVirtualToken() {
  * 请求后端 API（GET/POST 等）
  * 请求头已带 X-Client: miniprogram、Authorization: Bearer <token>
  */
-function request(url, options = {}) {
+function request(url, options = {}, retryOn401 = true) {
   const baseUrl = getBaseUrl();
-  const token = getToken();
+  const token = options.skipAuth ? '' : getToken();
   const fullUrl = url.startsWith('http') ? url : baseUrl.replace(/\/$/, '') + (url.startsWith('/') ? url : '/' + url);
 
   return new Promise((resolve, reject) => {
@@ -43,12 +106,18 @@ function request(url, options = {}) {
         ...(options.header || {}),
       },
       success(res) {
+        if (res.statusCode === 401 && retryOn401 && !options.skipAuth && !config.USE_VIRTUAL_LOGIN) {
+          refreshAccessToken()
+            .then(() => request(url, options, false).then(resolve).catch(reject))
+            .catch(reject);
+          return;
+        }
         if (res.statusCode >= 200 && res.statusCode < 300) {
           resolve(res.data);
-        } else {
-          const msg = (res.data && res.data.message) || (res.data && res.data.error) || ('请求失败 ' + res.statusCode);
-          reject(new Error(msg));
+          return;
         }
+        const msg = (res.data && res.data.message) || (res.data && res.data.error) || ('请求失败 ' + res.statusCode);
+        reject(new Error(msg));
       },
       fail(err) {
         reject(err || new Error('网络错误'));
@@ -103,6 +172,17 @@ function login(email, password) {
   return request('/api/auth/login', { method: 'POST', data: { email, password } });
 }
 
+/** 邮箱注册（与 Web 端 /api/auth/register 一致） */
+function register(email, password, name) {
+  if (config.USE_VIRTUAL_LOGIN) {
+    return virtualLogin((email || '').trim(), '', { password: password || '', name: name || '' });
+  }
+  return request('/api/auth/register', {
+    method: 'POST',
+    data: { email, password, name: name || undefined },
+  });
+}
+
 /** 发送短信验证码 */
 function sendSmsCode(phone) {
   if (config.USE_VIRTUAL_LOGIN) {
@@ -145,17 +225,83 @@ function health() {
   return request('/api/health', { method: 'GET' });
 }
 
+/**
+ * 微信临时账号完善 / 绑定已有 Web 账号
+ * mode: 'link' | 'register'
+ */
+function completeAccount(payload) {
+  if (config.USE_VIRTUAL_LOGIN) {
+    const user = wx.getStorageSync('userInfo') || {};
+    return Promise.resolve({
+      success: true,
+      user: { ...user, needsProfileCompletion: false, accountType: 'full', email: payload.email },
+      accessToken: wx.getStorageSync('token'),
+      token: wx.getStorageSync('token'),
+    });
+  }
+  return request('/api/auth/mp/complete-account', { method: 'POST', data: payload });
+}
+
+function getNotifications(params) {
+  const p = params || {};
+  return request('/api/v3/notifications', {
+    method: 'GET',
+    data: {
+      page: p.page || 1,
+      limit: p.limit || 5,
+      type: p.type,
+    },
+  }).then((res) => (res && res.success && res.data) || { items: [] });
+}
+
+function getRecommendedQuestions(params) {
+  const p = params || {};
+  return request('/api/v3/recommendations/questions', {
+    method: 'GET',
+    data: {
+      limit: p.limit || 3,
+      strategy: p.strategy || 'adaptive',
+      includeReasons: p.includeReasons === false ? 'false' : 'true',
+    },
+  }).then((res) => (res && res.success && res.data) || []);
+}
+
+function getTodayReviewQuestions(params) {
+  const p = params || {};
+  return request('/api/v3/smart-review/today', {
+    method: 'GET',
+    data: { limit: p.limit || 50 },
+  }).then((res) => (res && res.success && res.data) || { questions: [] });
+}
+
+function getComprehensiveAnalysis(days) {
+  return request('/api/v3/enhanced-analytics/comprehensive', {
+    method: 'GET',
+    data: { days: days || 7 },
+  }).then((res) => (res && res.success && res.data) || null);
+}
+
 module.exports = {
   request,
   getBaseUrl,
   getToken,
+  getRefreshToken,
+  saveTokens,
+  clearSession,
+  refreshAccessToken,
   login,
+  register,
   sendSmsCode,
   loginWithSms,
   loginWithMiniProgram,
   loginWithAvatar,
   getMe,
   health,
+  completeAccount,
+  getNotifications,
+  getRecommendedQuestions,
+  getTodayReviewQuestions,
+  getComprehensiveAnalysis,
   isVirtualToken,
   virtualLogin,
 };

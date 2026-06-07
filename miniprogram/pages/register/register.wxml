@@ -1,0 +1,34 @@
+<view class="container">
+  <view class="login-header">
+    <view class="login-dot"></view>
+    <view class="login-title">注册 GraphTutor</view>
+    <view class="login-desc">使用邮箱创建账号，与 Web 端数据同步</view>
+  </view>
+
+  <view class="card card--form">
+    <view class="form-error" wx:if="{{error}}">{{error}}</view>
+
+    <text class="form-label">邮箱</text>
+    <input class="form-input" type="text" placeholder="your@email.com" value="{{email}}" bindinput="onEmailInput" />
+
+    <text class="form-label">密码</text>
+    <view class="password-wrap">
+      <input class="form-input form-input--pwd" password="{{!showPassword}}" placeholder="至少 6 位" value="{{password}}" bindinput="onPasswordInput" />
+      <text class="pwd-toggle" bindtap="togglePassword">{{passwordToggleText}}</text>
+    </view>
+
+    <text class="form-label">确认密码</text>
+    <input class="form-input" password placeholder="再次输入密码" value="{{confirmPassword}}" bindinput="onConfirmInput" />
+
+    <button class="btn btn--primary btn--block" loading="{{loading}}" disabled="{{loading}}" bindtap="submit">注册</button>
+
+    <view class="register-line">
+      <text>已有账号？</text>
+      <text class="register-link" bindtap="goLogin">去登录</text>
+    </view>
+  </view>
+
+  <view class="login-tip" wx:if="{{useVirtual}}">
+    <text>当前为虚拟登录模式，注册将直接生成体验账号。</text>
+  </view>
+</view>

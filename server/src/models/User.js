@@ -34,6 +34,11 @@ const UserSchema = new mongoose.Schema(
       type: String,
       sparse: true,
     },
+    // 微信小程序 openid（与网站应用 openid 不同，须单独存储）
+    wechatMpOpenId: {
+      type: String,
+      sparse: true,
+    },
 
     // 显示名称 / 姓名
     name: {
@@ -151,6 +156,7 @@ UserSchema.index({ githubId: 1 }, { unique: true, sparse: true });
 UserSchema.index({ phone: 1 }, { unique: true, sparse: true });
 UserSchema.index({ wechatOpenId: 1 }, { unique: true, sparse: true });
 UserSchema.index({ wechatUnionId: 1 }, { sparse: true });
+UserSchema.index({ wechatMpOpenId: 1 }, { unique: true, sparse: true });
 
 const User = mongoose.model("User", UserSchema);
 

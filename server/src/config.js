@@ -30,6 +30,12 @@ export const FRONTEND_URL =
 export const WECHAT_APP_ID = process.env.WECHAT_APP_ID || "";
 export const WECHAT_APP_SECRET = process.env.WECHAT_APP_SECRET || "";
 
+// 微信小程序（wx.login → jscode2session，与开放平台网站应用凭证不同）
+export const MINIPROGRAM_APP_ID =
+  process.env.MINIPROGRAM_APP_ID || process.env.WX_MINIPROGRAM_APPID || "";
+export const MINIPROGRAM_APP_SECRET =
+  process.env.MINIPROGRAM_APP_SECRET || process.env.WX_MINIPROGRAM_SECRET || "";
+
 // 短信验证码（手机号登录）
 export const SMS_CODE_TTL_SECONDS = parseInt(process.env.SMS_CODE_TTL_SECONDS || "300", 10);
 export const SMS_SEND_INTERVAL_SECONDS = parseInt(process.env.SMS_SEND_INTERVAL_SECONDS || "60", 10);
@@ -52,6 +58,8 @@ const config = {
   FRONTEND_URL,
   WECHAT_APP_ID,
   WECHAT_APP_SECRET,
+  MINIPROGRAM_APP_ID,
+  MINIPROGRAM_APP_SECRET,
   SMS_CODE_TTL_SECONDS,
   SMS_SEND_INTERVAL_SECONDS,
   SMS_PROVIDER,

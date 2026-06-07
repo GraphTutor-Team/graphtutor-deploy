@@ -21,6 +21,8 @@ miniprogram/
 │   │   ├── index.wxml
 │   │   └── index.wxss
 │   ├── login/             # 登录页（非 tabBar）
+│   ├── register/          # 注册页（对应 Web Register.jsx）
+│   ├── account-complete/  # 微信登录后绑定/完善账号
 │   │   ├── login.js
 │   │   ├── login.json
 │   │   ├── login.wxml
@@ -32,8 +34,10 @@ miniprogram/
 │       └── user.wxss
 └── utils/
     ├── config.js          # 【接后端/改模式只改这里】USE_VIRTUAL_LOGIN、BASE_URL
-    └── api.js             # 请求封装、login / loginWithAvatar / getMe
+    └── api.js             # 请求封装、login / loginWithMiniProgram / getMe
 ```
+
+**对接总览文档**：[`docs/MINIPROGRAM_INTEGRATION.md`](../docs/MINIPROGRAM_INTEGRATION.md)（部署、env、合法域名、接口清单）
 
 ---
 
@@ -81,11 +85,12 @@ miniprogram/
 
 ## 四、技术要点
 
-- **配置与模式**：`utils/config.js` 中 `USE_VIRTUAL_LOGIN`、`BASE_URL` 控制虚拟登录或接后端。
-- **请求封装**：`utils/api.js` 提供 `request`、`login`、`loginWithAvatar`、`getMe`；请求头带 `X-Client: miniprogram`、`Authorization: Bearer <token>`（接后端时用）。
-- **全局状态**：`App.globalData` 存 token、userInfo、baseUrl；各页在 `onShow` 中同步登录态与展示数据（如 `userFirstChar`）。
-- **样式**：`app.wxss` 用 CSS 变量（如 `--color-primary`、`--radius-sm`）统一主题；页面用 rpx、flex 做适配。
-- **导航**：`app.json` 中 `pages`、`window`、`tabBar`（首页 + 我的，含 icon）。
+- **配置与模式**：`utils/config.js` 中 `USE_VIRTUAL_LOGIN`、`BASE_URL` 控制虚拟登录或接后端（当前默认已接 `http://106.55.99.208:5000`）。
+- **请求封装**：`utils/api.js` 提供 `request`、`login`、`loginWithMiniProgram`、`getMe`；请求头带 `X-Client: miniprogram`、`Authorization: Bearer <token>`。
+- **登录页**：邮箱密码 + 微信快捷登录（`wx.login` → `POST /api/auth/mp/login`），与 Web 端策略一致（无 GitHub / 短信入口）。
+- **全局状态**：`App.globalData` 存 token、userInfo、baseUrl；各页在 `onShow` 中同步登录态。
+- **样式**：`app.wxss` 用 CSS 变量统一主题；页面用 rpx、flex 做适配。
+- **导航**：`app.json` 中 tabBar 为首页 / 练习 / 计划 / 我的 / 商城；非 tab 页（如通讯录）须用 `navigateTo`，不可用 `switchTab`。
 
 ---
 
@@ -93,9 +98,12 @@ miniprogram/
 
 | 位置 | 说明 |
 |------|------|
-| **utils/config.js** | `USE_VIRTUAL_LOGIN = false`，`BASE_URL = '你的后端根地址'`（如 `https://api.xxx.com` 或 `http://192.168.x.x:5000`） |
-| **utils/api.js** | 无需改逻辑；若后端有「小程序专用登录」接口，可在 `loginWithAvatar` 中改为先 `wx.login` 取 code 再请求该接口 |
-| **后端** | 对请求头 `X-Client: miniprogram` 做 CSRF 豁免；CORS 允许小程序请求来源 |
+| **utils/config.js** | `USE_VIRTUAL_LOGIN = false`，`BASE_URL` 设为后端根地址（上线须 HTTPS 域名） |
+| **utils/api.js** | 一般无需改；新业务能力在此增加 `request('/api/...')` 封装 |
+| **server/.env** | `MINIPROGRAM_APP_ID`、`MINIPROGRAM_APP_SECRET`（小程序凭证，非开放平台网站应用） |
+| **后端** | `POST /api/auth/mp/login` 已实现；对 `X-Client: miniprogram` 做 CSRF 豁免（已内置） |
+
+详见 [`docs/MINIPROGRAM_INTEGRATION.md`](../docs/MINIPROGRAM_INTEGRATION.md)。
 
 ---
 
@@ -129,9 +137,9 @@ miniprogram/
 
 | 日期 | 变更摘要 |
 |------|----------|
-| （示例）2025-xx-xx | 初版：首页、登录（微信头像+昵称）、我的；虚拟登录 + 后端预留 |
-|  | 更多信息：手机号（授权/手动）、性别/学校/年级选填；wx.login 取 code；我的页展示手机/性别/学校/年级 |
-|  |  |
+| 2026-05-26 | 账号完善页 + `POST /api/auth/mp/complete-account`；微信登录后绑定/注册同步 Web 账号 |
+| 2026-05-26 | 后端 `POST /api/auth/mp/login`；登录页改为邮箱+微信快捷登录；对接文档 `docs/MINIPROGRAM_INTEGRATION.md` |
+| 2025-xx-xx | 初版：首页、登录、我的；虚拟登录 + 后端预留 |
 
 ---
 

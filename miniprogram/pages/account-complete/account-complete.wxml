@@ -1,0 +1,50 @@
+<view class="container">
+  <view class="login-header">
+    <view class="login-dot"></view>
+    <view class="login-title">完善账号信息</view>
+    <view class="login-desc">微信快捷登录后，请绑定 Web 账号或设置邮箱密码，以便同步学习数据</view>
+  </view>
+
+  <view class="card card--form">
+    <view class="mode-switch">
+      <view class="{{linkTabClass}}" data-mode="link" bindtap="switchMode">绑定已有账号</view>
+      <view class="{{registerTabClass}}" data-mode="register" bindtap="switchMode">完善新账号</view>
+    </view>
+
+    <view class="hint-box" wx:if="{{isLinkMode}}">
+      <text>若你已在浏览器注册过 GraphTutor，请填写相同邮箱和密码完成绑定。</text>
+    </view>
+    <view class="hint-box" wx:else>
+      <text>首次使用可设置邮箱与密码，之后在 Web 与小程序均可登录同一账号。</text>
+    </view>
+
+    <view class="form-error" wx:if="{{error}}">{{error}}</view>
+
+    <text class="form-label">邮箱</text>
+    <input class="form-input" type="text" placeholder="your@email.com" value="{{email}}" bindinput="onEmailInput" />
+
+    <text class="form-label">密码</text>
+    <view class="password-wrap">
+      <input class="form-input form-input--pwd" password="{{!showPassword}}" placeholder="至少 6 位" value="{{password}}" bindinput="onPasswordInput" />
+      <text class="pwd-toggle" bindtap="togglePassword">{{passwordToggleText}}</text>
+    </view>
+
+    <block wx:if="{{isRegisterMode}}">
+      <text class="form-label">确认密码</text>
+      <input class="form-input" password placeholder="再次输入密码" value="{{confirmPassword}}" bindinput="onConfirmPasswordInput" />
+
+      <text class="form-label">昵称（选填）</text>
+      <input class="form-input" placeholder="如何称呼你" value="{{name}}" bindinput="onNameInput" />
+
+      <text class="form-label">学校（选填）</text>
+      <input class="form-input" placeholder="例如：某某大学" value="{{school}}" bindinput="onSchoolInput" />
+
+      <text class="form-label">年级（选填）</text>
+      <input class="form-input" placeholder="例如：大二" value="{{grade}}" bindinput="onGradeInput" />
+    </block>
+
+    <button class="btn btn--primary btn--block" loading="{{loading}}" disabled="{{loading}}" bindtap="submit">
+      {{isLinkMode ? '绑定并同步' : '完成注册'}}
+    </button>
+  </view>
+</view>

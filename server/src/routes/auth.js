@@ -23,9 +23,26 @@ import {
   setSendTime,
   sendVerificationCode,
 } from "../services/smsService.js";
+import { exchangeCodeForSession } from "../services/miniProgramAuthService.js";
+import {
+  needsProfileCompletion,
+  toPublicAuthUser,
+  mergeMpUserIntoExistingAccount,
+  completeMpUserRegistration,
+  getAccountStatus,
+} from "../services/accountProfileService.js";
 
 const router = express.Router();
-const { JWT_SECRET, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, FRONTEND_URL, WECHAT_APP_ID, WECHAT_APP_SECRET } = config;
+const {
+  JWT_SECRET,
+  GITHUB_CLIENT_ID,
+  GITHUB_CLIENT_SECRET,
+  FRONTEND_URL,
+  WECHAT_APP_ID,
+  WECHAT_APP_SECRET,
+  MINIPROGRAM_APP_ID,
+  MINIPROGRAM_APP_SECRET,
+} = config;
 
 // 注册：统一写入 passwordHash 字段
 router.post("/register", async (req, res) => {
@@ -101,18 +118,7 @@ router.post("/register", async (req, res) => {
       token: accessToken, // 保持向后兼容
       accessToken, // 新的字段名
       refreshToken, // refresh token
-      user: {
-        id:       user._id,
-        email:    user.email,
-        name:     user.name,
-        role:     user.role,
-        avatarUrl: user.avatarUrl,
-        school:   user.school,
-        major:    user.major,
-        grade:    user.grade,
-        studentId: user.studentId,
-        bio:      user.bio,
-      },
+      user: toPublicAuthUser(user),
     });
   } catch (e) {
     console.error("register error:", e);
@@ -220,18 +226,7 @@ router.post("/login", async (req, res) => {
       token: accessToken, // 保持向后兼容
       accessToken, // 新的字段名
       refreshToken, // refresh token
-      user: {
-        id:       user._id,
-        email:    user.email,
-        name:     user.name,
-        role:     user.role || "user",
-        avatarUrl: user.avatarUrl,
-        school:   user.school,
-        major:    user.major,
-        grade:    user.grade,
-        studentId: user.studentId,
-        bio:      user.bio,
-      },
+      user: toPublicAuthUser(user),
     });
   } catch (e) {
     console.error("login error:", e);
@@ -300,6 +295,7 @@ router.get("/me", requireAuth, async (req, res) => {
         learningLevel: user.learningLevel ?? 1,
         learningExp: user.learningExp ?? 0,
         learningAvatar: learningAvatar || undefined,
+        ...getAccountStatus(user),
       },
     });
   } catch (e) {
@@ -391,6 +387,7 @@ router.put("/me", requireAuth, async (req, res) => {
         learningLevel: user.learningLevel ?? 1,
         learningExp: user.learningExp ?? 0,
         learningAvatar: learningAvatar || undefined,
+        ...getAccountStatus(user),
       },
     });
   } catch (e) {
@@ -873,6 +870,187 @@ router.get("/oauth/wechat/callback", async (req, res) => {
   } catch (e) {
     console.error("WeChat OAuth callback error:", e);
     return res.redirect(`${frontendBase}${callbackPath}?error=server_error`);
+  }
+});
+
+// ——— 微信小程序登录（wx.login code）———
+router.post("/mp/login", async (req, res) => {
+  try {
+    if (!MINIPROGRAM_APP_ID || !MINIPROGRAM_APP_SECRET) {
+      return res.status(503).json({
+        success: false,
+        message: "小程序登录未配置，请在服务器 .env 中设置 MINIPROGRAM_APP_ID 与 MINIPROGRAM_APP_SECRET",
+      });
+    }
+
+    const code = req.body?.code;
+    if (!code || typeof code !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "缺少微信登录 code",
+      });
+    }
+
+    const sessionData = await exchangeCodeForSession(
+      MINIPROGRAM_APP_ID,
+      MINIPROGRAM_APP_SECRET,
+      code.trim()
+    );
+
+    if (sessionData.errcode || !sessionData.openid) {
+      console.warn("MiniProgram jscode2session failed:", sessionData.errmsg || sessionData);
+      return res.json({
+        success: false,
+        message: sessionData.errmsg || "微信登录失败，请重试",
+        ...(process.env.NODE_ENV === "development" && { errcode: sessionData.errcode }),
+      });
+    }
+
+    const wechatMpOpenId = sessionData.openid;
+    const wechatUnionId = sessionData.unionid || undefined;
+    const emailPlaceholder = `mp_${wechatMpOpenId}@oauth.local`;
+    const defaultName = `微信用户${wechatMpOpenId.slice(-6)}`;
+
+    let user = await User.findOne({ wechatMpOpenId }).lean();
+    if (!user && wechatUnionId) {
+      user = await User.findOne({ wechatUnionId }).lean();
+      if (user) {
+        await User.updateOne(
+          { _id: user._id },
+          { $set: { wechatMpOpenId, wechatUnionId: wechatUnionId || user.wechatUnionId } }
+        );
+        user = await User.findById(user._id).lean();
+      }
+    }
+
+    if (!user) {
+      const existingByEmail = await User.findOne({ email: emailPlaceholder }).lean();
+      if (existingByEmail) {
+        await User.updateOne(
+          { _id: existingByEmail._id },
+          { $set: { wechatMpOpenId, ...(wechatUnionId ? { wechatUnionId } : {}) } }
+        );
+        user = await User.findById(existingByEmail._id).lean();
+      } else {
+        const newUser = await User.create({
+          email: emailPlaceholder,
+          passwordHash: null,
+          wechatMpOpenId,
+          wechatUnionId,
+          name: defaultName,
+          role: "student",
+        });
+        user = newUser.toObject ? newUser.toObject() : newUser;
+      }
+    }
+
+    const deviceInfo = extractDeviceInfo(req);
+    const { accessToken, refreshToken } = await generateTokenPair(user, deviceInfo);
+
+    return res.json({
+      success: true,
+      token: accessToken,
+      accessToken,
+      refreshToken,
+      user: toPublicAuthUser(user),
+    });
+  } catch (e) {
+    console.error("auth/mp/login error:", e);
+    return res.status(500).json({
+      success: false,
+      message: "登录失败，请稍后重试",
+    });
+  }
+});
+
+// ——— 小程序：完善账号 / 绑定已有 Web 账号 ———
+router.post("/mp/complete-account", requireAuth, async (req, res) => {
+  try {
+    const mode = req.body?.mode === "register" ? "register" : "link";
+    const rawEmail = req.body?.email;
+    const rawPassword = req.body?.password;
+
+    if (!rawEmail || !validateEmail(rawEmail)) {
+      return res.status(400).json({ success: false, message: "请输入有效邮箱" });
+    }
+    if (!rawPassword || typeof rawPassword !== "string" || rawPassword.length < 6) {
+      return res.status(400).json({ success: false, message: "密码至少 6 位" });
+    }
+
+    const email = sanitizeString(rawEmail, { maxLength: 254, trim: true });
+    const password = rawPassword;
+    const name = sanitizeString(req.body?.name, { maxLength: 100, allowEmpty: true });
+    const school = sanitizeString(req.body?.school, { maxLength: 100, allowEmpty: true });
+    const grade = sanitizeString(req.body?.grade, { maxLength: 50, allowEmpty: true });
+
+    const currentUser = await User.findById(req.user.id).lean();
+    if (!currentUser) {
+      return res.status(404).json({ success: false, message: "用户不存在" });
+    }
+
+    if (!needsProfileCompletion(currentUser)) {
+      return res.json({
+        success: true,
+        message: "账号已完善",
+        user: toPublicAuthUser(currentUser),
+      });
+    }
+
+    let mergedUser;
+
+    if (mode === "link") {
+      const targetUser = await User.findOne({ email }).lean();
+      if (!targetUser) {
+        return res.json({
+          success: false,
+          message: "未找到该邮箱账号，请先在 Web 端注册，或切换到「完善新账号」",
+        });
+      }
+      if (targetUser._id.toString() === currentUser._id.toString()) {
+        return res.json({ success: false, message: "不能绑定当前临时账号自身" });
+      }
+
+      try {
+        mergedUser = await mergeMpUserIntoExistingAccount(currentUser, targetUser, password);
+      } catch (err) {
+        const status = err.statusCode || 400;
+        return res.status(status).json({ success: false, message: err.message });
+      }
+    } else {
+      if (mode === "register" && req.body?.confirmPassword !== undefined) {
+        if (req.body.confirmPassword !== password) {
+          return res.status(400).json({ success: false, message: "两次输入的密码不一致" });
+        }
+      }
+
+      try {
+        mergedUser = await completeMpUserRegistration(currentUser, {
+          email,
+          password,
+          name,
+          school,
+          grade,
+        });
+      } catch (err) {
+        const status = err.statusCode || 400;
+        return res.status(status).json({ success: false, message: err.message });
+      }
+    }
+
+    const deviceInfo = extractDeviceInfo(req);
+    const { accessToken, refreshToken } = await generateTokenPair(mergedUser, deviceInfo);
+
+    return res.json({
+      success: true,
+      message: mode === "link" ? "已成功绑定 Web 账号，学习数据已同步" : "账号完善成功",
+      token: accessToken,
+      accessToken,
+      refreshToken,
+      user: toPublicAuthUser(mergedUser),
+    });
+  } catch (e) {
+    console.error("auth/mp/complete-account error:", e);
+    return res.status(500).json({ success: false, message: "操作失败，请稍后重试" });
   }
 });
 

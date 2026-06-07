@@ -1,0 +1,15 @@
+@import "../login/login.wxss";
+
+.hint-box {
+  margin-bottom: 24rpx;
+  padding: 20rpx 24rpx;
+  background: rgba(79, 143, 216, 0.08);
+  border-radius: 16rpx;
+  border-left: 6rpx solid #7aa9df;
+}
+
+.hint-box text {
+  font-size: 24rpx;
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+}

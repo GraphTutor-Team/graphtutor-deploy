@@ -1,5 +1,6 @@
 const api = require('../../utils/api.js');
 const config = require('../../utils/config.js');
+const authHelper = require('../../utils/auth-helper.js');
 
 const roleMap = { student: '学生', question_manager: '出题负责人', admin: '管理员', user: '用户' };
 
@@ -9,11 +10,14 @@ Page({
     userInfo: null,
     roleText: '学生',
     userFirstChar: '用',
+    needsComplete: false,
     useVirtualLogin: config.USE_VIRTUAL_LOGIN,
     baseUrlDisplay: config.BASE_URL,
   },
 
   onShow() {
+    if (!authHelper.ensureProfileComplete()) return;
+
     const app = getApp();
     const token = app.globalData.token;
     let userInfo = app.globalData.userInfo || wx.getStorageSync('userInfo');
@@ -22,6 +26,7 @@ Page({
       this.setData({
         isLoggedIn: true,
         userInfo,
+        needsComplete: authHelper.needsProfileCompletion(userInfo),
         roleText: roleMap[userInfo.role] || userInfo.role || '学生',
         userFirstChar: name.charAt(0) || '用',
       });
@@ -33,10 +38,12 @@ Page({
           userInfo = res.user;
           app.globalData.userInfo = userInfo;
           wx.setStorageSync('userInfo', userInfo);
+          if (!authHelper.ensureProfileComplete()) return;
           const name = userInfo.name || userInfo.email || '用';
           this.setData({
             isLoggedIn: true,
             userInfo,
+            needsComplete: authHelper.needsProfileCompletion(userInfo),
             roleText: roleMap[userInfo.role] || userInfo.role || '学生',
             userFirstChar: name.charAt(0) || '用',
           });
@@ -53,11 +60,13 @@ Page({
     wx.navigateTo({ url: '/pages/login/login' });
   },
 
+  goCompleteAccount() {
+    authHelper.goCompleteAccount();
+  },
+
   logout() {
-    wx.clearStorageSync();
-    getApp().globalData.token = null;
-    getApp().globalData.userInfo = null;
-    this.setData({ isLoggedIn: false, userInfo: null });
+    authHelper.clearSession();
+    this.setData({ isLoggedIn: false, userInfo: null, needsComplete: false });
     wx.showToast({ title: '已退出', icon: 'none' });
   },
 

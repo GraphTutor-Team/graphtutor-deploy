@@ -2,6 +2,8 @@
   "pages": [
     "pages/index/index",
     "pages/login/login",
+    "pages/register/register",
+    "pages/account-complete/account-complete",
     "pages/user/user",
     "pages/practice/practice",
     "pages/graph/graph",

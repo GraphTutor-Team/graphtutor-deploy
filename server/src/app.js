@@ -124,10 +124,18 @@ export async function createServer() {
   // 健康检查端点 - 添加错误处理（不需要限流和CSRF保护）
   app.get("/api/health", (req, res) => {
     try {
-      res.json({ 
-        ok: true, 
+      const mpAppId = process.env.MINIPROGRAM_APP_ID || process.env.WX_MINIPROGRAM_APPID || "";
+      const mpSecret = process.env.MINIPROGRAM_APP_SECRET || process.env.WX_MINIPROGRAM_SECRET || "";
+      res.json({
+        ok: true,
         timestamp: new Date().toISOString(),
-        uptime: process.uptime()
+        uptime: process.uptime(),
+        features: {
+          miniprogramLogin: {
+            configured: !!(mpAppId && mpSecret),
+            appId: mpAppId || null,
+          },
+        },
       });
     } catch (err) {
       console.error('[HEALTH] Error:', err);
@@ -142,9 +150,13 @@ export async function createServer() {
   // 注意：GET请求和健康检查端点已排除
   app.use("/api", csrfProtection);
 
-  // 敏感操作使用严格限流（登录、注册等）
+  // 敏感操作使用严格限流（登录、注册、小程序登录等）
   app.use("/api/auth/login", strictRateLimiter);
   app.use("/api/auth/register", strictRateLimiter);
+  app.use("/api/auth/mp/login", strictRateLimiter);
+  app.use("/api/auth/mp/complete-account", strictRateLimiter);
+  app.use("/api/auth/sms/send", strictRateLimiter);
+  app.use("/api/auth/sms/login", strictRateLimiter);
 
   app.use("/api/auth", authRoutes);
   app.use("/api/users", userRoutes);

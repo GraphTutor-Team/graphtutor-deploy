@@ -36,7 +36,7 @@ services:
       REDIS_URL: redis://redis:6379
       REDIS_HOST: redis
       REDIS_PORT: "6379"
-      # FRONTEND_URL / CLIENT_URL / GITHUB_* 请写在 server/.env（勿在下方写死公网地址）
+      # FRONTEND_URL / CLIENT_URL / GITHUB_* / MINIPROGRAM_* 请写在 server/.env
       JWT_SECRET: ${JWT_SECRET:-change-this-in-production}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-this-in-production}
       ENABLE_SWAGGER: "false"

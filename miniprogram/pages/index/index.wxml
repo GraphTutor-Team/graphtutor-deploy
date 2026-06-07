@@ -35,6 +35,70 @@
     <view class="index-hero-desc">知识图谱、练习与计划，一站入口</view>
   </view>
 
+  <view class="card start-card" wx:if="{{isLoggedIn}}">
+    <view class="start-title">立即开始练习</view>
+    <view class="start-desc">选择题库即可做题，错题会自动进入错题本</view>
+    <button class="start-btn" bindtap="goPractice">开始练习</button>
+  </view>
+
+  <view class="card" wx:if="{{isLoggedIn}}">
+    <view class="section-title">快速操作</view>
+    <view class="quick-grid">
+      <view class="quick-item" wx:for="{{quickActions}}" wx:key="id" data-id="{{item.id}}" bindtap="quickNav">
+        <view class="quick-title">{{item.title}}</view>
+        <view class="quick-desc">{{item.desc}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="card" wx:if="{{isLoggedIn}}">
+    <view class="section-title">学习概览</view>
+    <view wx:if="{{homeLoading}}" class="pending-text">加载中…</view>
+    <view wx:elif="{{homeConnected}}" class="overview-grid">
+      <view class="overview-item">
+        <view class="overview-num">{{todayReviewCount}}</view>
+        <view class="overview-label">今日需复习</view>
+      </view>
+      <view class="overview-item">
+        <view class="overview-num">{{efficiencyScoreDisplay}}</view>
+        <view class="overview-label">学习效率分</view>
+      </view>
+    </view>
+    <view wx:else class="pending-box">
+      <view class="pending-text">{{homePending.overview}}</view>
+      <button class="pending-btn" bindtap="loadHomeData">重新加载</button>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="section-title">实时资讯</view>
+    <view wx:if="{{homeLoading && isLoggedIn}}" class="pending-text">加载中…</view>
+    <view wx:elif="{{notifications.length > 0}}" class="notify-list">
+      <view class="notify-item" wx:for="{{notifications}}" wx:key="id">
+        <view class="notify-title">{{item.title}}</view>
+        <view class="notify-meta">{{item.timeText}}</view>
+        <view class="notify-content">{{item.content}}</view>
+      </view>
+    </view>
+    <view wx:else class="pending-box">
+      <view class="pending-text">{{isLoggedIn ? '暂无通知' : homePending.notifications}}</view>
+    </view>
+  </view>
+
+  <view class="card" wx:if="{{isLoggedIn}}">
+    <view class="section-title">智能推荐</view>
+    <view wx:if="{{homeLoading}}" class="pending-text">加载中…</view>
+    <view wx:elif="{{recommendations.length > 0}}" class="rec-list">
+      <view class="rec-item" wx:for="{{recommendations}}" wx:key="id">
+        <text class="rec-title">{{item.title}}</text>
+      </view>
+    </view>
+    <view wx:else class="pending-box">
+      <view class="pending-text">{{homeConnected ? '暂无推荐题目' : homePending.recommendations}}</view>
+      <button wx:if="{{!homeConnected}}" class="pending-btn" bindtap="loadHomeData">重新加载</button>
+    </view>
+  </view>
+
   <view class="card index-card">
     <view class="grid-header">
       <view class="grid-title">功能入口</view>

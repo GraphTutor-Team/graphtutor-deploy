@@ -64,7 +64,7 @@ Page({
 
     wx.showToast({ title: "已添加", icon: "success" });
     setTimeout(() => {
-      wx.switchTab({ url: "/pages/contacts/contacts" });
+      wx.navigateBack();
     }, 300);
   },
 });
