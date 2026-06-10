@@ -1,0 +1,208 @@
+# 轻量化服务器：拉取更新与 `.env` 配置
+
+面向已用 Docker Compose 部署 GraphTutor 的 Linux 服务器（如腾讯云轻量应用服务器）。
+
+| 项 | 值 |
+|----|-----|
+| 代码目录（示例） | `/root/graphtutor-deploy` |
+| 远程仓库 | `https://github.com/ErMoDer/graphtutor-deploy.git` |
+| 环境变量文件 | `server/.env`（**不会**随 `git pull` 覆盖） |
+| API 地址（示例） | `http://106.55.99.208:5000` |
+
+---
+
+## 1. 日常更新（拉代码 + 重启服务）
+
+SSH 登录服务器后执行：
+
+```bash
+# 进入项目目录（按你实际路径修改）
+cd /root/graphtutor-deploy
+
+# 拉取最新代码
+git pull origin main
+
+# 重新构建并启动（含 server + mongodb + redis）
+docker compose up -d --build
+```
+
+若只改了后端代码、想加快更新，可只重建 server 容器：
+
+```bash
+cd /root/graphtutor-deploy
+git pull origin main
+docker compose up -d --build --force-recreate server
+```
+
+### 查看状态与日志
+
+```bash
+# 容器是否在跑
+docker compose ps
+
+# 查看后端日志（最近 100 行，持续跟踪加 -f）
+docker compose logs --tail=100 server
+docker compose logs -f server
+```
+
+### 更新后验证
+
+```bash
+curl http://106.55.99.208:5000/api/health
+```
+
+正常应返回 JSON，其中 `ok: true`。若已配置小程序登录，还应有：
+
+```json
+"features": {
+  "miniprogramLogin": {
+    "configured": true,
+    "appId": "wx2bd6cc462dccaecf"
+  }
+}
+```
+
+---
+
+## 2. 首次克隆（新机器）
+
+```bash
+cd /root
+git clone https://github.com/ErMoDer/graphtutor-deploy.git
+cd graphtutor-deploy
+
+# 从示例复制环境变量（只需做一次）
+cp server/env.example server/.env
+
+# 编辑 .env（见下一节）
+nano server/.env
+
+# 首次启动
+docker compose up -d --build
+```
+
+---
+
+## 3. 进入并编辑 `server/.env`
+
+环境变量在 **`server/.env`**，不在项目根目录。该文件已在 `.gitignore` 中，`git pull` **不会**删除或覆盖它。
+
+### 打开编辑器
+
+```bash
+cd /root/graphtutor-deploy
+
+# 方式一：nano（上手简单，Ctrl+O 保存，Ctrl+X 退出）
+nano server/.env
+
+# 方式二：vi / vim
+vi server/.env
+```
+
+### 若文件不存在
+
+```bash
+cd /root/graphtutor-deploy
+cp server/env.example server/.env
+nano server/.env
+```
+
+### 必改项（生产环境）
+
+```env
+NODE_ENV=production
+PORT=5000
+
+# JWT 密钥（务必改成随机长字符串，不要用示例值）
+JWT_SECRET=这里填随机字符串
+JWT_REFRESH_SECRET=这里填另一段随机字符串
+
+# 浏览器访问地址（与公网 IP/域名一致，含协议和端口）
+CLIENT_URL=http://106.55.99.208:5000
+FRONTEND_URL=http://106.55.99.208:5000
+
+# Docker 内 MongoDB 一般不用改；compose 会注入 MONGODB_URI
+# 若用外部 MongoDB，在此填写连接串
+# MONGODB_URI=mongodb://...
+
+# 生产建议关闭 Swagger
+ENABLE_SWAGGER=false
+```
+
+生成随机 JWT 密钥：
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+运行两次，分别填入 `JWT_SECRET` 和 `JWT_REFRESH_SECRET`。
+
+### 小程序登录（可选）
+
+在微信公众平台 → **开发 → 开发管理 → 开发设置** 获取 AppSecret：
+
+```env
+MINIPROGRAM_APP_ID=wx2bd6cc462dccaecf
+MINIPROGRAM_APP_SECRET=你的小程序AppSecret
+```
+
+> **注意**：`MINIPROGRAM_*` 是小程序凭证，与开放平台网站应用的 `WECHAT_*` 不是同一套，不要混用。  
+> **AppSecret 只写在服务器 `.env`，不要提交到 Git。**
+
+### GitHub 登录（可选）
+
+```env
+GITHUB_CLIENT_ID=你的ClientID
+GITHUB_CLIENT_SECRET=你的ClientSecret
+```
+
+回调地址需在 GitHub OAuth App 中配置为：  
+`http://106.55.99.208:5000/api/auth/oauth/github/callback`
+
+---
+
+## 4. 改完 `.env` 后如何生效
+
+修改环境变量后**必须重启** backend 容器：
+
+```bash
+cd /root/graphtutor-deploy
+docker compose up -d --force-recreate server
+```
+
+无需重新 `git pull`，也无需 `--build`（除非同时更新了代码）。
+
+再次验证：
+
+```bash
+curl http://106.55.99.208:5000/api/health
+```
+
+---
+
+## 5. 常用命令速查
+
+| 场景 | 命令 |
+|------|------|
+| 拉代码并更新 | `git pull origin main && docker compose up -d --build` |
+| 只改 `.env` | `nano server/.env` → `docker compose up -d --force-recreate server` |
+| 看容器状态 | `docker compose ps` |
+| 看后端日志 | `docker compose logs -f server` |
+| 停止全部服务 | `docker compose down` |
+| 健康检查 | `curl http://106.55.99.208:5000/api/health` |
+
+---
+
+## 6. 注意事项
+
+1. **`miniprogram/` 会随 `git pull` 下载到磁盘**，但 Docker 只构建/运行 `server` 与 Web 前端，不影响服务。
+2. **`server/.env` 不要提交 Git**，也不要发到聊天/截图里（含 AppSecret、JWT 密钥）。
+3. 小程序正式版要求 **HTTPS 域名**；当前 `http://IP:5000` 仅适合开发者工具 + 关闭域名校验调试。
+4. 若 `git pull` 冲突，先备份 `.env`：`cp server/.env /root/server.env.bak`，再处理冲突；`.env` 通常不会冲突。
+
+---
+
+## 7. 相关文档
+
+- [小程序对接指南](./MINIPROGRAM_INTEGRATION.md)
+- [环境变量完整示例](../server/env.example)

@@ -1,32 +1,4 @@
 <view class="container">
-  <view class="auth-card" wx:if="{{isLoggedIn}}">
-    <view class="auth-left">
-      <image
-        wx:if="{{userInfo.avatarUrl}}"
-        class="auth-avatar-img"
-        src="{{userInfo.avatarUrl}}"
-        mode="aspectFill"
-      />
-      <view wx:else class="auth-avatar-char">{{userFirstChar}}</view>
-
-      <view class="auth-meta">
-        <view class="auth-name">{{userDisplayName}} 欢迎您</view>
-        <view class="auth-sub">
-          <text class="auth-role">{{roleText}}</text>
-          <text class="auth-email">{{userInfo.email || '—'}}</text>
-        </view>
-      </view>
-    </view>
-
-    <button class="auth-btn auth-btn--primary" bindtap="goMy">我的</button>
-  </view>
-
-  <view class="auth-card auth-card--empty" wx:else>
-    <view class="auth-empty-title">欢迎使用 GraphTutor</view>
-    <view class="auth-empty-desc">登录后可同步练习、计划与通讯录</view>
-    <button class="auth-btn auth-btn--primary" bindtap="goLogin">去登录</button>
-  </view>
-
   <view class="index-hero">
     <image class="index-hero-bg" src="{{heroImage}}" mode="aspectFill" binderror="onHeroImageError" />
     <view class="index-hero-mask"></view>
@@ -35,25 +7,57 @@
     <view class="index-hero-desc">知识图谱、练习与计划，一站入口</view>
   </view>
 
-  <view class="card start-card" wx:if="{{isLoggedIn}}">
+  <view class="user-strip" wx:if="{{isLoggedIn}}">
+    <view class="user-strip-left">
+      <image
+        wx:if="{{userInfo.avatarUrl}}"
+        class="user-strip-avatar"
+        src="{{userInfo.avatarUrl}}"
+        mode="aspectFill"
+      />
+      <view wx:else class="user-strip-char">{{userFirstChar}}</view>
+      <view class="user-strip-meta">
+        <view class="user-strip-name">{{userDisplayName}}</view>
+        <view class="user-strip-sub">{{roleText}}</view>
+      </view>
+    </view>
+    <view class="user-strip-link" bindtap="goMy">我的 ›</view>
+  </view>
+
+  <view class="guest-bar" wx:else>
+    <view class="guest-bar-text">登录后同步练习进度与学习数据</view>
+    <button class="guest-bar-btn" bindtap="goLogin">去登录</button>
+  </view>
+
+  <view class="start-card" wx:if="{{isLoggedIn}}">
     <view class="start-title">立即开始练习</view>
     <view class="start-desc">选择题库即可做题，错题会自动进入错题本</view>
     <button class="start-btn" bindtap="goPractice">开始练习</button>
   </view>
 
-  <view class="card" wx:if="{{isLoggedIn}}">
-    <view class="section-title">快速操作</view>
-    <view class="quick-grid">
-      <view class="quick-item" wx:for="{{quickActions}}" wx:key="id" data-id="{{item.id}}" bindtap="quickNav">
-        <view class="quick-title">{{item.title}}</view>
-        <view class="quick-desc">{{item.desc}}</view>
+  <view class="card">
+    <view class="section-title">学习工具</view>
+    <view class="nav-list">
+      <view
+        class="nav-row"
+        wx:for="{{navFeatures}}"
+        wx:key="id"
+        data-id="{{item.id}}"
+        bindtap="featureNav"
+      >
+        <image class="nav-icon" src="{{item.img}}" mode="aspectFit" />
+        <view class="nav-body">
+          <view class="nav-title">{{item.title}}</view>
+          <view class="nav-desc">{{item.desc}}</view>
+        </view>
+        <text class="nav-arrow">›</text>
       </view>
     </view>
   </view>
 
   <view class="card" wx:if="{{isLoggedIn}}">
     <view class="section-title">学习概览</view>
-    <view wx:if="{{homeLoading}}" class="pending-text">加载中…</view>
+    <view wx:if="{{homeLoading}}" class="state-text">加载中…</view>
     <view wx:elif="{{homeConnected}}" class="overview-grid">
       <view class="overview-item">
         <view class="overview-num">{{todayReviewCount}}</view>
@@ -64,66 +68,31 @@
         <view class="overview-label">学习效率分</view>
       </view>
     </view>
-    <view wx:else class="pending-box">
-      <view class="pending-text">{{homePending.overview}}</view>
-      <button class="pending-btn" bindtap="loadHomeData">重新加载</button>
+    <view wx:else class="state-box">
+      <view class="state-text">暂时无法获取数据</view>
+      <button class="state-btn" bindtap="loadHomeData">重试</button>
     </view>
   </view>
 
-  <view class="card">
-    <view class="section-title">实时资讯</view>
-    <view wx:if="{{homeLoading && isLoggedIn}}" class="pending-text">加载中…</view>
-    <view wx:elif="{{notifications.length > 0}}" class="notify-list">
-      <view class="notify-item" wx:for="{{notifications}}" wx:key="id">
-        <view class="notify-title">{{item.title}}</view>
-        <view class="notify-meta">{{item.timeText}}</view>
-        <view class="notify-content">{{item.content}}</view>
-      </view>
-    </view>
-    <view wx:else class="pending-box">
-      <view class="pending-text">{{isLoggedIn ? '暂无通知' : homePending.notifications}}</view>
-    </view>
-  </view>
-
-  <view class="card" wx:if="{{isLoggedIn}}">
-    <view class="section-title">智能推荐</view>
-    <view wx:if="{{homeLoading}}" class="pending-text">加载中…</view>
-    <view wx:elif="{{recommendations.length > 0}}" class="rec-list">
-      <view class="rec-item" wx:for="{{recommendations}}" wx:key="id">
-        <text class="rec-title">{{item.title}}</text>
-      </view>
-    </view>
-    <view wx:else class="pending-box">
-      <view class="pending-text">{{homeConnected ? '暂无推荐题目' : homePending.recommendations}}</view>
-      <button wx:if="{{!homeConnected}}" class="pending-btn" bindtap="loadHomeData">重新加载</button>
-    </view>
-  </view>
-
-  <view class="card index-card">
-    <view class="grid-header">
-      <view class="grid-title">功能入口</view>
-      <view class="grid-sub">蓝色数据可视化图标，与练习页风格一致</view>
-    </view>
-
-    <view class="menu-grid">
-      <view class="menu-cell" wx:for="{{menuItems}}" wx:key="id" data-id="{{item.id}}" bindtap="nav">
-        <view class="thumb">
-          <image wx:if="{{item.img}}" class="thumb-img" src="{{item.img}}" mode="aspectFit" />
-          <view wx:else class="thumb-placeholder">
-            <image wx:if="{{item.icon}}" class="thumb-icon" src="{{item.icon}}" mode="aspectFit" />
-            <view wx:else class="thumb-text">图</view>
-          </view>
-        </view>
-        <view class="meta">
-          <view class="name">{{item.name}}</view>
-          <view class="desc">{{item.desc}}</view>
+  <view class="card" wx:if="{{isLoggedIn && (homeLoading || hasFeedContent || homeConnected)}}">
+    <view class="section-title">通知与推荐</view>
+    <view wx:if="{{homeLoading}}" class="state-text">加载中…</view>
+    <block wx:else>
+      <view wx:if="{{notifications.length > 0}}" class="feed-block">
+        <view class="feed-label">通知</view>
+        <view class="feed-item" wx:for="{{notifications}}" wx:key="id">
+          <view class="feed-title">{{item.title}}</view>
+          <view class="feed-meta">{{item.timeText}}</view>
+          <view wx:if="{{item.content}}" class="feed-content">{{item.content}}</view>
         </view>
       </view>
-    </view>
-
-    <view class="grid-hint">
-      <text class="grid-hint-label">提示</text>
-      <text class="grid-hint-text">换图标可编辑 index.js 中 menuItems 的 img（.svg / .png）。</text>
-    </view>
+      <view wx:if="{{recommendations.length > 0}}" class="feed-block">
+        <view class="feed-label">推荐练习</view>
+        <view class="feed-item feed-item--rec" wx:for="{{recommendations}}" wx:key="id">
+          <view class="feed-title">{{item.title}}</view>
+        </view>
+      </view>
+      <view wx:if="{{notifications.length === 0 && recommendations.length === 0}}" class="state-text">暂无新通知与推荐</view>
+    </block>
   </view>
 </view>
