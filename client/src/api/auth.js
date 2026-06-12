@@ -17,8 +17,17 @@ import api from './api';
 export const login = (data) => api.post('/auth/login', data).then(r=>r.data);
 export const register = (data) => api.post('/auth/register', data).then(r=>r.data);
 
-/** 获取 GitHub OAuth 授权 URL，用于跳转登录 */
-export const getGitHubOAuthUrl = () => api.get('/auth/oauth/github/url').then(r => r.data);
+/** 获取 GitHub OAuth 授权 URL；mode=bind 时绑定到当前登录账号 */
+export const getGitHubOAuthUrl = (mode = "login") =>
+  api.get(`/auth/oauth/github/url${mode === "bind" ? "?mode=bind" : ""}`).then((r) => r.data);
+
+/** 获取微信 OAuth 授权 URL */
+export const getWechatOAuthUrl = (mode = "login") =>
+  api.get(`/auth/oauth/wechat/url${mode === "bind" ? "?mode=bind" : ""}`).then((r) => r.data);
+
+/** 将 OAuth 临时账号合并到已有邮箱账号 */
+export const linkExistingAccount = (data) =>
+  api.post("/auth/account/link-existing", data).then((r) => r.data);
 
 /**
  * 更新用户信息

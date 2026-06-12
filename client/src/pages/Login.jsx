@@ -108,7 +108,15 @@ export default function Login() {
           </div>
 
           <div className="flex flex-col gap-2">
-            <label className="label">密码</label>
+            <div className="flex items-center justify-between">
+              <label className="label">密码</label>
+              <Link
+                to="/forgot-password"
+                className="text-xs font-semibold text-blue-600 hover:text-blue-700"
+              >
+                忘记密码？
+              </Link>
+            </div>
             <div className="relative">
               <input
                 type={show ? "text" : "password"}
@@ -180,14 +188,23 @@ export default function Login() {
           )}
         </button>
 
-        <div className="text-sm text-slate-600 text-center pt-4 border-t border-slate-200">
-          <span>还没有账号？</span>
-          <Link
-            to="/register"
-            className="ml-2 font-semibold text-blue-600 hover:text-blue-700 transition-colors"
-          >
-            邮箱注册
-          </Link>
+        <div className="text-sm text-slate-600 text-center pt-4 border-t border-slate-200 space-y-2">
+          <p>
+            <span className="text-slate-500">已有邮箱账号想用 GitHub 登录？</span>
+            <Link to="/login" className="ml-1 text-blue-600 font-semibold hover:text-blue-700">
+              先邮箱登录
+            </Link>
+            <span className="text-slate-500"> → 个人中心绑定 GitHub</span>
+          </p>
+          <p>
+            <span>还没有账号？</span>
+            <Link
+              to="/register"
+              className="ml-2 font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+            >
+              邮箱注册
+            </Link>
+          </p>
         </div>
       </div>
     </div>

@@ -11,6 +11,7 @@ import SuspenseFallback from "../../components/common/SuspenseFallback.jsx";
 import Graph from "../../pages/Graph.jsx";
 import Nodes from "../../pages/Nodes.jsx";
 import Profile from "../../pages/Profile.jsx";
+import AccountLink from "../../pages/AccountLink.jsx";
 import Settings from "../../pages/Settings.jsx";
 import GenFromFile from "../../pages/GenFromFile.jsx";
 import AIGenerator from "../../pages/AIGenerator.jsx";
@@ -68,6 +69,15 @@ export const otherRoutes = [
     element={
       <ProtectedRoute>
         <Profile />
+      </ProtectedRoute>
+    }
+  />,
+  <Route
+    key="account-link"
+    path="/account/link"
+    element={
+      <ProtectedRoute>
+        <AccountLink />
       </ProtectedRoute>
     }
   />,

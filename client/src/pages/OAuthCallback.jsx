@@ -1,8 +1,5 @@
 /**
  * GraphTutor V3.0 - OAuth 回调页（方式1：URL 带 token 重定向）
- *
- * 作用：接收后端重定向的 accessToken/refreshToken，写入本地存储后跳转首页
- * 路由：/oauth/callback
  */
 
 import { useEffect, useState } from "react";
@@ -13,13 +10,16 @@ import { setStoredRefreshToken } from "../utils/tokenRefresh";
 export default function OAuthCallback() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [status, setStatus] = useState("processing"); // processing | success | error
+  const [status, setStatus] = useState("processing");
   const [message, setMessage] = useState("");
 
   useEffect(() => {
     const error = searchParams.get("error");
+    const customMessage = searchParams.get("message");
     const accessToken = searchParams.get("accessToken");
     const refreshToken = searchParams.get("refreshToken");
+    const needsAccountLink = searchParams.get("needsAccountLink");
+    const bindSuccess = searchParams.get("bindSuccess");
 
     if (error) {
       const messages = {
@@ -29,8 +29,12 @@ export default function OAuthCallback() {
         token_exchange_failed: "获取访问权限失败",
         user_fetch_failed: "获取用户信息失败",
         server_error: "服务器错误，请稍后重试",
+        github_email_conflict: "该 GitHub 已绑定其他邮箱账号，请在个人中心绑定或联系管理员",
+        bind_failed: customMessage
+          ? decodeURIComponent(customMessage)
+          : "绑定失败",
       };
-      setMessage(messages[error] || error);
+      setMessage(messages[error] || decodeURIComponent(customMessage || error));
       setStatus("error");
       return;
     }
@@ -38,8 +42,18 @@ export default function OAuthCallback() {
     if (accessToken && refreshToken) {
       setStoredToken(accessToken);
       setStoredRefreshToken(refreshToken);
+
+      if (bindSuccess === "github" || bindSuccess === "wechat") {
+        window.location.replace("/profile?bindSuccess=1");
+        return;
+      }
+
+      if (needsAccountLink === "1") {
+        window.location.replace("/account/link");
+        return;
+      }
+
       setStatus("success");
-      // 全页跳转，让 App 重新挂载并拉取 /auth/me
       window.location.replace("/home");
       return;
     }

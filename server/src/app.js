@@ -157,6 +157,9 @@ export async function createServer() {
   app.use("/api/auth/mp/complete-account", strictRateLimiter);
   app.use("/api/auth/sms/send", strictRateLimiter);
   app.use("/api/auth/sms/login", strictRateLimiter);
+  app.use("/api/auth/password/forgot", strictRateLimiter);
+  app.use("/api/auth/password/reset", strictRateLimiter);
+  app.use("/api/auth/account/link-existing", strictRateLimiter);
 
   app.use("/api/auth", authRoutes);
   app.use("/api/users", userRoutes);

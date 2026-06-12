@@ -174,11 +174,18 @@ export function AuthProvider({ children }) {
   async function login(email, password) {
     const res = await api.post("/auth/login", { email, password });
 
+    if (res.data?.success === false) {
+      throw new Error(res.data?.message || "登录失败");
+    }
+
     const { token: t, refreshToken: rt, user: u } = extractLoginPayload(res.data);
 
     if (!t || !u) {
       console.error("登录接口返回内容：", res.data);
-      throw new Error("登录接口返回格式不符合预期，需要包含 token 和 user。");
+      throw new Error(
+        res.data?.message ||
+          "登录接口返回格式不符合预期，需要包含 token 和 user。"
+      );
     }
 
     // 统一设置token和user，确保同步

@@ -14,13 +14,16 @@
  */
 
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import PageHeader from "../components/PageHeader";
 import { useAuth } from "../context/AuthContext";
 import UserStatsCard from "../components/UserStatsCard";
+import AccountLinksSection from "../components/AccountLinksSection";
+import api from "../api/api";
 
 export default function Profile() {
   const { user, token, setUser, logout } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -47,6 +50,16 @@ export default function Profile() {
   const [changingPassword, setChangingPassword] = useState(false);
   const [passwordError, setPasswordError] = useState("");
   const [showPasswordSection, setShowPasswordSection] = useState(false);
+
+  const needsSetPassword = user?.hasPassword === false;
+
+  useEffect(() => {
+    if (searchParams.get("bindSuccess") === "1") {
+      setSuccess("GitHub/微信 已成功绑定到当前账号");
+      searchParams.delete("bindSuccess");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // 头像预览相关
   const [avatarPreview, setAvatarPreview] = useState("");
@@ -339,45 +352,40 @@ export default function Profile() {
 
     setChangingPassword(true);
     try {
-      const r = await fetch("/api/auth/me/password", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          oldPassword: passwordForm.oldPassword,
-          newPassword: passwordForm.newPassword,
-        }),
-      });
+      const payload = needsSetPassword
+        ? { newPassword: passwordForm.newPassword }
+        : {
+            oldPassword: passwordForm.oldPassword,
+            newPassword: passwordForm.newPassword,
+          };
 
-      const data = await r.json().catch(() => null);
+      const { data } = await api.put("/auth/me/password", payload);
 
-      if (!r.ok || !data?.success) {
-        setPasswordError(
-          data?.message || `修改密码失败（状态码 ${r.status}）`
-        );
+      if (!data?.success) {
+        setPasswordError(data?.message || "操作失败");
         return;
       }
 
-      // 密码修改成功，清除表单并提示重新登录
       setPasswordForm({
         oldPassword: "",
         newPassword: "",
         confirmPassword: "",
       });
       setShowPasswordSection(false);
-      
-      // 提示用户重新登录
+
+      if (needsSetPassword) {
+        setSuccess(data.message || "密码设置成功");
+        setUser((prev) => (prev ? { ...prev, hasPassword: true } : prev));
+        return;
+      }
+
       alert("密码修改成功！为了安全，请重新登录。");
-      
-      // 延迟一下再登出，让用户看到提示
       setTimeout(() => {
         logout();
       }, 500);
     } catch (e) {
       console.error("修改密码失败:", e);
-      setPasswordError("修改密码失败，请稍后再试");
+      setPasswordError(e?.response?.data?.message || "操作失败，请稍后再试");
     } finally {
       setChangingPassword(false);
     }
@@ -815,15 +823,24 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* 密码修改区域 */}
+            {/* 密码修改 / 设置区域 */}
             {!showPasswordSection ? (
-              <button
-                type="button"
-                onClick={() => setShowPasswordSection(true)}
-                className="btn btn-outline w-full"
-              >
-                修改密码
-              </button>
+              <div className="space-y-3">
+                {needsSetPassword && (
+                  <div className="alert alert-info text-sm">
+                    您当前通过
+                    {user?.passwordlessLoginHint || "第三方"}
+                    登录，尚未设置密码。设置后可使用邮箱密码登录。
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setShowPasswordSection(true)}
+                  className="btn btn-outline w-full"
+                >
+                  {needsSetPassword ? "设置密码" : "修改密码"}
+                </button>
+              </div>
             ) : (
               <form className="space-y-3" onSubmit={handlePasswordChangeSubmit}>
                 {passwordError && (
@@ -832,6 +849,7 @@ export default function Profile() {
                   </div>
                 )}
 
+                {!needsSetPassword && (
                 <div className="flex flex-col gap-2">
                   <label className="label">
                     当前密码
@@ -846,10 +864,11 @@ export default function Profile() {
                     required
                   />
                 </div>
+                )}
 
                 <div className="flex flex-col gap-2">
                   <label className="label">
-                    新密码
+                    {needsSetPassword ? "登录密码" : "新密码"}
                     <span className="text-xs font-normal text-slate-500 ml-2">（至少 6 位）</span>
                   </label>
                   <input
@@ -938,25 +957,46 @@ export default function Profile() {
                   </button>
                   <button
                     type="submit"
-                    disabled={changingPassword || !passwordForm.oldPassword || !passwordForm.newPassword || !passwordForm.confirmPassword}
+                    disabled={
+                      changingPassword ||
+                      !passwordForm.newPassword ||
+                      !passwordForm.confirmPassword ||
+                      (!needsSetPassword && !passwordForm.oldPassword)
+                    }
                     className="btn btn-primary flex-1"
                   >
-                    {changingPassword ? "修改中…" : "确认修改密码"}
+                    {changingPassword
+                      ? needsSetPassword
+                        ? "设置中…"
+                        : "修改中…"
+                      : needsSetPassword
+                        ? "确认设置密码"
+                        : "确认修改密码"}
                   </button>
                 </div>
 
                 <div className="alert alert-info text-xs font-medium">
                   <strong>安全提示：</strong>
                   <ul className="list-disc list-inside mt-1 space-y-1">
-                    <li>密码修改成功后需要重新登录</li>
-                    <li>建议使用至少 8 位密码，包含字母和数字</li>
-                    <li>不要使用与其他网站相同的密码</li>
-                    <li>定期更换密码以提高账户安全性</li>
+                    {needsSetPassword ? (
+                      <>
+                        <li>设置密码后，可使用邮箱和密码登录</li>
+                        <li>设置密码不会退出当前登录</li>
+                      </>
+                    ) : (
+                      <>
+                        <li>密码修改成功后需要重新登录</li>
+                        <li>建议使用至少 8 位密码，包含字母和数字</li>
+                        <li>不要使用与其他网站相同的密码</li>
+                      </>
+                    )}
                   </ul>
                 </div>
               </form>
             )}
           </section>
+
+          <AccountLinksSection user={user} token={token} setUser={setUser} />
         </>
       )}
     </div>
