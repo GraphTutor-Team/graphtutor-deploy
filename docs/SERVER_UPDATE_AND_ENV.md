@@ -190,6 +190,37 @@ curl http://106.55.99.208:5000/api/health
 | 看后端日志 | `docker compose logs -f server` |
 | 停止全部服务 | `docker compose down` |
 | 健康检查 | `curl http://106.55.99.208:5000/api/health` |
+| 导入演示学科/题库 | 见下方「演示数据导入」 |
+
+### 演示数据导入（学科 + 练习题）
+
+主程序与小程序共用 MongoDB，导入一次即可用于展示与测试。
+
+**服务器（Docker）**：
+
+```bash
+cd /root/graphtutor-deploy
+git pull origin main
+docker compose exec server node scripts/seed-demo-content.js
+```
+
+**本地开发**：
+
+```bash
+npm run seed:demo
+```
+
+导入内容：
+
+| 学科 | 演示题库 key | 约题量 |
+|------|----------------|--------|
+| 数据结构 CS-DS | `demo-cs-ds` | 10 |
+| 计算机网络 CS-NET | `demo-cs-net` | 10 |
+| Web 开发 CS-WEB | `demo-cs-web` | 28（HTML/CSS/JS） |
+
+- 脚本可重复执行（已存在则更新，不重复插入）
+- 数据文件：`server/data/demo-content.json`、`server/data/starter_question_bank.json`
+- 可选：完整学科树仍可用 `npm run seed:subjects` 导入
 
 ---
 
