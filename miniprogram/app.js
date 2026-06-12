@@ -23,5 +23,12 @@ App({
       this.globalData.userInfo = userInfo || null;
       this.globalData.refreshToken = refreshToken || null;
     }
+
+    if (!config.USE_VIRTUAL_LOGIN && token && refreshToken) {
+      const api = require('./utils/api.js');
+      if (api.isAccessTokenExpired && api.isAccessTokenExpired(token)) {
+        api.ensureValidAccessToken().catch(() => {});
+      }
+    }
   },
 });

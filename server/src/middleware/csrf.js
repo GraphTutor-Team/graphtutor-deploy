@@ -15,6 +15,26 @@ const CSRF_TOKEN_HEADER_NAME = 'X-XSRF-TOKEN';
 const CSRF_TOKEN_EXPIRES = 24 * 60 * 60 * 1000; // 24小时
 
 /**
+ * 是否对 Cookie 启用 Secure（仅 HTTPS 下浏览器才会保存/发送）
+ * HTTP 部署（如公网 IP:5000）必须为 false，否则 CSRF 双提交失败 → 403
+ */
+export function shouldUseSecureCookies() {
+  if (process.env.COOKIE_SECURE === "true") return true;
+  if (process.env.COOKIE_SECURE === "false") return false;
+
+  const baseUrl = (
+    process.env.FRONTEND_URL ||
+    process.env.CLIENT_URL ||
+    ""
+  ).replace(/\/$/, "");
+
+  if (baseUrl.startsWith("https://")) return true;
+  if (baseUrl.startsWith("http://")) return false;
+
+  return process.env.NODE_ENV === "production";
+}
+
+/**
  * 生成CSRF token
  * @returns {string} CSRF token
  */
@@ -43,14 +63,12 @@ export function verifyCsrfToken(cookieToken, headerToken) {
  * @param {string} token - CSRF token
  */
 export function setCsrfTokenCookie(res, token) {
-  const isProduction = process.env.NODE_ENV === 'production';
-  
   res.cookie(CSRF_TOKEN_COOKIE_NAME, token, {
-    httpOnly: false, // 需要前端JavaScript访问
-    secure: isProduction, // 生产环境使用HTTPS
-    sameSite: 'strict', // 严格SameSite策略
+    httpOnly: false, // 需要前端 JavaScript 访问
+    secure: shouldUseSecureCookies(),
+    sameSite: "lax",
     maxAge: CSRF_TOKEN_EXPIRES,
-    path: '/',
+    path: "/",
   });
 }
 
@@ -96,9 +114,9 @@ export function csrfProtection(req, res, next) {
     return next();
   }
 
-  // 排除健康检查等端点
-  const excludedPaths = ['/api/health', '/api/auth/csrf-token'];
-  if (excludedPaths.some(path => req.path.startsWith(path))) {
+  // 排除健康检查等端点（挂载在 /api 下时 req.path 为 /auth/...）
+  const excludedPaths = ["/health", "/auth/csrf-token"];
+  if (excludedPaths.some((p) => req.path === p || req.path.startsWith(`${p}/`))) {
     return next();
   }
 

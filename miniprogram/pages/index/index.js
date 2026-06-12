@@ -42,57 +42,78 @@ Page({
 
   onShow() {
     if (!authHelper.ensureProfileComplete()) return;
+    this.bootstrapSession();
+  },
 
-    const app = getApp();
-    const token = app.globalData.token || wx.getStorageSync('token');
-    let userInfo = app.globalData.userInfo || wx.getStorageSync('userInfo');
+  setGuestState() {
+    this.setData({
+      isLoggedIn: false,
+      userInfo: null,
+      userDisplayName: '同学',
+      homeConnected: false,
+      hasFeedContent: false,
+      homeLoading: false,
+      notifications: [],
+      recommendations: [],
+      todayReviewCount: 0,
+      efficiencyScoreDisplay: '—',
+    });
+  },
 
-    const applyLoggedIn = (u) => {
-      const name = u.name || u.email || '用';
-      this.setData({
-        isLoggedIn: true,
-        userInfo: u,
-        userDisplayName: name,
-        roleText: roleMap[u.role] || u.role || '学生',
-        userFirstChar: getFirstChar(name),
-      });
-      this.loadHomeData();
-    };
+  applyLoggedIn(u) {
+    const name = u.name || u.email || '用';
+    this.setData({
+      isLoggedIn: true,
+      userInfo: u,
+      userDisplayName: name,
+      roleText: roleMap[u.role] || u.role || '学生',
+      userFirstChar: getFirstChar(name),
+    });
+    this.loadHomeData();
+  },
 
-    if (token && userInfo) {
-      applyLoggedIn(userInfo);
+  handleSessionExpired(message) {
+    authHelper.clearSession();
+    this.setGuestState();
+    if (message) {
+      wx.showToast({ title: message, icon: 'none', duration: 2200 });
+    }
+  },
+
+  bootstrapSession() {
+    const token = wx.getStorageSync('token');
+
+    if (!token || (api.isVirtualToken() && !config.USE_VIRTUAL_LOGIN)) {
+      if (token && api.isVirtualToken()) authHelper.clearSession();
+      this.setGuestState();
       return;
     }
 
-    if (token) {
-      api
-        .getMe()
-        .then((res) => {
-          const u = res && res.user ? res.user : {};
-          if (!u || Object.keys(u).length === 0) throw new Error('empty');
-          app.globalData.userInfo = u;
-          wx.setStorageSync('userInfo', u);
-          if (!authHelper.ensureProfileComplete()) return;
-          applyLoggedIn(u);
-        })
-        .catch(() => {
-          this.setData({
-            isLoggedIn: false,
-            userInfo: null,
-            userDisplayName: '同学',
-            homeConnected: false,
-            hasFeedContent: false,
-          });
-        });
-    } else {
-      this.setData({
-        isLoggedIn: false,
-        userInfo: null,
-        userDisplayName: '同学',
-        homeConnected: false,
-        hasFeedContent: false,
-      });
+    if (config.USE_VIRTUAL_LOGIN && api.isVirtualToken()) {
+      const userInfo = wx.getStorageSync('userInfo') || {};
+      this.applyLoggedIn(userInfo);
+      return;
     }
+
+    api.ensureValidAccessToken()
+      .then(() => api.getMe())
+      .then((res) => {
+        const u = res && res.user ? res.user : {};
+        if (!u || Object.keys(u).length === 0) throw new Error('empty');
+        const app = getApp();
+        app.globalData.userInfo = u;
+        wx.setStorageSync('userInfo', u);
+        if (!authHelper.ensureProfileComplete()) return;
+        this.applyLoggedIn(u);
+      })
+      .catch((err) => {
+        const msg = (err && err.message) || '';
+        if (msg.indexOf('登录') >= 0 || msg.indexOf('过期') >= 0 || msg === 'empty') {
+          this.handleSessionExpired('登录已过期，请重新登录');
+          return;
+        }
+        this.setGuestState();
+      });
   },
 
   loadHomeData() {
@@ -111,7 +132,12 @@ Page({
         efficiencyScore: data.efficiencyScore,
         efficiencyScoreDisplay: data.efficiencyScore == null ? '—' : String(data.efficiencyScore),
       });
-    }).catch(() => {
+    }).catch((err) => {
+      const msg = (err && err.message) || '';
+      if (msg.indexOf('登录') >= 0 || msg.indexOf('过期') >= 0) {
+        this.handleSessionExpired('登录已过期，请重新登录');
+        return;
+      }
       this.setData({ homeLoading: false, homeConnected: false, hasFeedContent: false });
     });
   },

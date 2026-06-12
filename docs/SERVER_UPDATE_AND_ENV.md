@@ -200,6 +200,24 @@ curl http://106.55.99.208:5000/api/health
 3. 小程序正式版要求 **HTTPS 域名**；当前 `http://IP:5000` 仅适合开发者工具 + 关闭域名校验调试。
 4. 若 `git pull` 冲突，先备份 `.env`：`cp server/.env /root/server.env.bak`，再处理冲突；`.env` 通常不会冲突。
 
+### 登录报 403（CSRF token验证失败）/ 401 连环失败
+
+**现象**：浏览器控制台出现 `api/auth/login` 403、`api/auth/refresh` 403，其它接口 401。
+
+**原因**：Docker 默认 `NODE_ENV=production`，旧版代码在 HTTP 访问（`http://IP:5000`）时 CSRF Cookie 带 `Secure` 标志，浏览器不会保存，导致登录 POST 被拒绝。
+
+**处理**：
+
+1. 确认 `server/.env` 中 `FRONTEND_URL` / `CLIENT_URL` 为 **http://** 开头的实际访问地址（与浏览器地址栏一致）。
+2. 拉取含 CSRF 修复的最新代码并重建：
+   ```bash
+   cd /root/graphtutor-deploy
+   git pull origin main
+   docker compose up -d --build --force-recreate server
+   ```
+3. 浏览器 **清除该站点 Cookie 与 localStorage**（或无痕窗口重试），再登录。
+4. 若仍异常，可在 `server/.env` 显式加一行：`COOKIE_SECURE=false`，然后 `docker compose up -d --force-recreate server`。
+
 ---
 
 ## 7. 相关文档

@@ -224,9 +224,9 @@ router.get('/:id', async (req, res) => {
 router.post('/', requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
-    const { type, questionId, knowledgeNodeId, title, content, summary, tags, isPublic } = req.body;
+    const { type, questionId, knowledgeNodeId, title, content, summary, tags, isPublic, images, attachments } = req.body;
 
-    if (!type || !['question', 'knowledge'].includes(type)) {
+    if (!type || !['question', 'knowledge', 'general'].includes(type)) {
       return res.status(400).json({
         success: false,
         message: '笔记类型无效',
@@ -256,6 +256,8 @@ router.post('/', requireAuth, async (req, res) => {
       summary: summary != null ? sanitizeString(String(summary), { maxLength: 500 }) : undefined,
       tags: Array.isArray(tags) ? tags.map(t => sanitizeString(t, { maxLength: 50 })).filter(Boolean) : [],
       isPublic: isPublic || false,
+      images: Array.isArray(images) ? images : [],
+      attachments: Array.isArray(attachments) ? attachments : [],
     });
 
     res.status(201).json({
@@ -285,7 +287,7 @@ router.put('/:id', requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
     const { id } = req.params;
-    const { title, content, tags, isPublic, summary } = req.body;
+    const { title, content, tags, isPublic, summary, images, attachments } = req.body;
 
     const updates = {};
     if (title !== undefined) {
@@ -303,7 +305,13 @@ router.put('/:id', requireAuth, async (req, res) => {
       updates.isPublic = isPublic;
     }
     if (summary !== undefined) {
-      updates.summary = sanitizeString(summary, { maxLength: 500 });
+      updates.summary = sanitizeString(summary, { maxLength: 500, allowEmpty: true });
+    }
+    if (images !== undefined) {
+      updates.images = Array.isArray(images) ? images : [];
+    }
+    if (attachments !== undefined) {
+      updates.attachments = Array.isArray(attachments) ? attachments : [];
     }
 
     const note = await updateNote(userId, id, updates);
@@ -581,10 +589,13 @@ router.get('/:id/export/markdown', requireAuth, async (req, res) => {
     const userId = req.user.id;
     const { id } = req.params;
 
-    const markdown = await exportNoteAsMarkdown(userId, id);
+    const { markdown, filename } = await exportNoteAsMarkdown(id, userId);
 
     res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="note-${id}.md"`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${encodeURIComponent(filename)}"; filename*=UTF-8''${encodeURIComponent(filename)}`
+    );
     res.send(markdown);
   } catch (err) {
     console.error('GET /api/v3/notes/:id/export/markdown error:', err);

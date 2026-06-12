@@ -16,7 +16,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   getNotes,
@@ -41,11 +41,20 @@ import { applyTemplate, getAllTemplates } from '../utils/noteTemplates';
 import NoteStatsPanel from '../components/NoteStatsPanel';
 import NoteTemplateManager from '../components/NoteTemplateManager';
 import MarkdownImporter from '../components/MarkdownImporter';
+import NoteDetailPanel from '../components/NoteDetailPanel';
+import NoteTagEditor from '../components/NoteTagEditor';
 import Icon from '../components/common/Icon';
 import EmptyState from '../components/common/EmptyState';
 
+const NOTE_TYPE_LABELS = {
+  question: '题目笔记',
+  knowledge: '知识点笔记',
+  general: '通用笔记',
+};
+
 export default function Notes() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
 
   const [notes, setNotes] = useState([]);
@@ -63,7 +72,7 @@ export default function Notes() {
   const [activeTab, setActiveTab] = useState('my'); // 'my' or 'favorites'
   const [favoriteNotes, setFavoriteNotes] = useState([]);
   const [noteForm, setNoteForm] = useState({
-    type: 'question',
+    type: 'general',
     questionId: '',
     knowledgeNodeId: '',
     title: '',
@@ -82,6 +91,66 @@ export default function Notes() {
   const [showTemplateManager, setShowTemplateManager] = useState(false);
   const [relatedQuestionsForNote, setRelatedQuestionsForNote] = useState([]);
   const [loadingRelatedQuestions, setLoadingRelatedQuestions] = useState(false);
+  const [viewingNote, setViewingNote] = useState(null);
+
+  const filterKnowledgeNodeId = searchParams.get('knowledgeNodeId');
+  const filterQuestionId = searchParams.get('questionId');
+
+  const clearUrlFilters = () => {
+    setViewingNote(null);
+    navigate('/notes');
+  };
+
+  function buildNotePayload(forUpdate = false) {
+    const base = {
+      title: noteForm.title.trim(),
+      content: noteForm.content,
+      summary: noteForm.summary || '',
+      tags: noteForm.tags || [],
+      isPublic: noteForm.isPublic || false,
+      images: noteForm.images || [],
+      attachments: noteForm.attachments || [],
+    };
+    if (forUpdate) return base;
+    return {
+      ...base,
+      type: noteForm.type,
+      questionId: noteForm.type === 'question' ? noteForm.questionId.trim() : undefined,
+      knowledgeNodeId: noteForm.type === 'knowledge' ? noteForm.knowledgeNodeId.trim() : undefined,
+    };
+  }
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    const knowledgeNodeId = searchParams.get('knowledgeNodeId');
+    const questionId = searchParams.get('questionId');
+    const action = searchParams.get('action');
+    if (tab === 'favorites') setActiveTab('favorites');
+    if (knowledgeNodeId) {
+      setSelectedType('knowledge');
+      setSearchKeyword('');
+    }
+    if (questionId) {
+      setSelectedType('question');
+      setSearchKeyword('');
+    }
+    if (action === 'create' && user) {
+      setEditingNote(null);
+      setNoteForm({
+        type: knowledgeNodeId ? 'knowledge' : questionId ? 'question' : 'general',
+        questionId: questionId || '',
+        knowledgeNodeId: knowledgeNodeId || '',
+        title: '',
+        content: '',
+        summary: '',
+        tags: [],
+        isPublic: false,
+        images: [],
+        attachments: [],
+      });
+      setShowNoteModal(true);
+    }
+  }, [searchParams, user]);
 
   useEffect(() => {
     if (user) {
@@ -92,7 +161,7 @@ export default function Notes() {
         loadFavoriteNotes();
       }
     }
-  }, [user, page, searchKeyword, selectedType, selectedTags, activeTab]);
+  }, [user, page, searchKeyword, selectedType, selectedTags, activeTab, searchParams]);
 
   useEffect(() => {
     if (!editingNote) {
@@ -145,9 +214,13 @@ export default function Notes() {
   const loadNotes = async () => {
     try {
       setLoading(true);
+      const knowledgeNodeId = searchParams.get('knowledgeNodeId');
+      const questionId = searchParams.get('questionId');
       const result = await getNotes({
         searchKeyword,
         type: selectedType || undefined,
+        knowledgeNodeId: knowledgeNodeId || undefined,
+        questionId: questionId || undefined,
         tags: selectedTags.length > 0 ? selectedTags : undefined,
         page,
         limit: 20,
@@ -181,9 +254,10 @@ export default function Notes() {
   };
 
   const handleCreateNote = () => {
+    setViewingNote(null);
     setEditingNote(null);
     setNoteForm({
-      type: 'question',
+      type: 'general',
       questionId: '',
       knowledgeNodeId: '',
       title: '',
@@ -233,6 +307,7 @@ export default function Notes() {
   };
 
   const handleEditNote = (note) => {
+    setViewingNote(null);
     setEditingNote(note);
     setNoteForm({
       type: note.type,
@@ -243,6 +318,8 @@ export default function Notes() {
       summary: note.summary || '',
       tags: note.tags || [],
       isPublic: note.isPublic || false,
+      images: note.images || [],
+      attachments: note.attachments || [],
     });
     setShowNoteModal(true);
   };
@@ -256,16 +333,25 @@ export default function Notes() {
       toast.warning('请输入笔记内容');
       return;
     }
+    if (noteForm.type === 'question' && !noteForm.questionId.trim()) {
+      toast.warning('题目笔记请填写题目ID');
+      return;
+    }
+    if (noteForm.type === 'knowledge' && !noteForm.knowledgeNodeId.trim()) {
+      toast.warning('知识点笔记请填写知识点ID');
+      return;
+    }
 
     try {
       if (editingNote) {
-        await updateNote(editingNote._id, noteForm);
+        await updateNote(editingNote._id, buildNotePayload(true));
         toast.success('更新成功');
       } else {
-        await createNote(noteForm);
+        await createNote(buildNotePayload(false));
         toast.success('创建成功');
       }
       setShowNoteModal(false);
+      setEditingNote(null);
       loadNotes();
       loadStats();
     } catch (err) {
@@ -285,6 +371,7 @@ export default function Notes() {
     try {
       await deleteNote(noteId);
       toast.success('删除成功');
+      if (viewingNote?._id === noteId) setViewingNote(null);
       loadNotes();
       loadStats();
     } catch (err) {
@@ -416,11 +503,40 @@ export default function Notes() {
               <>
                 <span>题目笔记：{stats.byType.question || 0} 篇</span>
                 <span>知识点笔记：{stats.byType.knowledge || 0} 篇</span>
+                <span>通用笔记：{stats.byType.general || 0} 篇</span>
               </>
             )}
           </div>
         )}
       </div>
+
+      {(filterKnowledgeNodeId || filterQuestionId) && activeTab === 'my' && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+          <span>
+            当前筛选：
+            {filterKnowledgeNodeId && `知识点「${filterKnowledgeNodeId}」`}
+            {filterQuestionId && `题目「${filterQuestionId}」`}
+          </span>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                const q = new URLSearchParams();
+                if (filterKnowledgeNodeId) q.set('knowledgeNodeId', filterKnowledgeNodeId);
+                if (filterQuestionId) q.set('questionId', filterQuestionId);
+                q.set('action', 'create');
+                navigate(`/notes?${q.toString()}`);
+              }}
+              className="px-3 py-1 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+            >
+              在此筛选下新建
+            </button>
+            <button type="button" onClick={clearUrlFilters} className="px-3 py-1 rounded-lg border border-blue-200 hover:bg-white">
+              清除筛选
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 统计面板 */}
       {activeTab === 'my' && stats && (
@@ -480,6 +596,7 @@ export default function Notes() {
             className="px-3 py-2 border rounded-lg"
           >
             <option value="">全部类型</option>
+            <option value="general">通用笔记</option>
             <option value="question">题目笔记</option>
             <option value="knowledge">知识点笔记</option>
           </select>
@@ -512,6 +629,8 @@ export default function Notes() {
       )}
 
       {/* 笔记列表 */}
+      <div className={viewingNote && activeTab === 'my' ? 'grid gap-6 lg:grid-cols-2' : ''}>
+      <div>
       {loading ? (
         <div className="text-center py-12 text-slate-500">加载中...</div>
       ) : (activeTab === 'my' ? notes : favoriteNotes).length === 0 ? (
@@ -542,7 +661,10 @@ export default function Notes() {
               return (
                 <div
                   key={note._id}
-                  className="bg-white rounded-lg border p-4 hover:shadow-md transition-shadow"
+                  className={`bg-white rounded-lg border p-4 hover:shadow-md transition-shadow cursor-pointer ${
+                    viewingNote?._id === note._id ? 'ring-2 ring-blue-400 border-blue-300' : ''
+                  }`}
+                  onClick={() => activeTab === 'my' && setViewingNote(note)}
                 >
                   <div className="flex items-start gap-4">
                     <input
@@ -560,7 +682,7 @@ export default function Notes() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
-                          {note.type === 'question' ? '题目笔记' : '知识点笔记'}
+                          {NOTE_TYPE_LABELS[note.type] || note.type}
                         </span>
                         {note.isPublic && (
                           <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded">
@@ -591,8 +713,16 @@ export default function Notes() {
                           ))}
                         </div>
                       )}
-                      <div className="flex items-center gap-2 mt-3">
+                      <div className="flex items-center gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
                         <button
+                          type="button"
+                          onClick={() => setViewingNote(note)}
+                          className="px-3 py-1 text-sm border rounded-lg hover:bg-slate-50"
+                        >
+                          预览
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => handleEditNote(note)}
                           className="px-3 py-1 text-sm border rounded-lg hover:bg-slate-50"
                         >
@@ -678,11 +808,24 @@ export default function Notes() {
           )}
         </>
       )}
+      </div>
+
+      {viewingNote && activeTab === 'my' && (
+        <NoteDetailPanel
+          note={viewingNote}
+          onClose={() => setViewingNote(null)}
+          onEdit={handleEditNote}
+          onDelete={handleDeleteNote}
+          onShare={handleShareNote}
+          onExport={handleExportNote}
+        />
+      )}
+      </div>
 
       {/* 笔记编辑弹窗 */}
       {showNoteModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg p-6 max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold">
                 {editingNote ? '编辑笔记' : '新建笔记'}
@@ -715,13 +858,15 @@ export default function Notes() {
                     className="w-full px-3 py-2 border rounded-lg"
                     disabled={!!editingNote}
                   >
+                    <option value="general">通用笔记</option>
                     <option value="question">题目笔记</option>
                     <option value="knowledge">知识点笔记</option>
                   </select>
                 </div>
+                {noteForm.type !== 'general' && (
                 <div>
                   <label className="block text-sm font-medium mb-1">
-                    {noteForm.type === 'question' ? '题目ID' : '知识点ID'}
+                    {noteForm.type === 'question' ? '题目ID' : '知识点ID'} *
                   </label>
                   <input
                     type="text"
@@ -735,7 +880,11 @@ export default function Notes() {
                     disabled={!!editingNote}
                   />
                 </div>
+                )}
               </div>
+              {noteForm.type === 'general' && !editingNote && (
+                <p className="text-xs text-slate-500">通用笔记无需关联题目或知识点，适合个人学习记录。</p>
+              )}
               <div>
                 <label className="block text-sm font-medium mb-1">标题 *</label>
                 <input
@@ -747,16 +896,30 @@ export default function Notes() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">内容 *（支持Markdown）</label>
-                <textarea
-                  value={noteForm.content}
-                  onChange={(e) => setNoteForm({ ...noteForm, content: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg"
-                  rows="10"
-                  placeholder="请输入笔记内容，支持Markdown格式"
-                />
+                <label className="block text-sm font-medium mb-2">内容 *（左侧 Markdown 编辑，右侧实时预览）</label>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                  <div className="flex flex-col min-h-[320px]">
+                    <div className="text-xs text-slate-500 mb-1">Markdown 源码</div>
+                    <textarea
+                      value={noteForm.content}
+                      onChange={(e) => setNoteForm({ ...noteForm, content: e.target.value })}
+                      className="flex-1 w-full min-h-[320px] px-3 py-2 border rounded-lg font-mono text-sm leading-relaxed resize-y"
+                      placeholder={'# 标题\n\n- 要点一\n- 要点二\n\n```js\nconsole.log("hello")\n```'}
+                    />
+                  </div>
+                  <div className="flex flex-col min-h-[320px]">
+                    <div className="text-xs text-slate-500 mb-1">预览</div>
+                    <div className="flex-1 min-h-[320px] max-h-[480px] overflow-y-auto p-3 border rounded-lg bg-slate-50 dark:bg-slate-900">
+                      {noteForm.content?.trim() ? (
+                        <MarkdownPreview text={noteForm.content} />
+                      ) : (
+                        <p className="text-sm text-slate-400">在左侧输入 Markdown，此处实时预览</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
                 <div className="mt-2 flex items-center gap-2 flex-wrap">
-                  <span className="text-xs text-slate-500">可在内容中使用 ![图片描述](图片URL) 插入图片</span>
+                  <span className="text-xs text-slate-500">支持标题、列表、代码块、链接与 ![图片](url)</span>
                   <button
                     type="button"
                     onClick={async () => {
@@ -792,6 +955,8 @@ export default function Notes() {
               <div>
                 <label className="block text-sm font-medium mb-1">图片</label>
                 <ImageUploader
+                  key={editingNote?._id || 'new-note'}
+                  value={noteForm.images}
                   onUpload={(urls) => setNoteForm({ ...noteForm, images: urls })}
                   maxImages={10}
                 />
@@ -806,21 +971,19 @@ export default function Notes() {
               <div>
                 <label className="block text-sm font-medium mb-1">附件</label>
                 <AttachmentUploader
+                  key={`att-${editingNote?._id || 'new'}`}
+                  value={noteForm.attachments}
                   onUpload={(attachments) => setNoteForm({ ...noteForm, attachments })}
                   maxAttachments={5}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">标签（用逗号分隔）</label>
-                <input
-                  type="text"
-                  value={noteForm.tags.join(', ')}
-                  onChange={(e) => {
-                    const tags = e.target.value.split(',').map(t => t.trim()).filter(Boolean);
-                    setNoteForm({ ...noteForm, tags });
-                  }}
-                  className="w-full px-3 py-2 border rounded-lg"
-                  placeholder="例如：重要, 难点, 易错"
+                <label className="block text-sm font-medium mb-1">标签</label>
+                <NoteTagEditor
+                  content={noteForm.content}
+                  tags={noteForm.tags}
+                  popularTags={availableTags.map((tag) => ({ tag, count: 1 }))}
+                  onChange={(tags) => setNoteForm({ ...noteForm, tags })}
                 />
               </div>
               <div className="flex items-center">

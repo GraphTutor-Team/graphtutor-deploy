@@ -14,7 +14,18 @@ import crypto from 'crypto';
  * 创建笔记
  */
 export async function createNote(userId, noteData) {
-  const { type, questionId, knowledgeNodeId, title, content, summary, tags, isPublic } = noteData;
+  const {
+    type,
+    questionId,
+    knowledgeNodeId,
+    title,
+    content,
+    summary,
+    tags,
+    isPublic,
+    images,
+    attachments,
+  } = noteData;
 
   // 验证类型和关联ID
   if (type === 'question' && !questionId) {
@@ -22,6 +33,9 @@ export async function createNote(userId, noteData) {
   }
   if (type === 'knowledge' && !knowledgeNodeId) {
     throw new Error('知识点笔记必须关联知识点ID');
+  }
+  if (type === 'general' && (questionId || knowledgeNodeId)) {
+    throw new Error('通用笔记不应关联题目或知识点');
   }
 
   // 验证题目是否存在
@@ -53,6 +67,8 @@ export async function createNote(userId, noteData) {
     summary: typeof summary === 'string' ? summary.slice(0, 500) : '',
     tags: Array.isArray(tags) ? tags : [],
     isPublic: isPublic || false,
+    images: Array.isArray(images) ? images : [],
+    attachments: Array.isArray(attachments) ? attachments : [],
     lastEditedAt: new Date(),
   });
 
@@ -83,6 +99,12 @@ export async function updateNote(userId, noteId, updates) {
   }
   if (updates.summary !== undefined) {
     note.summary = typeof updates.summary === 'string' ? updates.summary.slice(0, 500) : '';
+  }
+  if (updates.images !== undefined) {
+    note.images = Array.isArray(updates.images) ? updates.images : [];
+  }
+  if (updates.attachments !== undefined) {
+    note.attachments = Array.isArray(updates.attachments) ? updates.attachments : [];
   }
 
   note.lastEditedAt = new Date();
@@ -425,8 +447,70 @@ export async function getNoteStats(userId) {
   };
 }
 
+function escapeYamlString(value) {
+  if (value == null || value === '') return '""';
+  const str = String(value);
+  if (/[\n\r:"'#]|^\s|\s$/.test(str)) {
+    return `"${str.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+  }
+  return str;
+}
+
+function sanitizeExportFilename(title) {
+  const base = String(title || 'note')
+    .trim()
+    .replace(/[<>:"/\\|?*\x00-\x1f]/g, '_')
+    .replace(/\s+/g, '-')
+    .slice(0, 60);
+  return base || 'note';
+}
+
 /**
- * 导出笔记为Markdown
+ * 将笔记格式化为带 YAML frontmatter 的 Markdown
+ */
+export function buildNoteMarkdownExport(note) {
+  const created = note.createdAt ? new Date(note.createdAt).toISOString() : new Date().toISOString();
+  const updated = note.lastEditedAt || note.updatedAt || note.createdAt;
+  const updatedIso = updated ? new Date(updated).toISOString() : created;
+
+  const frontmatter = [
+    '---',
+    `title: ${escapeYamlString(note.title)}`,
+    `type: ${note.type || 'general'}`,
+  ];
+
+  if (note.tags?.length) {
+    frontmatter.push('tags:');
+    note.tags.forEach((tag) => {
+      frontmatter.push(`  - ${escapeYamlString(tag)}`);
+    });
+  } else {
+    frontmatter.push('tags: []');
+  }
+
+  frontmatter.push(`created: ${created}`);
+  frontmatter.push(`updated: ${updatedIso}`);
+
+  if (note.questionId) {
+    frontmatter.push(`questionId: ${escapeYamlString(note.questionId)}`);
+  }
+  if (note.knowledgeNodeId) {
+    frontmatter.push(`knowledgeNodeId: ${escapeYamlString(note.knowledgeNodeId)}`);
+  }
+  if (note.summary) {
+    frontmatter.push(`summary: ${escapeYamlString(note.summary)}`);
+  }
+  if (note.isPublic) {
+    frontmatter.push('public: true');
+  }
+
+  frontmatter.push('---', '');
+
+  return [...frontmatter, note.content || ''].join('\n');
+}
+
+/**
+ * 导出笔记为Markdown（含 YAML frontmatter）
  */
 export async function exportNoteAsMarkdown(noteId, userId) {
   const note = await Note.findOne({ _id: noteId, userId }).lean();
@@ -435,32 +519,10 @@ export async function exportNoteAsMarkdown(noteId, userId) {
     throw new Error('笔记不存在或无权限');
   }
 
-  const metadata = [
-    `# ${note.title}`,
-    '',
-    `**类型**: ${note.type === 'question' ? '题目笔记' : '知识点笔记'}`,
-    `**创建时间**: ${new Date(note.createdAt).toLocaleString()}`,
-    `**最后编辑**: ${new Date(note.lastEditedAt).toLocaleString()}`,
-  ];
-
-  if (note.questionId) {
-    metadata.push(`**题目ID**: ${note.questionId}`);
-  }
-  if (note.knowledgeNodeId) {
-    metadata.push(`**知识点ID**: ${note.knowledgeNodeId}`);
-  }
-  if (note.tags && note.tags.length > 0) {
-    metadata.push(`**标签**: ${note.tags.join(', ')}`);
-  }
-
-  metadata.push('', '---', '');
-
-  const markdown = [
-    ...metadata,
-    note.content,
-  ].join('\n');
-
-  return markdown;
+  return {
+    markdown: buildNoteMarkdownExport(note),
+    filename: `${sanitizeExportFilename(note.title)}.md`,
+  };
 }
 
 /**
@@ -474,33 +536,8 @@ export async function exportNotesAsMarkdown(userId, noteIds = null) {
 
   const notes = await Note.find(query).sort({ createdAt: -1 }).lean();
 
-  const sections = notes.map((note, index) => {
-    const metadata = [
-      `# ${note.title}`,
-      '',
-      `**类型**: ${note.type === 'question' ? '题目笔记' : '知识点笔记'}`,
-      `**创建时间**: ${new Date(note.createdAt).toLocaleString()}`,
-      `**最后编辑**: ${new Date(note.lastEditedAt).toLocaleString()}`,
-    ];
+  const sections = notes.map((note) => buildNoteMarkdownExport(note));
 
-    if (note.questionId) {
-      metadata.push(`**题目ID**: ${note.questionId}`);
-    }
-    if (note.knowledgeNodeId) {
-      metadata.push(`**知识点ID**: ${note.knowledgeNodeId}`);
-    }
-    if (note.tags && note.tags.length > 0) {
-      metadata.push(`**标签**: ${note.tags.join(', ')}`);
-    }
-
-    metadata.push('', '---', '');
-
-    return [
-      ...metadata,
-      note.content,
-    ].join('\n');
-  });
-
-  return sections.join('\n\n');
+  return sections.join('\n\n---\n\n');
 }
 

@@ -18,9 +18,10 @@ export function securityHeaders(req, res, next) {
   // XSS保护
   res.setHeader('X-XSS-Protection', '1; mode=block');
   
-  // 推荐使用HTTPS（仅生产环境）
-  if (process.env.NODE_ENV === 'production') {
-    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  // 推荐使用 HTTPS（仅前端地址为 https 时启用 HSTS）
+  const frontendUrl = (process.env.FRONTEND_URL || process.env.CLIENT_URL || "").replace(/\/$/, "");
+  if (frontendUrl.startsWith("https://")) {
+    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   }
   
   // 移除X-Powered-By头（隐藏服务器信息）

@@ -15,7 +15,8 @@ function needsProfileCompletion(user) {
 }
 
 function persistSession(token, user, refreshToken) {
-  api.saveTokens(token, refreshToken);
+  const rt = refreshToken || wx.getStorageSync('refreshToken');
+  api.saveTokens(token, rt);
   const app = getApp();
   app.globalData.userInfo = user;
   wx.setStorageSync('userInfo', user);

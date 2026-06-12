@@ -4,14 +4,18 @@
  * 功能：支持附件上传和管理
  */
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import api from '../api/api';
 import { toast } from '../utils/toast';
 
-export default function AttachmentUploader({ onUpload, maxAttachments = 5 }) {
+export default function AttachmentUploader({ onUpload, maxAttachments = 5, value = [] }) {
   const [uploading, setUploading] = useState(false);
-  const [attachments, setAttachments] = useState([]);
+  const [attachments, setAttachments] = useState(Array.isArray(value) ? value : []);
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    setAttachments(Array.isArray(value) ? value : []);
+  }, [value]);
 
   const formatFileSize = (bytes) => {
     if (bytes === 0) return '0 Bytes';

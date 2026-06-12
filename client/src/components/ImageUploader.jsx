@@ -4,14 +4,18 @@
  * 功能：支持图片上传和预览
  */
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import api from '../api/api';
 import { toast } from '../utils/toast';
 
-export default function ImageUploader({ onUpload, maxImages = 10 }) {
+export default function ImageUploader({ onUpload, maxImages = 10, value = [] }) {
   const [uploading, setUploading] = useState(false);
-  const [previewUrls, setPreviewUrls] = useState([]);
+  const [previewUrls, setPreviewUrls] = useState(Array.isArray(value) ? value : []);
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    setPreviewUrls(Array.isArray(value) ? value : []);
+  }, [value]);
 
   const handleFileSelect = async (e) => {
     const files = Array.from(e.target.files || []);

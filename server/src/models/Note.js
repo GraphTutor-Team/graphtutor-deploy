@@ -15,10 +15,10 @@ const NoteSchema = new mongoose.Schema(
       index: true,
     },
 
-    // 笔记类型：question（题目笔记）或 knowledge（知识点笔记）
+    // 笔记类型：question（题目笔记）、knowledge（知识点笔记）、general（通用个人笔记）
     type: {
       type: String,
-      enum: ['question', 'knowledge'],
+      enum: ['question', 'knowledge', 'general'],
       required: true,
       index: true,
     },

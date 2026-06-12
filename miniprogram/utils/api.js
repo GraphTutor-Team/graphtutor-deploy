@@ -3,24 +3,73 @@
  * 登录/用户信息：通过 config.USE_VIRTUAL_LOGIN 切换虚拟与真实后端，接后端时只需改 utils/config.js。
  */
 
-const app = getApp();
 const config = require('./config.js');
 
+function getAppSafe() {
+  try {
+    return getApp();
+  } catch (e) {
+    return null;
+  }
+}
+
 function getBaseUrl() {
+  const app = getAppSafe();
   return app ? app.globalData.baseUrl : config.BASE_URL;
 }
 
 function getToken() {
-  return app ? app.globalData.token : wx.getStorageSync('token');
+  const app = getAppSafe();
+  return app && app.globalData.token ? app.globalData.token : wx.getStorageSync('token');
 }
 
 function getRefreshToken() {
-  return app && app.globalData.refreshToken
-    ? app.globalData.refreshToken
-    : wx.getStorageSync('refreshToken');
+  const app = getAppSafe();
+  if (app && app.globalData.refreshToken) return app.globalData.refreshToken;
+  return wx.getStorageSync('refreshToken');
+}
+
+function cleanQuery(data) {
+  const out = {};
+  Object.keys(data || {}).forEach((key) => {
+    const val = data[key];
+    if (val !== undefined && val !== null && val !== '') out[key] = val;
+  });
+  return out;
+}
+
+function parseJwtPayload(token) {
+  if (!token || typeof token !== 'string') return null;
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+  try {
+    let base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const pad = base64.length % 4;
+    if (pad) base64 += '='.repeat(4 - pad);
+    let json = '';
+    if (typeof atob === 'function') {
+      json = atob(base64);
+    } else {
+      const buffer = wx.base64ToArrayBuffer(base64);
+      json = String.fromCharCode.apply(null, new Uint8Array(buffer));
+    }
+    return JSON.parse(json);
+  } catch (e) {
+    return null;
+  }
+}
+
+function isAccessTokenExpired(token, skewMs) {
+  if (!token || typeof token !== 'string') return true;
+  if (token.indexOf('virtual-') === 0) return false;
+  const payload = parseJwtPayload(token);
+  if (!payload || !payload.exp) return false;
+  const skew = typeof skewMs === 'number' ? skewMs : 60000;
+  return Date.now() >= payload.exp * 1000 - skew;
 }
 
 function saveTokens(accessToken, refreshToken) {
+  const app = getAppSafe();
   if (app) {
     app.globalData.token = accessToken;
     if (refreshToken) app.globalData.refreshToken = refreshToken;
@@ -30,6 +79,7 @@ function saveTokens(accessToken, refreshToken) {
 }
 
 function clearSession() {
+  const app = getAppSafe();
   if (app) {
     app.globalData.token = null;
     app.globalData.userInfo = null;
@@ -81,6 +131,33 @@ function refreshAccessToken() {
     });
   });
   return refreshingPromise;
+}
+
+/** 请求 v3 接口前确保 access token 有效（过期则自动 refresh） */
+function ensureValidAccessToken() {
+  if (config.USE_VIRTUAL_LOGIN) {
+    if (isVirtualToken()) return Promise.resolve(getToken());
+    return Promise.reject(new Error('未登录'));
+  }
+
+  const token = getToken();
+  if (!token) {
+    return Promise.reject(new Error('登录已过期，请重新登录'));
+  }
+  if (isVirtualToken()) {
+    clearSession();
+    return Promise.reject(new Error('登录已过期，请重新登录'));
+  }
+  if (!isAccessTokenExpired(token)) {
+    return Promise.resolve(token);
+  }
+
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) {
+    clearSession();
+    return Promise.reject(new Error('登录已过期，请重新登录'));
+  }
+  return refreshAccessToken();
 }
 
 // ========== 以下为请求后端用，接后端时无需改逻辑，只需在 config.js 关闭虚拟登录 ==========
@@ -246,11 +323,11 @@ function getNotifications(params) {
   const p = params || {};
   return request('/api/v3/notifications', {
     method: 'GET',
-    data: {
+    data: cleanQuery({
       page: p.page || 1,
       limit: p.limit || 5,
       type: p.type,
-    },
+    }),
   }).then((res) => (res && res.success && res.data) || { items: [] });
 }
 
@@ -258,11 +335,11 @@ function getRecommendedQuestions(params) {
   const p = params || {};
   return request('/api/v3/recommendations/questions', {
     method: 'GET',
-    data: {
+    data: cleanQuery({
       limit: p.limit || 3,
       strategy: p.strategy || 'adaptive',
       includeReasons: p.includeReasons === false ? 'false' : 'true',
-    },
+    }),
   }).then((res) => (res && res.success && res.data) || []);
 }
 
@@ -270,14 +347,14 @@ function getTodayReviewQuestions(params) {
   const p = params || {};
   return request('/api/v3/smart-review/today', {
     method: 'GET',
-    data: { limit: p.limit || 50 },
+    data: cleanQuery({ limit: p.limit || 50 }),
   }).then((res) => (res && res.success && res.data) || { questions: [] });
 }
 
 function getComprehensiveAnalysis(days) {
   return request('/api/v3/enhanced-analytics/comprehensive', {
     method: 'GET',
-    data: { days: days || 7 },
+    data: cleanQuery({ days: days || 7 }),
   }).then((res) => (res && res.success && res.data) || null);
 }
 
@@ -289,6 +366,8 @@ module.exports = {
   saveTokens,
   clearSession,
   refreshAccessToken,
+  ensureValidAccessToken,
+  isAccessTokenExpired,
   login,
   register,
   sendSmsCode,

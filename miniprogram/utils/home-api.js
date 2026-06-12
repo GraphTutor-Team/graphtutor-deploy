@@ -22,12 +22,12 @@ function formatTimeAgo(dateString) {
 }
 
 function fetchDashboard() {
-  return Promise.allSettled([
+  return api.ensureValidAccessToken().then(() => Promise.allSettled([
     api.getNotifications({ page: 1, limit: 5 }),
     api.getRecommendedQuestions({ limit: 3, includeReasons: false }),
     api.getTodayReviewQuestions({ limit: 100 }),
     api.getComprehensiveAnalysis(7),
-  ]).then(([notifRes, recRes, reviewRes, analysisRes]) => {
+  ])).then(([notifRes, recRes, reviewRes, analysisRes]) => {
     const notifications = notifRes.status === 'fulfilled'
       ? (notifRes.value.items || []).map((n) => ({
           id: n._id || n.id,

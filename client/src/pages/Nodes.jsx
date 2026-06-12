@@ -5,7 +5,7 @@ import HelpHint from '../components/HelpHint.jsx';
 import Toolbar from '../components/Toolbar.jsx';
 import { downloadFile, toast, jsonReq, API_BASE } from '../utils/download';
 import { listNodes, reorderNodes, createNode, deleteNode } from '../api/graph';
-import { getKnowledgeNotes, createNote } from '../api/v3/notes';
+import { getKnowledgeNotes, createNote, updateNote, deleteNote } from '../api/v3/notes';
 import { useAuth } from '../context/AuthContext';
 import MarkdownPreview from '../components/MarkdownPreview';
 import Icon from '../components/common/Icon';
@@ -20,6 +20,7 @@ export default function Nodes(){
   const [expandedNode, setExpandedNode] = useState(null);
   const [nodeNotes, setNodeNotes] = useState({});
   const [showNoteModal, setShowNoteModal] = useState(false);
+  const [editingNote, setEditingNote] = useState(null);
   const [selectedNodeKey, setSelectedNodeKey] = useState('');
   const [noteForm, setNoteForm] = useState({
     title: '',
@@ -60,6 +61,7 @@ export default function Nodes(){
       toast('请先登录', 'warning');
       return;
     }
+    setEditingNote(null);
     setSelectedNodeKey(nodeKey);
     setNoteForm({
       title: '',
@@ -68,6 +70,29 @@ export default function Nodes(){
       isPublic: false,
     });
     setShowNoteModal(true);
+  };
+
+  const handleEditNote = (nodeKey, note) => {
+    setEditingNote(note);
+    setSelectedNodeKey(nodeKey);
+    setNoteForm({
+      title: note.title,
+      content: note.content,
+      tags: note.tags || [],
+      isPublic: note.isPublic || false,
+    });
+    setShowNoteModal(true);
+  };
+
+  const handleDeleteNote = async (nodeKey, noteId) => {
+    if (!window.confirm('确定删除这篇笔记吗？')) return;
+    try {
+      await deleteNote(noteId);
+      toast('已删除', 'success');
+      loadNodeNotes(nodeKey);
+    } catch (err) {
+      toast(err.message || '删除失败', 'error');
+    }
   };
 
   const handleSaveNote = async () => {
@@ -81,16 +106,27 @@ export default function Nodes(){
     }
 
     try {
-      await createNote({
-        type: 'knowledge',
-        knowledgeNodeId: selectedNodeKey,
-        title: noteForm.title,
-        content: noteForm.content,
-        tags: noteForm.tags,
-        isPublic: noteForm.isPublic,
-      });
-      toast('创建成功', 'success');
+      if (editingNote) {
+        await updateNote(editingNote._id, {
+          title: noteForm.title,
+          content: noteForm.content,
+          tags: noteForm.tags,
+          isPublic: noteForm.isPublic,
+        });
+        toast('更新成功', 'success');
+      } else {
+        await createNote({
+          type: 'knowledge',
+          knowledgeNodeId: selectedNodeKey,
+          title: noteForm.title,
+          content: noteForm.content,
+          tags: noteForm.tags,
+          isPublic: noteForm.isPublic,
+        });
+        toast('创建成功', 'success');
+      }
       setShowNoteModal(false);
+      setEditingNote(null);
       loadNodeNotes(selectedNodeKey);
     } catch (err) {
       console.error('创建笔记失败:', err);
@@ -296,21 +332,35 @@ export default function Nodes(){
                                                 ))}
                                               </div>
                                             )}
-                                            <div className="flex gap-2 mt-3">
+                                            <div className="flex flex-wrap gap-2 mt-3">
                                               <button
-                                                onClick={() => navigate(`/notes?knowledgeNodeId=${x.key}`)}
+                                                type="button"
+                                                onClick={() => handleEditNote(x.key, note)}
                                                 className="px-3 py-1 text-sm border rounded-lg hover:bg-slate-50"
                                               >
-                                                查看详情
+                                                编辑
                                               </button>
-                                              {note.isPublic && (
-                                                <button
-                                                  onClick={() => navigate(`/notes/public`)}
-                                                  className="px-3 py-1 text-sm text-blue-600 hover:text-blue-700"
-                                                >
-                                                  公开笔记
-                                                </button>
-                                              )}
+                                              <button
+                                                type="button"
+                                                onClick={() => handleDeleteNote(x.key, note._id)}
+                                                className="px-3 py-1 text-sm text-red-600 hover:text-red-700"
+                                              >
+                                                删除
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() => navigate(`/notes?knowledgeNodeId=${encodeURIComponent(x.key)}`)}
+                                                className="px-3 py-1 text-sm border rounded-lg hover:bg-slate-50"
+                                              >
+                                                在学习笔记中查看
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() => navigate(`/notes?knowledgeNodeId=${encodeURIComponent(x.key)}&action=create`)}
+                                                className="px-3 py-1 text-sm text-blue-600 hover:text-blue-700"
+                                              >
+                                                新建更多
+                                              </button>
                                             </div>
                                           </div>
                                         ))}
@@ -349,7 +399,9 @@ export default function Nodes(){
       {showNoteModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-bold mb-4">为知识点 "{rows.find(n => n.key === selectedNodeKey)?.name || selectedNodeKey}" 添加笔记</h3>
+            <h3 className="text-lg font-bold mb-4">
+              {editingNote ? '编辑笔记' : '添加笔记'} — {rows.find(n => n.key === selectedNodeKey)?.name || selectedNodeKey}
+            </h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">标题 *</label>
@@ -401,6 +453,7 @@ export default function Nodes(){
               <button
                 onClick={() => {
                   setShowNoteModal(false);
+                  setEditingNote(null);
                   setSelectedNodeKey('');
                 }}
                 className="px-4 py-2 border rounded-lg hover:bg-slate-50"
