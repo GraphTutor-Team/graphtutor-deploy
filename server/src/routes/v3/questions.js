@@ -852,6 +852,21 @@ router.post(
           } else if (type === 'short') {
             // 简答题
             questionData.answer = sanitizeString(q.answer, { maxLength: 2000 });
+          } else if (type === 'coding') {
+            questionData.options = [];
+            const referenceCode = q.codingMeta?.referenceCode || q.answer;
+            if (!referenceCode || typeof referenceCode !== 'string' || !referenceCode.trim()) {
+              throw new Error('编程题必须提供参考代码');
+            }
+            questionData.answer = referenceCode;
+            questionData.codingMeta = {
+              language: q.codingMeta?.language || 'java',
+              referenceCode,
+              starterCode: q.codingMeta?.starterCode || '',
+              slug: q.codingMeta?.slug || '',
+              externalSource: q.codingMeta?.externalSource || '',
+              hint: q.codingMeta?.hint || '',
+            };
           }
 
           // 自动生成qid（如果启用）

@@ -390,6 +390,7 @@ export default function QuestionList() {
                 <option value="judge">判断题</option>
                 <option value="fill">填空题</option>
                 <option value="short">简答题</option>
+                <option value="coding">编程题</option>
               </select>
             </div>
 
@@ -789,6 +790,7 @@ export default function QuestionList() {
                           judge: { label: '判断题', color: 'green' },
                           fill: { label: '填空题', color: 'orange' },
                           short: { label: '简答题', color: 'red' },
+                          coding: { label: '编程题', color: 'slate' },
                         };
                         const typeInfo = typeMap[question.type || 'single'] || typeMap.single;
                         return (

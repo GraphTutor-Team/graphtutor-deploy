@@ -23,8 +23,12 @@ server/build/
 *.swo
 *~
 
-# OS
-.DS_Store
+# import staging (local PDF / zip / csv, do not commit)
+_import_staging/
+server/data/import/*.pdf
+server/data/import/*.zip
+server/data/import/*.csv
+
 Thumbs.db
 desktop.ini
 

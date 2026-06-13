@@ -23,10 +23,13 @@ const AnswerSchema = new mongoose.Schema(
       required: true,
       ref: 'Question',
     },
-    // 用户选择的选项下标
+    // 用户选择的选项下标（选择题）
     answerIndex: {
       type: Number,
-      required: true,
+    },
+    // 用户答案（编程题/简答题/填空题等）
+    userAnswer: {
+      type: mongoose.Schema.Types.Mixed,
     },
     // 是否正确（冗余，方便统计）
     isCorrect: {
@@ -60,6 +63,16 @@ const QuizSessionSchema = new mongoose.Schema(
         content: String,
         options: [String],
         correctIndex: Number,
+        type: { type: String, default: 'single' },
+        answer: mongoose.Schema.Types.Mixed,
+        codingMeta: {
+          language: String,
+          referenceCode: String,
+          starterCode: String,
+          slug: String,
+          externalSource: String,
+          hint: String,
+        },
         difficulty: Number,
         knowledgeNodeId: {
           type: mongoose.Schema.Types.ObjectId,

@@ -4,6 +4,34 @@
  * 功能：统一处理不同题型的答案判分逻辑
  */
 
+function normalizeCodeForCompare(code) {
+  return String(code || '')
+    .replace(/\r\n/g, '\n')
+    .replace(/\/\/.*$/gm, '')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+function codeSimilarity(a, b) {
+  if (!a || !b) return 0;
+  if (a === b) return 1;
+  const longer = a.length >= b.length ? a : b;
+  const shorter = a.length >= b.length ? b : a;
+  if (longer.includes(shorter) && shorter.length / longer.length > 0.85) {
+    return shorter.length / longer.length;
+  }
+  const tokensA = new Set(a.split(' ').filter(Boolean));
+  const tokensB = new Set(b.split(' ').filter(Boolean));
+  if (tokensA.size === 0 || tokensB.size === 0) return 0;
+  let matched = 0;
+  tokensA.forEach((token) => {
+    if (tokensB.has(token)) matched += 1;
+  });
+  return matched / Math.max(tokensA.size, tokensB.size);
+}
+
 /**
  * 判断答案是否正确
  * @param {Object} question - 题目对象
@@ -170,6 +198,38 @@ export function checkAnswer(question, userAnswer) {
     };
   }
 
+  if (questionType === 'coding') {
+    const referenceCode = question.codingMeta?.referenceCode || String(question.answer || '');
+    const userCode = String(userAnswer || '');
+    const normalizedReference = normalizeCodeForCompare(referenceCode);
+    const normalizedUser = normalizeCodeForCompare(userCode);
+
+    if (!normalizedUser) {
+      return {
+        isCorrect: false,
+        score: 0,
+        details: {
+          type: questionType,
+          userAnswer: userCode,
+        },
+      };
+    }
+
+    const similarity = codeSimilarity(normalizedReference, normalizedUser);
+    const isCorrect = similarity >= 0.92;
+
+    return {
+      isCorrect,
+      score: similarity,
+      details: {
+        type: questionType,
+        similarity,
+        referenceCode,
+        userAnswer: userCode,
+      },
+    };
+  }
+
   // 未知题型，返回默认值
   return {
     isCorrect: false,
@@ -288,6 +348,10 @@ export function formatAnswerDisplay(question, userAnswer) {
     return userAnswer || '未作答';
   }
 
+  if (questionType === 'coding') {
+    return userAnswer ? '[已提交代码]' : '未作答';
+  }
+
   return String(userAnswer || '未作答');
 }
 
@@ -331,6 +395,10 @@ export function formatCorrectAnswerDisplay(question) {
 
   if (questionType === 'short') {
     return question.answer || '未知';
+  }
+
+  if (questionType === 'coding') {
+    return '[参考代码]';
   }
 
   return '未知';

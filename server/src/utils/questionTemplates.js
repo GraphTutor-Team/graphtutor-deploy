@@ -68,7 +68,7 @@ export function generateJSONTemplate() {
     metadata: {
       version: '1.0',
       description: 'GraphTutor 题目导入模板',
-      supportedTypes: ['single', 'multiple', 'fill', 'short', 'judge'],
+      supportedTypes: ['single', 'multiple', 'fill', 'short', 'judge', 'coding'],
       createdAt: new Date().toISOString(),
     },
   };
@@ -198,7 +198,7 @@ export function validateQuestionData(question, index = 0) {
   const errors = [];
 
   // 验证题型
-  const validTypes = ['single', 'multiple', 'fill', 'short', 'judge'];
+  const validTypes = ['single', 'multiple', 'fill', 'short', 'judge', 'coding'];
   if (!question.type || !validTypes.includes(question.type)) {
     errors.push(`第${index + 1}题：题型必须是 ${validTypes.join('、')} 之一`);
   }
@@ -246,6 +246,14 @@ export function validateQuestionData(question, index = 0) {
   if (type === 'short') {
     if (!question.answer || typeof question.answer !== 'string' || !question.answer.trim()) {
       errors.push(`第${index + 1}题：简答题必须提供参考答案`);
+    }
+  }
+
+  // 编程题验证
+  if (type === 'coding') {
+    const referenceCode = question.codingMeta?.referenceCode || question.answer;
+    if (!referenceCode || typeof referenceCode !== 'string' || !referenceCode.trim()) {
+      errors.push(`第${index + 1}题：编程题必须提供参考代码`);
     }
   }
 

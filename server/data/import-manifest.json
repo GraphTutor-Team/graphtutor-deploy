@@ -1,0 +1,106 @@
+{
+  "subjects": [
+    {
+      "code": "CERT",
+      "name": "计算机等级考试",
+      "level": 1,
+      "description": "全国计算机等级考试（NCRE）相关练习",
+      "color": "#6366F1",
+      "icon": "🎓",
+      "order": 10
+    },
+    {
+      "code": "CERT-MS",
+      "name": "二级 MS Office",
+      "level": 2,
+      "parentCode": "CERT",
+      "description": "计算机二级 Microsoft Office 选择题",
+      "color": "#2563EB",
+      "icon": "📘",
+      "order": 1
+    },
+    {
+      "code": "CERT-WPS",
+      "name": "二级 WPS Office",
+      "level": 2,
+      "parentCode": "CERT",
+      "description": "计算机二级 WPS Office 选择题",
+      "color": "#DC2626",
+      "icon": "📕",
+      "order": 2
+    }
+  ],
+  "banks": [
+    {
+      "key": "ncre-ms-300",
+      "name": "二级 MS 精选 300 题",
+      "subjectCode": "CERT-MS",
+      "description": "MS Office 二级选择题精选 300 道（展示/测试）",
+      "isOfficial": true,
+      "isPublic": true,
+      "sourceFile": "ms-pdf"
+    },
+    {
+      "key": "ncre-wps-300",
+      "name": "二级 WPS 精选 300 题",
+      "subjectCode": "CERT-WPS",
+      "description": "WPS Office 二级选择题精选（展示/测试）",
+      "isOfficial": true,
+      "isPublic": true,
+      "sourceFile": "wps-pdf"
+    }
+  ],
+  "coding": {
+    "subjects": [
+      {
+        "code": "CS",
+        "name": "计算机科学",
+        "level": 1,
+        "description": "编程与算法相关练习",
+        "color": "#0EA5E9",
+        "icon": "💻",
+        "order": 5
+      },
+      {
+        "code": "CS-JAVA",
+        "name": "Java 编程",
+        "level": 2,
+        "parentCode": "CS",
+        "description": "Java 实验与编程练习",
+        "color": "#F97316",
+        "icon": "☕",
+        "order": 1
+      },
+      {
+        "code": "CS-ALGO",
+        "name": "算法与 LeetCode",
+        "level": 2,
+        "parentCode": "CS",
+        "description": "算法题与 LeetCode 参考实现",
+        "color": "#8B5CF6",
+        "icon": "🧠",
+        "order": 2
+      }
+    ],
+    "banks": [
+      {
+        "key": "java-lab-submissions",
+        "name": "Java 实验编程题",
+        "subjectCode": "CS-JAVA",
+        "description": "来自 java_submissions.csv 的 99 个实验活动",
+        "isOfficial": true,
+        "isPublic": true,
+        "sourceFile": "java_submissions.csv"
+      },
+      {
+        "key": "leetcode-java-master",
+        "name": "LeetCode Java 参考题",
+        "subjectCode": "CS-ALGO",
+        "description": "来自 leetcode-master 仓库的 Java 算法实现",
+        "isOfficial": true,
+        "isPublic": true,
+        "sourceFile": "leetcode-master.zip"
+      }
+    ]
+  }
+}

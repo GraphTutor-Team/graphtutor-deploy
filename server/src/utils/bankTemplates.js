@@ -307,7 +307,7 @@ export function validateBankData(bank, index = 0) {
 
   // 验证题型
   if (bank.settings?.questionTypes) {
-    const validTypes = ['single', 'multiple', 'fill', 'short', 'judge'];
+    const validTypes = ['single', 'multiple', 'fill', 'short', 'judge', 'coding'];
     if (!Array.isArray(bank.settings.questionTypes)) {
       errors.push(`第${index + 1}个题库：支持题型必须是数组`);
     } else {

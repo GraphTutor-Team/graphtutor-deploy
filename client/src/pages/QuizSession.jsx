@@ -14,6 +14,7 @@ import { STORAGE_KEYS } from '../constants/index.js';
 import { toast } from '../utils/toast';
 import { getBanks } from '../api/v3/questionBanks';
 import { getSubjectTree } from '../api/v3/subjects';
+import { runJavaCode } from '../api/coding';
 
 export default function QuizSession() {
   const navigate = useNavigate();
@@ -42,12 +43,18 @@ export default function QuizSession() {
 
   const [banks, setBanks] = useState([]);
   const [subjects, setSubjects] = useState([]);
+  const [runOutput, setRunOutput] = useState('');
+  const [runBusy, setRunBusy] = useState(false);
 
   const cur = qs[idx];
 
   useEffect(() => {
     loadOptions();
   }, []);
+
+  useEffect(() => {
+    setRunOutput('');
+  }, [idx]);
 
   const loadOptions = async () => {
     try {
@@ -98,6 +105,9 @@ export default function QuizSession() {
           difficulty: x.difficulty,
           correctIndex: x.correctIndex ?? x.answerIndex ?? 0,
           type: x.type || 'single',
+          answer: x.answer,
+          codingMeta: x.codingMeta || null,
+          explain: x.explain || '',
         }));
 
         if (items.length === 0) {
@@ -145,7 +155,7 @@ export default function QuizSession() {
           // 回填已答
           const map = {};
           (s.answers || []).forEach(a => {
-            map[a.questionId] = a.answerIndex;
+            map[a.questionId] = a.userAnswer ?? a.answerIndex;
           });
           setAnswers(map);
           setStatus('ongoing');
@@ -168,7 +178,7 @@ export default function QuizSession() {
         setQs(s.questions || []);
         const map = {};
         (s.answers || []).forEach(a => {
-          map[a.questionId] = a.answerIndex;
+          map[a.questionId] = a.userAnswer ?? a.answerIndex;
         });
         setAnswers(map);
         setStatus('ongoing');
@@ -231,6 +241,69 @@ export default function QuizSession() {
     if (!cur) return;
     setAnswers(a => ({ ...a, [cur.id]: value }));
   }
+
+  // 编程题答案更新
+  function handleCodingAnswerChange(value) {
+    if (!cur) return;
+    setAnswers(a => ({ ...a, [cur.id]: value }));
+  }
+
+  async function persistCurrentAnswer(explicitValue) {
+    if (!cur || !sid || sid === 'local') return;
+    const value = explicitValue !== undefined ? explicitValue : answers[cur.id];
+    if (value == null || value === '') return;
+    try {
+      await submitAnswer({
+        sessionId: sid,
+        questionId: cur.id,
+        userAnswer: value,
+        answerIndex: typeof value === 'number' ? value : undefined,
+        userId,
+      });
+    } catch (err) {
+      console.warn('提交答案失败:', err);
+    }
+  }
+
+  async function handleRunCode() {
+    if (!cur || cur.type !== 'coding') return;
+    const code = getCodingStarter(cur);
+    if (!code.trim()) {
+      toast.warning('请先输入代码');
+      return;
+    }
+    setRunBusy(true);
+    setRunOutput('');
+    try {
+      const res = await runJavaCode({ code });
+      const data = res.data || res;
+      if (data.disabled) {
+        setRunOutput(data.message || '代码运行未启用');
+        toast.info('服务器未开启代码运行，请对照参考实现判分');
+        return;
+      }
+      const text = [
+        data.compiled === false ? '[编译失败]' : '[运行结果]',
+        data.stdout ? `输出:\n${data.stdout}` : '',
+        data.stderr ? `错误:\n${data.stderr}` : '',
+        data.exitCode != null ? `退出码: ${data.exitCode}` : '',
+      ].filter(Boolean).join('\n\n');
+      setRunOutput(text || '无输出');
+    } catch (err) {
+      setRunOutput(err.message || '运行失败');
+      toast.error('代码运行失败');
+    } finally {
+      setRunBusy(false);
+    }
+  }
+
+  const getCodingStarter = useCallback((question) => {
+    if (!question) return '';
+    if (typeof answers[question.id] === 'string' && answers[question.id].length > 0) {
+      return answers[question.id];
+    }
+    return question.codingMeta?.starterCode || '// 在此编写 Java 代码\n';
+  }, [answers]);
 
   async function finish() {
     if (sid && sid !== 'local') {
@@ -444,19 +517,59 @@ export default function QuizSession() {
                       cur.type === 'multiple' ? 'bg-purple-100 text-purple-700' :
                       cur.type === 'judge' ? 'bg-green-100 text-green-700' :
                       cur.type === 'fill' ? 'bg-orange-100 text-orange-700' :
+                      cur.type === 'coding' ? 'bg-slate-800 text-white' :
                       'bg-red-100 text-red-700'
                     }`}>
                       {cur.type === 'single' ? '单选题' :
                        cur.type === 'multiple' ? '多选题' :
                        cur.type === 'judge' ? '判断题' :
                        cur.type === 'fill' ? '填空题' :
+                       cur.type === 'coding' ? '编程题' :
                        '简答题'}
                     </span>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  {cur.type === 'fill' ? (
+                  {cur.type === 'coding' ? (
+                    <div className="space-y-3">
+                      {cur.codingMeta?.hint && (
+                        <div className="text-sm text-slate-600 bg-slate-50 border rounded-lg px-3 py-2">
+                          提示：{cur.codingMeta.hint}
+                        </div>
+                      )}
+                      <textarea
+                        value={getCodingStarter(cur)}
+                        onChange={(e) => handleCodingAnswerChange(e.target.value)}
+                        onBlur={(e) => persistCurrentAnswer(e.target.value)}
+                        rows={16}
+                        spellCheck={false}
+                        placeholder="在此编写 Java 代码"
+                        className="w-full px-4 py-3 border rounded-lg font-mono text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-950 text-green-100"
+                      />
+                      <div className="flex flex-wrap gap-2 items-center">
+                        <button
+                          type="button"
+                          className="btn btn-outline btn-sm"
+                          onClick={handleRunCode}
+                          disabled={runBusy}
+                        >
+                          {runBusy ? '运行中…' : '运行代码'}
+                        </button>
+                        <p className="text-xs text-slate-500">
+                          需服务器安装 JDK 并设置 ENABLE_CODE_RUN=true
+                        </p>
+                      </div>
+                      {runOutput && (
+                        <pre className="text-xs bg-slate-900 text-slate-100 rounded-lg p-3 overflow-x-auto whitespace-pre-wrap">
+                          {runOutput}
+                        </pre>
+                      )}
+                      <p className="text-xs text-slate-500">
+                        提交后将按代码相似度与参考实现对照判分（≥92% 视为通过）。
+                      </p>
+                    </div>
+                  ) : cur.type === 'fill' ? (
                     // 填空题
                     <div className="space-y-3">
                       {(cur.blankAnswers || Array(cur.blanks || 1).fill('')).map((_, blankIndex) => (
@@ -545,7 +658,10 @@ export default function QuizSession() {
                     </button>
                     <button
                       className="btn btn-sm"
-                      onClick={() => setIdx(i => Math.min(qs.length - 1, i + 1))}
+                      onClick={async () => {
+                        await persistCurrentAnswer();
+                        setIdx(i => Math.min(qs.length - 1, i + 1));
+                      }}
                       disabled={!canNext}
                     >
                       下一题
@@ -560,7 +676,10 @@ export default function QuizSession() {
                     </button>
                     <button
                       className="btn btn-primary btn-sm"
-                      onClick={finish}
+                      onClick={async () => {
+                        await persistCurrentAnswer();
+                        finish();
+                      }}
                     >
                       完成并提交
                     </button>
@@ -582,7 +701,7 @@ export default function QuizSession() {
             ) : (
               <div className="grid grid-cols-5 gap-2">
                 {qs.map((q, i) => {
-                  const answered = answers[q.id] != null;
+                  const answered = answers[q.id] != null && answers[q.id] !== '';
                   const isCurrent = i === idx;
                   return (
                     <button

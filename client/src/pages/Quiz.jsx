@@ -22,6 +22,7 @@ import api from "../api/api";
 import { useAuth } from "../context/AuthContext";
 import { useLearningData } from "../context/LearningDataContext";
 import { getSubjectTree } from "../api/v3/subjects";
+import { runJavaCode } from "../api/coding";
 
 function OptionItem({ index, text, selected, onSelect, multiple = false }) {
   const label = String.fromCharCode(65 + index); // A/B/C/D...
@@ -80,6 +81,8 @@ export default function Quiz() {
   const [subjects, setSubjects] = useState([]); // 学科列表
   const [bankId, setBankId] = useState(""); // 题库筛选
   const [banks, setBanks] = useState([]); // 题库列表
+  const [runOutput, setRunOutput] = useState("");
+  const [runBusy, setRunBusy] = useState(false);
   const groupPracticeQuestionIds = location.state?.groupPracticeQuestionIds; // 群组共同练习固定题号
   const predictionPlan = location.state?.predictionPlan || null; // Phase 2.6 考前预测计划：{ nodes: string[], totalQuestions }
   // Phase 2.3 动态难度：根据近期正确率与作答时间调整下一题难度
@@ -186,6 +189,10 @@ export default function Quiz() {
     };
   }, [groupPracticeQuestionIds?.join(','), questionCount, subjectCode, bankId, adaptiveMode]);
 
+  useEffect(() => {
+    setRunOutput("");
+  }, [idx]);
+
   const current = questions[idx] || null;
   const total = questions.length;
 
@@ -220,6 +227,42 @@ export default function Quiz() {
       if (i >= 0) return i;
     }
     return null;
+  }
+
+  function getCodingStarter(question) {
+    if (!question) return "";
+    const qid = question._id || question.id || idx;
+    if (typeof answers[qid] === "string" && answers[qid].length > 0) {
+      return answers[qid];
+    }
+    return question.codingMeta?.starterCode || "// 在此编写 Java 代码\n";
+  }
+
+  async function handleRunCode() {
+    if (!current || current.type !== "coding") return;
+    const code = getCodingStarter(current);
+    if (!code.trim()) return;
+    setRunBusy(true);
+    setRunOutput("");
+    try {
+      const res = await runJavaCode({ code });
+      const data = res.data || res;
+      if (data.disabled) {
+        setRunOutput(data.message || "代码运行未启用");
+        return;
+      }
+      setRunOutput(
+        [
+          data.compiled === false ? "[编译失败]" : "[运行结果]",
+          data.stdout ? `输出:\n${data.stdout}` : "",
+          data.stderr ? `错误:\n${data.stderr}` : "",
+        ].filter(Boolean).join("\n\n")
+      );
+    } catch (err) {
+      setRunOutput(err.message || "运行失败");
+    } finally {
+      setRunBusy(false);
+    }
   }
 
   function handleSelect(optionIndex) {
@@ -652,12 +695,14 @@ export default function Quiz() {
                   current.type === 'multiple' ? 'bg-purple-100 text-purple-700' :
                   current.type === 'judge' ? 'bg-green-100 text-green-700' :
                   current.type === 'fill' ? 'bg-orange-100 text-orange-700' :
+                  current.type === 'coding' ? 'bg-slate-800 text-white' :
                   'bg-red-100 text-red-700'
                 }`}>
                   {current.type === 'single' ? '单选题' :
                    current.type === 'multiple' ? '多选题' :
                    current.type === 'judge' ? '判断题' :
                    current.type === 'fill' ? '填空题' :
+                   current.type === 'coding' ? '编程题' :
                    '简答题'}
                 </span>
               )}
@@ -692,6 +737,41 @@ export default function Quiz() {
                       />
                     </div>
                   ))}
+                </div>
+              ) : current.type === 'coding' ? (
+                <div className="space-y-3">
+                  {current.codingMeta?.hint && (
+                    <div className="text-sm text-slate-600 bg-slate-50 border rounded-lg px-3 py-2">
+                      提示：{current.codingMeta.hint}
+                    </div>
+                  )}
+                  <textarea
+                    value={getCodingStarter(current)}
+                    onChange={(e) => {
+                      const qid = current._id || current.id || idx;
+                      setAnswers((prev) => ({
+                        ...prev,
+                        [qid]: e.target.value,
+                      }));
+                    }}
+                    rows={16}
+                    spellCheck={false}
+                    placeholder="在此编写 Java 代码"
+                    className="w-full px-4 py-3 border rounded-lg font-mono text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-950 text-green-100"
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    onClick={handleRunCode}
+                    disabled={runBusy}
+                  >
+                    {runBusy ? "运行中…" : "运行代码"}
+                  </button>
+                  {runOutput && (
+                    <pre className="text-xs bg-slate-900 text-slate-100 rounded-lg p-3 overflow-x-auto whitespace-pre-wrap">
+                      {runOutput}
+                    </pre>
+                  )}
                 </div>
               ) : current.type === 'short' ? (
                 // 简答题

@@ -19,42 +19,53 @@ import mongoose from 'mongoose';
 import Question from '../models/Question.js';
 import QuizSession from '../models/QuizSession.js';
 import Record from '../models/Record.js';
+import { checkAnswer, resolveUserAnswer } from '../utils/questionScoring.js';
 
 const router = express.Router();
 
+function snapshotQuestion(q) {
+  let correctIndex = q.answerIndex;
+  if (correctIndex === undefined || correctIndex === null) {
+    if (q.type === 'single' || q.type === 'judge') {
+      correctIndex = typeof q.answer === 'number' ? q.answer : null;
+    } else if (q.type === 'multiple' && Array.isArray(q.answer)) {
+      correctIndex = q.answer.length > 0 ? q.answer[0] : null;
+    }
+  }
+
+  return {
+    id: q._id,
+    content: q.content,
+    options: q.options || [],
+    correctIndex,
+    difficulty: q.difficulty,
+    knowledgeNodeId: q.knowledgeNodeId,
+    type: q.type || 'single',
+    answer: q.answer,
+    codingMeta: q.codingMeta || null,
+    explain: q.explain || '',
+  };
+}
+
 /**
- * 从题库中抽题（支持按知识点、难度）
+ * 从题库中抽题（支持按知识点、难度、学科、题库）
  */
-async function selectQuestions({ size = 10, difficulty, node }) {
+async function selectQuestions({ size = 10, difficulty, node, bankId, subjectCode }) {
   const match = {};
   if (difficulty) match.difficulty = Number(difficulty);
   if (node) match.knowledgeNodeId = node;
+  if (subjectCode) match.subjectCode = subjectCode;
+  if (bankId) {
+    try {
+      match.bankId = new mongoose.Types.ObjectId(bankId);
+    } catch {
+      throw new Error('无效的 bankId');
+    }
+  }
 
   const pipeline = [{ $match: match }, { $sample: { size } }];
   const docs = await Question.aggregate(pipeline).exec();
-
-  return docs.map((q) => {
-    // 处理正确答案：优先使用answerIndex，如果没有则从answer中提取
-    let correctIndex = q.answerIndex;
-    if (correctIndex === undefined || correctIndex === null) {
-      // 如果是单选题，answer就是索引
-      if (q.type === 'single' || q.type === 'judge') {
-        correctIndex = typeof q.answer === 'number' ? q.answer : null;
-      } else if (q.type === 'multiple' && Array.isArray(q.answer)) {
-        // 多选题，取第一个答案索引（用于显示）
-        correctIndex = q.answer.length > 0 ? q.answer[0] : null;
-      }
-    }
-    
-    return {
-      id: q._id,
-      content: q.content,
-      options: q.options || [],
-      correctIndex: correctIndex,
-      difficulty: q.difficulty,
-      knowledgeNodeId: q.knowledgeNodeId,
-    };
-  });
+  return docs.map(snapshotQuestion);
 }
 
 /**
@@ -63,15 +74,18 @@ async function selectQuestions({ size = 10, difficulty, node }) {
  */
 router.post('/session/start', async (req, res) => {
   try {
-    const { userId, size = 10, difficulty, node } = req.body;
+    const { userId, size = 10, difficulty, node, bankId, subjectCode } = req.body;
     if (!userId) {
       return res.status(400).json({ error: 'userId 是必填项' });
     }
 
-    // 添加调试日志
-    console.log('[Quiz] Creating session with params:', { userId, size, difficulty, node });
+    console.log('[Quiz] Creating session with params:', {
+      userId, size, difficulty, node, bankId, subjectCode,
+    });
 
-    const questions = await selectQuestions({ size, difficulty, node });
+    const questions = await selectQuestions({
+      size, difficulty, node, bankId, subjectCode,
+    });
     console.log('[Quiz] Selected questions count:', questions.length);
     
     if (!questions.length) {
@@ -109,6 +123,10 @@ router.post('/session/start', async (req, res) => {
         correctIndex: q.correctIndex !== undefined && q.correctIndex !== null ? Number(q.correctIndex) : null,
         difficulty: q.difficulty !== undefined ? Number(q.difficulty) : 1,
         knowledgeNodeId: knowledgeNodeId,
+        type: q.type || 'single',
+        answer: q.answer,
+        codingMeta: q.codingMeta || null,
+        explain: q.explain || '',
       };
     });
 
@@ -164,13 +182,37 @@ router.get('/session/:id', async (req, res) => {
 
     const needReveal = reveal === '1' || session.status === 'finished';
 
-    const questions = session.questions.map((q) => ({
-      id: q.id,
-      content: q.content,
-      options: q.options,
-      difficulty: q.difficulty,
-      knowledgeNodeId: q.knowledgeNodeId,
-      correctIndex: needReveal ? q.correctIndex : undefined,
+    const questions = session.questions.map((q) => {
+      const codingMeta = q.codingMeta
+        ? {
+            language: q.codingMeta.language,
+            starterCode: q.codingMeta.starterCode,
+            slug: q.codingMeta.slug,
+            hint: q.codingMeta.hint,
+            externalSource: q.codingMeta.externalSource,
+            ...(needReveal ? { referenceCode: q.codingMeta.referenceCode } : {}),
+          }
+        : undefined;
+
+      return {
+        id: q.id,
+        content: q.content,
+        options: q.options,
+        difficulty: q.difficulty,
+        knowledgeNodeId: q.knowledgeNodeId,
+        type: q.type || 'single',
+        codingMeta,
+        answer: needReveal ? q.answer : undefined,
+        explain: needReveal ? q.explain : undefined,
+        correctIndex: needReveal ? q.correctIndex : undefined,
+      };
+    });
+
+    const answers = (session.answers || []).map((a) => ({
+      questionId: a.questionId,
+      answerIndex: a.answerIndex,
+      userAnswer: a.userAnswer,
+      isCorrect: needReveal ? a.isCorrect : undefined,
     }));
 
     res.json({
@@ -178,7 +220,7 @@ router.get('/session/:id', async (req, res) => {
       userId: session.userId,
       status: session.status,
       questions,
-      answers: session.answers,
+      answers,
       totalCorrect: session.totalCorrect,
       totalQuestions: session.totalQuestions,
       createdAt: session.createdAt,
@@ -230,7 +272,7 @@ router.get('/', async (req, res) => {
 router.post('/session/:id/answer', async (req, res) => {
   try {
     const { id } = req.params;
-    const { questionId, answerIndex, timeSpentMs, userId } = req.body;
+    const { questionId, answerIndex, timeSpentMs, userId, userAnswer, answer } = req.body;
 
     const session = await QuizSession.findById(id);
     if (!session) {
@@ -247,34 +289,42 @@ router.post('/session/:id/answer', async (req, res) => {
       return res.status(400).json({ error: '该题不属于本会话' });
     }
 
-    const isCorrect = Number(answerIndex) === Number(snap.correctIndex);
+    const resolvedAnswer = resolveUserAnswer({ userAnswer, answer, answerIndex });
+    const questionForCheck = {
+      type: snap.type || 'single',
+      answer: snap.answer,
+      answerIndex: snap.correctIndex,
+      options: snap.options,
+      codingMeta: snap.codingMeta,
+    };
+    const { isCorrect } = checkAnswer(questionForCheck, resolvedAnswer);
 
-    // 更新/插入 Answer
     const existing = session.answers.find(
       (a) => String(a.questionId) === String(questionId)
     );
     if (existing) {
-      existing.answerIndex = answerIndex;
+      existing.answerIndex = typeof resolvedAnswer === 'number' ? resolvedAnswer : existing.answerIndex;
+      existing.userAnswer = resolvedAnswer;
       existing.isCorrect = isCorrect;
       existing.timeSpentMs = timeSpentMs ?? existing.timeSpentMs;
     } else {
       session.answers.push({
         questionId,
-        answerIndex,
+        answerIndex: typeof resolvedAnswer === 'number' ? resolvedAnswer : 0,
+        userAnswer: resolvedAnswer,
         isCorrect,
         timeSpentMs,
       });
     }
     await session.save();
 
-    // 写入 Record
     const recordUserId = userId || session.userId;
     await Record.create({
       userId: recordUserId,
       questionId,
       knowledgeNodeId: snap.knowledgeNodeId,
       isCorrect,
-      answerIndex,
+      answerIndex: typeof resolvedAnswer === 'number' ? resolvedAnswer : undefined,
       correctIndex: snap.correctIndex,
       sessionId: session._id,
       timeSpentMs,
@@ -308,7 +358,26 @@ router.post('/session/:id/finish', async (req, res) => {
     let correct = 0;
     session.questions.forEach((q) => {
       const a = lastByQid.get(String(q.id));
-      if (a && a.isCorrect) correct += 1;
+      if (!a) return;
+      if (a.isCorrect) {
+        correct += 1;
+        return;
+      }
+      const resolvedAnswer = a.userAnswer !== undefined ? a.userAnswer : a.answerIndex;
+      const { isCorrect } = checkAnswer(
+        {
+          type: q.type || 'single',
+          answer: q.answer,
+          answerIndex: q.correctIndex,
+          options: q.options,
+          codingMeta: q.codingMeta,
+        },
+        resolvedAnswer
+      );
+      if (isCorrect) {
+        a.isCorrect = true;
+        correct += 1;
+      }
     });
 
     session.status = 'finished';

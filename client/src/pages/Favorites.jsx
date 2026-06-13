@@ -413,6 +413,7 @@ export default function Favorites() {
                                       judge: '判断题',
                                       fill: '填空题',
                                       short: '简答题',
+                                      coding: '编程题',
                                     };
                                     return typeMap[question.type] || '单选题';
                                   })()}

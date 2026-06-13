@@ -24,10 +24,10 @@ async function request(path, options = {}) {
   return data;
 }
 
-export async function startSession({ userId, size, difficulty, node }) {
+export async function startSession({ userId, size, difficulty, node, bankId, subjectCode }) {
   return request('/quizzes/session/start', {
     method: 'POST',
-    body: JSON.stringify({ userId, size, difficulty, node }),
+    body: JSON.stringify({ userId, size, difficulty, node, bankId, subjectCode }),
   });
 }
 
@@ -52,6 +52,8 @@ export async function submitAnswer({
   sessionId,
   questionId,
   answerIndex,
+  userAnswer,
+  answer,
   timeSpentMs,
   userId,
 }) {
@@ -60,6 +62,8 @@ export async function submitAnswer({
     body: JSON.stringify({
       questionId,
       answerIndex,
+      userAnswer,
+      answer,
       timeSpentMs,
       userId,
     }),

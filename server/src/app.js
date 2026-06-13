@@ -65,6 +65,7 @@ import v3MessagesRoutes from "./routes/v3/messages.js";
 import v3FriendChallengesRoutes from "./routes/v3/friendChallenges.js";
 import v3LearningPostsRoutes from "./routes/v3/learningPosts.js";
 import v3DailyChallengeRoutes from "./routes/v3/dailyChallenge.js";
+import v3CodingRoutes from "./routes/v3/coding.js";
 import { securityHeaders } from "./middleware/security.js";
 import { defaultResponseTimeLogger } from "./middleware/responseTime.js";
 import { apiRateLimiter, strictRateLimiter } from "./middleware/rateLimiter.js";
@@ -199,6 +200,7 @@ export async function createServer() {
   app.use("/api/v3/friend-challenges", v3FriendChallengesRoutes);
   app.use("/api/v3/learning-posts", v3LearningPostsRoutes);
   app.use("/api/v3/daily-challenge", v3DailyChallengeRoutes);
+  app.use("/api/v3/coding", v3CodingRoutes);
   app.use("/api/v3/equipment", (await import("./routes/v3/equipment.js")).default);
   app.use("/api/v3/shop", (await import("./routes/v3/shop.js")).default);
   app.use("/api/v3/leaderboard", (await import("./routes/v3/leaderboard.js")).default);

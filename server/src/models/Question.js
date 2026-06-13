@@ -72,10 +72,11 @@ const QuestionSchema = new mongoose.Schema(
      * - fill: 填空题
      * - short: 简答题
      * - judge: 判断题
+     * - coding: 编程题（参考代码存于 answer / codingMeta）
      */
     type: {
       type: String,
-      enum: ['single', 'multiple', 'fill', 'short', 'judge'],
+      enum: ['single', 'multiple', 'fill', 'short', 'judge', 'coding'],
       default: 'single',
       index: true,
     },
@@ -97,16 +98,26 @@ const QuestionSchema = new mongoose.Schema(
       type: [String],
       validate: {
         validator(v) {
-          // 选择题和判断题需要至少2个选项
           const questionType = this.type || 'single';
           if (['single', 'multiple', 'judge'].includes(questionType)) {
             return Array.isArray(v) && v.length >= 2;
           }
-          // 填空题和简答题可以为空
           return Array.isArray(v);
         },
         message: '选择题和判断题至少需要 2 个选项',
       },
+    },
+
+    /**
+     * 编程题扩展信息
+     */
+    codingMeta: {
+      language: { type: String, default: 'java' },
+      referenceCode: { type: String, default: '' },
+      starterCode: { type: String, default: '' },
+      slug: { type: String, default: '' },
+      externalSource: { type: String, default: '' },
+      hint: { type: String, default: '' },
     },
 
     /**

@@ -222,6 +222,62 @@ npm run seed:demo
 - 数据文件：`server/data/demo-content.json`、`server/data/starter_question_bank.json`
 - 可选：完整学科树仍可用 `npm run seed:subjects` 导入
 
+**计算机二级 MS/WPS PDF（你提供的 300 题）**：
+
+```bash
+# 默认读取微信文件路径；也可指定 PDF
+npm run seed:import-external
+# 或
+node server/scripts/import-external-content.js --ms-pdf "路径/ms.pdf" --wps-pdf "路径/wps.pdf"
+```
+
+Docker 服务器（需先把 PDF 上传到 `server/data/import/` 或挂载路径）：
+
+```bash
+docker compose exec server node scripts/import-external-content.js \
+  --ms-pdf /app/server/data/import/ms.pdf \
+  --wps-pdf /app/server/data/import/wps.pdf
+```
+
+导入学科：`CERT` / `CERT-MS` / `CERT-WPS`；题库 `ncre-ms-300`、`ncre-wps-300`（约 576 题）。
+
+**Java 实验 + LeetCode 编程题**：
+
+```bash
+npm run seed:import-coding
+# 或指定路径
+node server/scripts/import-coding-content.js \
+  --csv "路径/java_submissions.csv" \
+  --leetcode-zip "路径/leetcode-master.zip"
+```
+
+Docker 服务器：
+
+```bash
+docker compose exec server node scripts/import-coding-content.js \
+  --csv /app/server/data/import/java_submissions.csv \
+  --leetcode-zip /app/server/data/import/leetcode-master.zip
+```
+
+导入内容：
+
+| 学科 | 题库 key | 来源 | 约题量 |
+|------|-----------|------|--------|
+| CS-JAVA | `java-lab-submissions` | java_submissions.csv | 99 |
+| CS-ALGO | `leetcode-java-master` | leetcode-master.zip | 67 |
+
+编程题题型为 `coding`，可在 Web「测验会话」中编写代码并对照参考实现判分。
+
+**启用 Java 在线运行（可选）**：
+
+服务器需安装 JDK（`javac` / `java` 在 PATH 中），并在 `server/.env` 设置：
+
+```env
+ENABLE_CODE_RUN=true
+```
+
+前端练习页可点击「运行代码」本地编译执行（有超时与危险 API 拦截，仅适合练习环境）。
+
 ---
 
 ## 6. 注意事项
