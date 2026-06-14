@@ -1,0 +1,18 @@
+@import "../../styles/feature-page.wxss";
+
+.plan-btn {
+  margin-top: 16rpx;
+  width: 100%;
+  height: 72rpx;
+  line-height: 72rpx;
+  border-radius: 999rpx;
+  color: #fff;
+  border: none;
+  font-size: 26rpx;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--color-primary-light), var(--color-primary));
+}
+
+.plan-btn::after {
+  border: none;
+}

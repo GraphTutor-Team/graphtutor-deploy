@@ -1,0 +1,11 @@
+<view class="container">
+  <view wx:if="{{loading}}" class="state-text">加载中…</view>
+  <view wx:else class="card">
+    <view class="detail-header">
+      <view class="item-title detail-title">{{title}}</view>
+      <view class="edit-link" bindtap="editNote">编辑</view>
+    </view>
+    <view class="item-meta detail-meta">{{timeText}}</view>
+    <view class="note-body">{{content}}</view>
+  </view>
+</view>

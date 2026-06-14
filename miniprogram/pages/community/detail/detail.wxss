@@ -1,0 +1,19 @@
+@import "../../../styles/feature-page.wxss";
+
+.reply-input {
+  width: 100%;
+  min-height: 160rpx;
+  padding: 20rpx;
+  box-sizing: border-box;
+  border-radius: 16rpx;
+  background: rgba(21, 101, 192, 0.05);
+  border: 1rpx solid rgba(21, 101, 192, 0.12);
+  font-size: 28rpx;
+  margin-bottom: 16rpx;
+}
+
+.note-body {
+  font-size: 28rpx;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}

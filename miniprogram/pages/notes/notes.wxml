@@ -1,0 +1,43 @@
+<view class="container">
+  <view class="feature-header">
+    <view class="feature-title">学习笔记</view>
+    <view class="feature-desc">查看与新建笔记，复杂编辑请在 Web 端</view>
+  </view>
+
+  <view wx:if="{{isLoggedIn && tab === 'mine'}}" class="toolbar">
+    <view class="tool-chip tool-chip--primary" bindtap="createNote">+ 新建笔记</view>
+  </view>
+
+  <view wx:if="{{!isLoggedIn}}" class="card">
+    <view class="state-box">
+      <view class="state-text">登录后查看笔记</view>
+      <button class="state-btn" bindtap="goLogin">去登录</button>
+    </view>
+  </view>
+
+  <view wx:elif="{{loading}}" class="state-text">加载中…</view>
+
+  <block wx:else>
+    <view class="toolbar">
+      <view class="tool-chip {{tab === 'mine' ? 'tool-chip--active' : ''}}" data-tab="mine" bindtap="switchTab">我的笔记</view>
+      <view class="tool-chip {{tab === 'public' ? 'tool-chip--active' : ''}}" data-tab="public" bindtap="switchTab">公开笔记</view>
+    </view>
+
+    <view class="card">
+      <block wx:if="{{tab === 'mine'}}">
+        <view wx:if="{{items.length === 0}}" class="state-text state-text--muted">暂无笔记</view>
+        <view class="item-card" wx:for="{{items}}" wx:key="id" data-id="{{item.id}}" bindtap="openNote">
+          <view class="item-title">{{item.title}}</view>
+          <view class="item-meta">{{item.timeText}}{{item.isPublic ? ' · 公开' : ''}}</view>
+        </view>
+      </block>
+      <block wx:else>
+        <view wx:if="{{publicItems.length === 0}}" class="state-text state-text--muted">暂无公开笔记</view>
+        <view class="item-card" wx:for="{{publicItems}}" wx:key="id" data-id="{{item.id}}" bindtap="openNote">
+          <view class="item-title">{{item.title}}</view>
+          <view class="item-meta">{{item.timeText}}</view>
+        </view>
+      </block>
+    </view>
+  </block>
+</view>

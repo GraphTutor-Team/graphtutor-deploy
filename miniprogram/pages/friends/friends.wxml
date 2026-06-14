@@ -1,0 +1,58 @@
+<view class="container">
+  <view class="feature-header">
+    <view class="feature-title">好友</view>
+    <view class="feature-desc">与 Web 端好友列表同步（添加请在 Web 端）</view>
+  </view>
+
+  <view wx:if="{{!isLoggedIn}}" class="card">
+    <view class="state-box">
+      <view class="state-text">登录后查看好友</view>
+      <button class="state-btn" bindtap="goLogin">去登录</button>
+    </view>
+  </view>
+
+  <view wx:elif="{{loading}}" class="state-text">加载中…</view>
+  <view wx:elif="{{loadError}}" class="card">
+    <view class="state-box">
+      <view class="state-text">{{loadError}}</view>
+      <button class="state-btn" bindtap="reload">重试</button>
+    </view>
+  </view>
+
+  <block wx:else>
+    <view class="card" wx:if="{{requests.length > 0}}">
+      <view class="section-title">待处理请求</view>
+      <view class="item-card" wx:for="{{requests}}" wx:key="id">
+        <view class="item-row">
+          <view class="item-title">{{item.name}}</view>
+        </view>
+        <view class="req-actions">
+          <button
+            class="req-btn req-btn--accept"
+            size="mini"
+            loading="{{processingId === item.id}}"
+            disabled="{{!!processingId}}"
+            data-id="{{item.id}}"
+            bindtap="acceptRequest"
+          >接受</button>
+          <button
+            class="req-btn req-btn--reject"
+            size="mini"
+            disabled="{{!!processingId}}"
+            data-id="{{item.id}}"
+            bindtap="rejectRequest"
+          >拒绝</button>
+        </view>
+      </view>
+    </view>
+
+    <view class="card">
+      <view class="section-title">我的好友（{{friends.length}}）</view>
+      <view wx:if="{{friends.length === 0}}" class="state-text state-text--muted">暂无好友</view>
+      <view class="item-card" wx:for="{{friends}}" wx:key="id">
+        <view class="item-title">{{item.name}}</view>
+        <view wx:if="{{item.email}}" class="item-meta">{{item.email}}</view>
+      </view>
+    </view>
+  </block>
+</view>

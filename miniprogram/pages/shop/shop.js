@@ -1,9 +1,13 @@
-const { CART_STORAGE_KEY, SHOP_BANNERS, getProducts } = require("../../utils/shop-data.js");
+const apiExt = require("../../utils/api-ext.js");
+const authHelper = require("../../utils/auth-helper.js");
+const config = require("../../utils/config.js");
+const api = require("../../utils/api.js");
+const { SHOP_BANNERS } = require("../../utils/shop-data.js");
 
 function hydrateProducts(list) {
   return (list || []).map((p) => ({
     ...p,
-    currentCover: p.cover || p.coverFallback || "",
+    currentCover: p.icon || "",
   }));
 }
 
@@ -19,44 +23,66 @@ Page({
     products: [],
     banners: [],
     keyword: "",
+    points: null,
+    loading: true,
+    loadError: "",
+    isLoggedIn: false,
   },
 
   onLoad() {
-    const app = getApp();
-    const products =
-      app && app.globalData && Array.isArray(app.globalData.products) && app.globalData.products.length
-        ? app.globalData.products
-        : getProducts();
-    this.setData({
-      products: hydrateProducts(products),
-      banners: hydrateBanners(),
+    this.setData({ banners: hydrateBanners() });
+  },
+
+  onShow() {
+    const token = wx.getStorageSync("token");
+    const loggedIn = !!(token && !config.USE_VIRTUAL_LOGIN && !api.isVirtualToken());
+    this.setData({ isLoggedIn: loggedIn });
+    if (!loggedIn) {
+      this.setData({ loading: false, products: [], loadError: "" });
+      return;
+    }
+    this.loadProducts();
+  },
+
+  loadProducts() {
+    this.setData({ loading: true, loadError: "" });
+    Promise.all([
+      apiExt.getShopItems(),
+      apiExt.getShopInventory(),
+    ]).then(([items, inv]) => {
+      const raw = Array.isArray(items) ? items : [];
+      const list = raw.map((item) => ({
+        id: item.id,
+        name: item.name,
+        category: "成就道具",
+        cost: item.cost,
+        desc: item.description || "",
+        icon: item.icon || "🎁",
+      }));
+      const app = getApp();
+      if (app) app.globalData.products = list;
+      this.setData({
+        loading: false,
+        products: hydrateProducts(list),
+        points: inv && inv.points != null ? inv.points : null,
+      });
+    }).catch((err) => {
+      this.setData({
+        loading: false,
+        loadError: (err && err.message) || "加载失败",
+        products: [],
+      });
     });
   },
 
   onSearch(e) {
     const keyword = ((e.detail && e.detail.value) || "").trim().toLowerCase();
     const app = getApp();
-    const all =
-      app && app.globalData && Array.isArray(app.globalData.products) && app.globalData.products.length
-        ? app.globalData.products
-        : getProducts();
+    const all = (app && app.globalData && app.globalData.products) || [];
     const products = !keyword
       ? all
-      : all.filter((p) => p.name.toLowerCase().includes(keyword) || p.category.toLowerCase().includes(keyword));
+      : all.filter((p) => p.name.toLowerCase().includes(keyword));
     this.setData({ keyword, products: hydrateProducts(products) });
-  },
-
-  onProductImageError(e) {
-    const id = e.currentTarget.dataset.id;
-    if (!id) return;
-    const next = this.data.products.map((p) => {
-      if (p.id !== id) return p;
-      return {
-        ...p,
-        currentCover: p.coverFallback || p.currentCover,
-      };
-    });
-    this.setData({ products: next });
   },
 
   onBannerImageError(e) {
@@ -64,10 +90,7 @@ Page({
     if (!id) return;
     const next = this.data.banners.map((b) => {
       if (b.id !== id) return b;
-      return {
-        ...b,
-        currentImage: b.fallback || b.currentImage,
-      };
+      return { ...b, currentImage: b.fallback || b.currentImage };
     });
     this.setData({ banners: next });
   },
@@ -78,30 +101,7 @@ Page({
     wx.navigateTo({ url: `/pages/shop/detail/detail?id=${id}` });
   },
 
-  addToCart(e) {
-    const id = e.currentTarget.dataset.id;
-    const product = getProducts().find((p) => p.id === id);
-    if (!product) return;
-
-    const stored = wx.getStorageSync(CART_STORAGE_KEY);
-    const cart = stored && Array.isArray(stored.items) ? stored.items : [];
-    const idx = cart.findIndex((x) => x.id === id);
-    if (idx >= 0) {
-      cart[idx].count += 1;
-    } else {
-      cart.push({
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        cover: product.cover,
-        count: 1,
-      });
-    }
-    wx.setStorageSync(CART_STORAGE_KEY, { items: cart });
-    wx.showToast({ title: "已加入购物车", icon: "success" });
-  },
-
-  goCart() {
-    wx.navigateTo({ url: "/pages/shop/cart/cart" });
+  goLogin() {
+    wx.navigateTo({ url: "/pages/login/login" });
   },
 });

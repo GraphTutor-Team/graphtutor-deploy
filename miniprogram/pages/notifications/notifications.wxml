@@ -1,0 +1,42 @@
+<view class="container">
+  <view class="feature-header">
+    <view class="feature-title">通知中心</view>
+    <view class="feature-desc">与 Web 端系统通知同步</view>
+  </view>
+
+  <view wx:if="{{!isLoggedIn}}" class="card">
+    <view class="state-box">
+      <view class="state-text">登录后查看通知</view>
+      <button class="state-btn" bindtap="goLogin">去登录</button>
+    </view>
+  </view>
+
+  <view wx:elif="{{loading}}" class="state-text">加载中…</view>
+
+  <view wx:elif="{{loadError}}" class="card">
+    <view class="state-box">
+      <view class="state-text">{{loadError}}</view>
+      <button class="state-btn" bindtap="reload">重试</button>
+    </view>
+  </view>
+
+  <block wx:else>
+    <view class="card" wx:if="{{items.length > 0}}">
+      <button class="primary-action" style="margin-top:0;margin-bottom:20rpx;" bindtap="markAllRead">全部标为已读</button>
+      <view
+        class="item-card"
+        wx:for="{{items}}"
+        wx:key="id"
+        data-id="{{item.id}}"
+        bindtap="tapItem"
+      >
+        <view class="item-title">{{item.title}}</view>
+        <view wx:if="{{item.content}}" class="item-meta">{{item.content}}</view>
+        <view class="item-meta">{{item.timeText}}{{item.isRead ? '' : ' · 未读'}}</view>
+      </view>
+    </view>
+    <view wx:else class="card">
+      <view class="state-text state-text--muted">暂无通知</view>
+    </view>
+  </block>
+</view>

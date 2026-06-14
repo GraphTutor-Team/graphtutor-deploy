@@ -1,0 +1,26 @@
+<view class="container">
+  <view wx:if="{{loading}}" class="state-text">加载结果…</view>
+  <block wx:else>
+    <view class="result-hero">
+      <view class="result-hero-title">考试完成</view>
+      <view class="result-hero-score">{{acc}}%</view>
+      <view class="result-hero-meta">答对 {{correct}} / {{total}} 题</view>
+    </view>
+
+    <view class="card">
+      <view class="section-title">逐题结果</view>
+      <view class="result-row" wx:for="{{items}}" wx:key="num" bindtap="openQuestion" data-index="{{item.index}}">
+        <view class="result-num">{{item.num}}</view>
+        <view class="result-body">
+          <view class="result-q">{{item.title}}</view>
+          <view class="result-tag result-tag--{{item.statusClass}}">{{item.status}}</view>
+        </view>
+        <text class="result-arrow">›</text>
+      </view>
+    </view>
+
+    <button class="primary-action" bindtap="goReview">逐题回顾</button>
+    <button class="primary-action" bindtap="goExamAgain">再考一次</button>
+    <button class="primary-action" style="background:rgba(21,101,192,0.08);color:var(--color-primary);margin-top:16rpx;box-shadow:none;" bindtap="goHistory">查看测验会话</button>
+  </block>
+</view>

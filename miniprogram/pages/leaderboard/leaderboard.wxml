@@ -1,0 +1,43 @@
+<view class="container">
+  <view class="feature-header">
+    <view class="feature-title">学习排行榜</view>
+    <view class="feature-desc">与 Web 端排行榜数据同步</view>
+  </view>
+
+  <view wx:if="{{!isLoggedIn}}" class="card">
+    <view class="state-box">
+      <view class="state-text">登录后查看排行榜</view>
+      <button class="state-btn" bindtap="goLogin">去登录</button>
+    </view>
+  </view>
+
+  <view wx:elif="{{loading}}" class="state-text">加载中…</view>
+  <view wx:elif="{{loadError}}" class="card">
+    <view class="state-box">
+      <view class="state-text">{{loadError}}</view>
+      <button class="state-btn" bindtap="reload">重试</button>
+    </view>
+  </view>
+
+  <block wx:else>
+    <view class="card">
+      <view class="toolbar">
+        <picker mode="selector" range="{{typeLabels}}" value="{{typeIndex}}" bindchange="onTypeChange">
+          <view class="tool-chip tool-chip--active">{{typeLabels[typeIndex]}}</view>
+        </picker>
+        <picker mode="selector" range="{{periodLabels}}" value="{{periodIndex}}" bindchange="onPeriodChange">
+          <view class="tool-chip">{{periodLabels[periodIndex]}}</view>
+        </picker>
+      </view>
+
+      <view wx:if="{{items.length === 0}}" class="state-text state-text--muted">暂无排行数据</view>
+      <view class="item-card item-row" wx:for="{{items}}" wx:key="rank">
+        <view class="rank-num">{{item.rank}}</view>
+        <view style="flex:1;">
+          <view class="item-title">{{item.name}}{{item.isMe ? '（我）' : ''}}</view>
+        </view>
+        <view class="item-action">{{item.score}}</view>
+      </view>
+    </view>
+  </block>
+</view>

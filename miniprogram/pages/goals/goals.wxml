@@ -1,0 +1,51 @@
+<view class="container">
+  <view class="feature-header">
+    <view class="feature-title">学习目标</view>
+    <view class="feature-desc">目标进度与 Web 端同步（创建请用 Web）</view>
+  </view>
+
+  <view wx:if="{{!isLoggedIn}}" class="card">
+    <view class="state-box">
+      <view class="state-text">登录后查看目标</view>
+      <button class="state-btn" bindtap="goLogin">去登录</button>
+    </view>
+  </view>
+
+  <view wx:elif="{{loading}}" class="state-text">加载中…</view>
+  <view wx:elif="{{loadError}}" class="card">
+    <view class="state-box">
+      <view class="state-text">{{loadError}}</view>
+      <button class="state-btn" bindtap="reload">重试</button>
+    </view>
+  </view>
+
+  <block wx:else>
+    <view class="card" wx:if="{{stats}}">
+      <view class="stat-grid">
+        <view class="stat-item">
+          <view class="stat-num">{{stats.active != null ? stats.active : '—'}}</view>
+          <view class="stat-label">进行中</view>
+        </view>
+        <view class="stat-item">
+          <view class="stat-num">{{stats.completed != null ? stats.completed : '—'}}</view>
+          <view class="stat-label">已完成</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="card">
+      <view class="section-title">目标列表</view>
+      <view wx:if="{{items.length === 0}}" class="state-text state-text--muted">暂无目标，请在 Web 端创建</view>
+      <view class="item-card" wx:for="{{items}}" wx:key="id">
+        <view class="item-row">
+          <view class="item-title">{{item.title}}</view>
+          <view class="item-action">{{item.progress}}%</view>
+        </view>
+        <view class="item-meta">状态：{{item.status}}<text wx:if="{{item.target}}"> · {{item.current}}/{{item.target}}</text></view>
+        <view class="progress-bar-mini">
+          <view class="progress-bar-mini-fill" style="width: {{item.progress}}%;"></view>
+        </view>
+      </view>
+    </view>
+  </block>
+</view>

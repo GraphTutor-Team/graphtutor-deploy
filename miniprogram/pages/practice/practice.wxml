@@ -1,7 +1,7 @@
 <view class="container">
   <view class="sub-header">
     <view class="sub-title">练习</view>
-    <view class="sub-desc">选择题库开始刷题，数据与 Web 端同步</view>
+    <view class="sub-desc">与 Web 练习模式同步，错题自动进入错题本</view>
   </view>
 
   <view class="page-banner">
@@ -15,6 +15,37 @@
 
   <view class="card">
     <view class="section-title">快速开始</view>
+    <view wx:if="{{isLoggedIn}}" class="quick-actions">
+      <button
+        wx:if="{{todayReviewCount > 0}}"
+        class="quick-action-btn quick-action-btn--primary"
+        bindtap="startTodayReview"
+      >
+        今日复习（{{todayReviewCount}} 题）
+      </button>
+      <button
+        wx:if="{{recommendations.length > 0}}"
+        class="quick-action-btn quick-action-btn--secondary"
+        bindtap="startRecommendedPractice"
+      >
+        推荐练习（{{recommendations.length}} 题）
+      </button>
+      <button
+        class="quick-action-btn quick-action-btn--secondary"
+        bindtap="startWrongPractice"
+      >
+        错题巩固
+      </button>
+    </view>
+    <button class="quiz-start-btn" bindtap="goQuizSetup">练习模式</button>
+    <view wx:if="{{ongoingSessionId}}" class="ongoing-banner" bindtap="resumeOngoing">
+      <view class="ongoing-title">有未完成的练习</view>
+      <view class="ongoing-action">点击继续 ›</view>
+    </view>    <view class="quick-links" wx:if="{{isLoggedIn}}">
+      <view class="quick-link" bindtap="goExam">考试模式</view>
+      <view class="quick-link" bindtap="startDailyChallenge">每日挑战</view>
+      <view class="quick-link" bindtap="goHistory">测验会话</view>
+    </view>
     <view class="grid">
       <view class="tile" bindtap="goGraph">
         <view class="tile-icon">
@@ -65,8 +96,15 @@
 
       <view wx:if="{{recommendations.length > 0}}" class="list-block">
         <view class="list-block-title">推荐练习</view>
-        <view class="list-row" wx:for="{{recommendations}}" wx:key="id">
+        <view
+          class="list-row list-row--tap"
+          wx:for="{{recommendations}}"
+          wx:key="id"
+          data-qid="{{item.questionId}}"
+          bindtap="startSingleRecommend"
+        >
           <view class="list-row-title">{{item.title}}</view>
+          <view class="list-row-action">练这题 ›</view>
         </view>
       </view>
       <view wx:elif="{{connected}}" class="state-text state-text--muted">暂无推荐题目，先去刷题吧</view>

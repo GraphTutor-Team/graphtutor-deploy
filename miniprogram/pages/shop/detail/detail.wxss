@@ -1,5 +1,7 @@
-.cover { width: 100%; height: 260rpx; margin-bottom: 14rpx; border-radius: 16rpx; background: #f4f7fc; }
+.cover { width: 100%; height: 260rpx; margin-bottom: 14rpx; border-radius: 16rpx; background: #f4f7fc; display: flex; align-items: center; justify-content: center; font-size: 120rpx; }
 .name { font-size: 34rpx; font-weight: 800; color: var(--color-text); }
 .meta { margin-top: 6rpx; font-size: 24rpx; color: var(--color-text-muted); }
 .price { margin-top: 14rpx; font-size: 38rpx; color: var(--color-primary); font-weight: 900; }
 .desc { margin-top: 12rpx; font-size: 26rpx; color: var(--color-text-secondary); line-height: 1.6; }
+.points-hint { margin-top: 16rpx; font-size: 24rpx; color: var(--color-text-muted); }
+.buy-btn { margin-top: 24rpx; background: var(--color-primary); color: #fff; border-radius: 12rpx; font-size: 28rpx; }

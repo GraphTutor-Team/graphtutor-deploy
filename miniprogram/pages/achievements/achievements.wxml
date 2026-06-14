@@ -1,0 +1,51 @@
+<view class="container">
+  <view class="feature-header">
+    <view class="feature-title">学习成就</view>
+    <view class="feature-desc">徽章与进度，与 Web 端同步</view>
+  </view>
+
+  <view wx:if="{{!isLoggedIn}}" class="card">
+    <view class="state-box">
+      <view class="state-text">登录后查看成就</view>
+      <button class="state-btn" bindtap="goLogin">去登录</button>
+    </view>
+  </view>
+
+  <view wx:elif="{{loading}}" class="state-text">加载中…</view>
+  <view wx:elif="{{loadError}}" class="card">
+    <view class="state-box">
+      <view class="state-text">{{loadError}}</view>
+      <button class="state-btn" bindtap="reload">重试</button>
+    </view>
+  </view>
+
+  <block wx:else>
+    <view class="card" wx:if="{{stats}}">
+      <view class="stat-grid">
+        <view class="stat-item">
+          <view class="stat-num">{{stats.unlocked != null ? stats.unlocked : '—'}}</view>
+          <view class="stat-label">已解锁</view>
+        </view>
+        <view class="stat-item">
+          <view class="stat-num">{{stats.total != null ? stats.total : '—'}}</view>
+          <view class="stat-label">总成就</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="card">
+      <view class="section-title">成就列表</view>
+      <view wx:if="{{items.length === 0}}" class="state-text state-text--muted">暂无成就数据</view>
+      <view class="item-card" wx:for="{{items}}" wx:key="id">
+        <view class="item-row">
+          <view class="item-title">{{item.icon}} {{item.name}}</view>
+          <view class="item-action">{{item.unlocked ? '已解锁' : item.progress + '%'}}</view>
+        </view>
+        <view wx:if="{{item.desc}}" class="item-meta">{{item.desc}}</view>
+        <view wx:if="{{!item.unlocked}}" class="progress-bar-mini">
+          <view class="progress-bar-mini-fill" style="width: {{item.progress}}%;"></view>
+        </view>
+      </view>
+    </view>
+  </block>
+</view>

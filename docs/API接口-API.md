@@ -131,7 +131,7 @@ GET /api/health
 
 ## 9. 小程序对接
 
-见 [MINIPROGRAM_INTEGRATION.md](./MINIPROGRAM_INTEGRATION.md)。
+见 [小程序对接-MINIPROGRAM_INTEGRATION.md](./小程序对接-MINIPROGRAM_INTEGRATION.md)。
 
 常用：
 

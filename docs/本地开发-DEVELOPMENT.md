@@ -100,12 +100,12 @@ ENABLE_SWAGGER=true
 - Swagger：http://localhost:5000/api-docs
 - 健康检查：http://localhost:5000/api/health
 
-路由说明见 [API.md](./API.md)。
+路由说明见 [API接口-API.md](./API接口-API.md)。
 
 ---
 
 ## 8. 相关文档
 
-- [ARCHITECTURE.md](./ARCHITECTURE.md)
+- [系统架构-ARCHITECTURE.md](./系统架构-ARCHITECTURE.md)
 - [DATABASE_DESIGN.md](../DATABASE_DESIGN.md)
-- [PAGES_AND_FEATURES.md](./PAGES_AND_FEATURES.md)
+- [页面功能-PAGES_AND_FEATURES.md](./页面功能-PAGES_AND_FEATURES.md)

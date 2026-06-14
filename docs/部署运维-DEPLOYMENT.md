@@ -160,7 +160,7 @@ docker cp client/dist/. graphtutor-server:/app/client/dist/
 docker cp /root/graphtutor-deploy/server/data/import/. graphtutor-server:/app/server/data/import/
 ```
 
-导入命令见 [DATA_IMPORT.md](./DATA_IMPORT.md)。
+导入命令见 [数据导入-DATA_IMPORT.md](./数据导入-DATA_IMPORT.md)。
 
 ---
 
@@ -171,7 +171,7 @@ docker cp /root/graphtutor-deploy/server/data/import/. graphtutor-server:/app/se
 | 健康检查 | `curl http://127.0.0.1:5000/api/health` |
 | 停止服务 | `docker compose down` |
 | 导入演示题 | `docker compose exec server node scripts/seed-demo-content.js` |
-| 查 MongoDB 题量 | 见 [DATA_IMPORT.md](./DATA_IMPORT.md) |
+| 查 MongoDB 题量 | 见 [数据导入-DATA_IMPORT.md](./数据导入-DATA_IMPORT.md) |
 | 容器内装 unzip | `docker compose exec server apt-get update && apt-get install -y unzip` |
 
 ---
@@ -189,6 +189,6 @@ docker cp /root/graphtutor-deploy/server/data/import/. graphtutor-server:/app/se
 
 ## 8. 相关文档
 
-- [DATA_IMPORT.md](./DATA_IMPORT.md) — 题库导入
-- [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) — 故障排查
-- [MINIPROGRAM_INTEGRATION.md](./MINIPROGRAM_INTEGRATION.md) — 小程序
+- [数据导入-DATA_IMPORT.md](./数据导入-DATA_IMPORT.md) — 题库导入
+- [故障排查-TROUBLESHOOTING.md](./故障排查-TROUBLESHOOTING.md) — 故障排查
+- [小程序对接-MINIPROGRAM_INTEGRATION.md](./小程序对接-MINIPROGRAM_INTEGRATION.md) — 小程序

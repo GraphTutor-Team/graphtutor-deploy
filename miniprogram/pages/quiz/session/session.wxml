@@ -1,0 +1,139 @@
+<view class="container session-page">
+  <view wx:if="{{loading}}" class="state-text center-state">加载题目中…</view>
+
+  <view wx:elif="{{loadError}}" class="card">
+    <view class="state-box">
+      <view class="state-text">{{loadError}}</view>
+      <button class="state-btn" bindtap="reloadSession">重试</button>
+    </view>
+  </view>
+
+  <view wx:elif="{{finished}}" class="result-wrap">
+    <view class="result-card">
+      <view class="result-title">练习完成</view>
+      <view class="result-score">{{resultAcc}}%</view>
+      <view class="result-meta">答对 {{resultCorrect}} / {{resultTotal}} 题</view>
+      <view class="result-actions">
+        <button class="result-btn result-btn--primary" bindtap="goReview">逐题回顾</button>
+        <button class="result-btn result-btn--primary" bindtap="goSetupAgain">再练一组</button>
+        <button class="result-btn" bindtap="goPracticeTab">返回练习</button>
+      </view>
+    </view>
+  </view>
+
+  <block wx:elif="{{currentQuestion}}">
+    <view wx:if="{{examMode}}" class="exam-bar">
+      <text class="exam-timer">⏱ {{timeText}}</text>
+      <text wx:if="{{limitMin > 0}}" class="exam-limit">限时 {{limitMin}} 分钟</text>
+      <text class="exam-sheet-btn" bindtap="toggleSheet">答题卡</text>
+    </view>
+
+    <view wx:if="{{!examMode && !reviewMode}}" class="practice-bar">
+      <text class="practice-progress">已答 {{answeredCount}} / {{totalCount}}</text>
+      <text class="exam-sheet-btn" bindtap="toggleSheet">答题卡</text>
+    </view>
+
+    <view wx:if="{{reviewMode && resultTotal > 0}}" class="review-summary">
+      本次得分 {{resultAcc}}%（{{resultCorrect}}/{{resultTotal}}）
+    </view>
+
+    <view wx:if="{{reviewMode && reviewVerdict}}" class="review-verdict review-verdict--{{reviewVerdictClass}}">
+      {{reviewVerdict}}
+    </view>
+
+    <view class="progress-bar">
+      <view class="progress-fill" style="width: {{progressPercent}}%;"></view>
+    </view>
+    <view class="progress-text">第 {{currentIndex + 1}} / {{totalCount}} 题 · {{typeText}}</view>
+
+    <view class="card question-card">
+      <view class="question-content">{{currentContent}}</view>
+
+      <view wx:if="{{isCoding && !reviewMode}}" class="coding-tip">编程题请在 Web 端完成。</view>
+      <button wx:if="{{isCoding && !reviewMode}}" class="skip-coding-btn" bindtap="skipCoding">跳过此题</button>
+
+      <view wx:elif="{{isFill}}" class="fill-list">
+        <view class="fill-row" wx:for="{{fillBlanks}}" wx:key="index">
+          <view class="fill-label">空白 {{item.index + 1}}</view>
+          <input
+            class="fill-input"
+            value="{{item.value}}"
+            disabled="{{readonly}}"
+            placeholder="请输入答案"
+            data-index="{{item.index}}"
+            bindinput="onFillInput"
+          />
+        </view>
+      </view>
+
+      <view wx:elif="{{isShort}}" class="short-wrap">
+        <textarea
+          class="short-input"
+          value="{{shortAnswer}}"
+          disabled="{{readonly}}"
+          placeholder="请输入您的答案"
+          maxlength="-1"
+          bindinput="onShortInput"
+        />
+      </view>
+
+      <view wx:elif="{{currentOptions.length > 0}}" class="options">
+        <view
+          wx:for="{{currentOptions}}"
+          wx:key="index"
+          class="option-item {{item.selected && !reviewMode ? 'option-item--selected' : ''}} {{item.isCorrect ? 'option-item--correct' : ''}} {{item.isWrong ? 'option-item--wrong' : ''}}"
+          data-index="{{item.index}}"
+          bindtap="onSelectOption"
+        >
+          <view class="option-letter">{{item.label}}</view>
+          <view class="option-text">{{item.text}}</view>
+        </view>
+      </view>
+
+      <view wx:else class="state-text state-text--muted">此题暂无选项</view>
+
+      <view wx:if="{{reviewMode && currentExplain}}" class="explain-block">
+        <view class="explain-title">解析</view>
+        <view class="explain-text">{{currentExplain}}</view>
+      </view>
+    </view>
+
+    <view class="footer-actions">
+      <button class="foot-btn" disabled="{{currentIndex <= 0 || submitting}}" bindtap="goPrev">上一题</button>
+      <button
+        wx:if="{{!examMode}}"
+        class="foot-btn foot-btn--primary"
+        loading="{{submitting}}"
+        disabled="{{submitting}}"
+        bindtap="goNext"
+      >
+        {{reviewMode ? (isLast ? '已是最后一题' : '下一题') : (isLast ? '提交答卷' : '下一题')}}
+      </button>
+      <button wx:else class="foot-btn foot-btn--primary" disabled="{{submitting || isLast}}" bindtap="goNext">下一题</button>
+    </view>
+
+    <button wx:if="{{examMode}}" class="submit-exam-btn" loading="{{submitting}}" bindtap="confirmSubmitExam">交卷</button>
+  </block>
+
+  <view wx:elif="{{!loading && !loadError && !finished && !currentQuestion}}" class="card">
+    <view class="state-box">
+      <view class="state-text">题目加载异常，请重试</view>
+      <button class="state-btn" bindtap="reloadSession">重新加载</button>
+    </view>
+  </view>
+
+  <view wx:if="{{showSheet}}" class="sheet-mask" bindtap="toggleSheet">
+    <view class="sheet-panel" catchtap="">
+      <view class="sheet-title">答题卡 · 已答 {{answeredCount}}/{{totalCount}}</view>
+      <view class="sheet-grid">
+        <view
+          wx:for="{{sheetItems}}"
+          wx:key="index"
+          class="sheet-cell {{item.answered ? 'sheet-cell--done' : ''}} {{item.reviewClass === 'ok' ? 'sheet-cell--ok' : ''}} {{item.reviewClass === 'bad' ? 'sheet-cell--bad' : ''}} {{currentIndex === item.index ? 'sheet-cell--cur' : ''}}"
+          data-index="{{item.index}}"
+          bindtap="jumpToQuestion"
+        >{{item.num}}</view>
+      </view>
+    </view>
+  </view>
+</view>

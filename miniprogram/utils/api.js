@@ -362,6 +362,7 @@ function getRecommendedQuestions(params) {
       limit: p.limit || 3,
       strategy: p.strategy || 'adaptive',
       includeReasons: p.includeReasons === false ? 'false' : 'true',
+      knowledgeNodeId: p.knowledgeNodeId,
     }),
   }).then((res) => (res && res.success && res.data) || []);
 }
@@ -379,6 +380,13 @@ function getComprehensiveAnalysis(days) {
     method: 'GET',
     data: cleanQuery({ days: days || 7 }),
   }).then((res) => (res && res.success && res.data) || null);
+}
+
+function getLearningTrend(days) {
+  return request('/api/analytics/trend', {
+    method: 'GET',
+    data: cleanQuery({ days: days || 30 }),
+  }).then((res) => (res && res.success && res.data) || []);
 }
 
 function getWrongQuestions(params) {
@@ -435,6 +443,36 @@ function getPathRecommendations(params) {
   }).then((res) => (res && res.success && res.data) || []);
 }
 
+function getQuestionBanks(params) {
+  const p = params || {};
+  return request('/api/v3/banks', {
+    method: 'GET',
+    data: cleanQuery({
+      page: p.page || 1,
+      limit: p.limit || 100,
+      search: p.search,
+      subjectCode: p.subjectCode,
+    }),
+  }).then((res) => (res && res.success && res.data) || []);
+}
+
+function startQuizSession(payload) {
+  return request('/api/quizzes/session/start', { method: 'POST', data: payload });
+}
+
+function getQuizSession(sessionId, reveal) {
+  const qs = reveal ? '?reveal=1' : '';
+  return request(`/api/quizzes/session/${sessionId}${qs}`, { method: 'GET' });
+}
+
+function submitQuizAnswer(sessionId, payload) {
+  return request(`/api/quizzes/session/${sessionId}/answer`, { method: 'POST', data: payload });
+}
+
+function finishQuizSession(sessionId) {
+  return request(`/api/quizzes/session/${sessionId}/finish`, { method: 'POST' });
+}
+
 module.exports = {
   request,
   getBaseUrl,
@@ -459,12 +497,18 @@ module.exports = {
   getRecommendedQuestions,
   getTodayReviewQuestions,
   getComprehensiveAnalysis,
+  getLearningTrend,
   getWrongQuestions,
   getWrongQuestionStats,
   getStudyPlans,
   getStudyPlanStats,
   getGraphHeatmap,
   getPathRecommendations,
+  getQuestionBanks,
+  startQuizSession,
+  getQuizSession,
+  submitQuizAnswer,
+  finishQuizSession,
   isVirtualToken,
   virtualLogin,
 };

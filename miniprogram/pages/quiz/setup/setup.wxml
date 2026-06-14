@@ -1,0 +1,67 @@
+<view class="container">
+  <view class="sub-header">
+    <view class="sub-title">练习模式</view>
+    <view class="sub-desc">选择题库与题量，错题会自动进入错题本</view>
+  </view>
+
+  <view wx:if="{{!isLoggedIn}}" class="card">
+    <view class="state-box">
+      <view class="state-text">登录后即可选择题库开始刷题</view>
+      <button class="state-btn" bindtap="goLogin">去登录</button>
+    </view>
+  </view>
+
+  <block wx:else>
+    <view class="card">
+      <view class="section-title">练习设置</view>
+
+      <view wx:if="{{loadingBanks}}" class="state-text">加载题库中…</view>
+
+      <view wx:elif="{{banks.length === 0}}" class="state-box">
+        <view class="state-text">暂无可用题库，请联系管理员在 Web 端创建并设为公开</view>
+        <button class="state-btn" bindtap="reloadBanks">重新加载</button>
+      </view>
+
+      <block wx:else>
+        <view class="field">
+          <view class="field-label">题库</view>
+          <picker mode="selector" range="{{bankNames}}" value="{{bankIndex}}" bindchange="onBankChange">
+            <view class="picker-value">{{bankNames[bankIndex] || '请选择题库'}}</view>
+          </picker>
+          <view wx:if="{{selectedBankDesc}}" class="field-hint">{{selectedBankDesc}}</view>
+        </view>
+
+        <view class="field">
+          <view class="field-label">学科（可选）</view>
+          <picker mode="selector" range="{{subjectNames}}" value="{{subjectIndex}}" bindchange="onSubjectChange">
+            <view class="picker-value">{{subjectNames[subjectIndex]}}</view>
+          </picker>
+        </view>
+
+        <view class="field">
+          <view class="field-label">题量</view>
+          <picker mode="selector" range="{{sizeLabels}}" value="{{sizeIndex}}" bindchange="onSizeChange">
+            <view class="picker-value">{{sizeLabels[sizeIndex]}}</view>
+          </picker>
+        </view>
+
+        <view class="field">
+          <view class="field-label">难度（可选）</view>
+          <picker mode="selector" range="{{difficultyLabels}}" value="{{difficultyIndex}}" bindchange="onDifficultyChange">
+            <view class="picker-value">{{difficultyLabels[difficultyIndex]}}</view>
+          </picker>
+        </view>
+      </block>
+    </view>
+
+    <button
+      wx:if="{{banks.length > 0}}"
+      class="start-btn"
+      loading="{{starting}}"
+      disabled="{{starting}}"
+      bindtap="startQuiz"
+    >
+      开始刷题
+    </button>
+  </block>
+</view>

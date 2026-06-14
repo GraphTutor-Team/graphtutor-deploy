@@ -42,6 +42,7 @@ function fetchDashboard() {
           const raw = stripHtml(q.content || q.title || '');
           return {
             id: q._id || q.id,
+            questionId: q._id || q.id,
             title: raw.length > 40 ? `${raw.slice(0, 40)}…` : (raw || '推荐题目'),
           };
         })

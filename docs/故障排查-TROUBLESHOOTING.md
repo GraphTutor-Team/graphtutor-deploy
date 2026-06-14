@@ -13,7 +13,7 @@
 3. 清除站点 Cookie / 无痕窗口
 4. 加 `COOKIE_SECURE=false` 并重启 server
 
-详见 [DEPLOYMENT.md §环境变量](./DEPLOYMENT.md#2-环境变量serverenv)。
+详见 [部署运维-DEPLOYMENT.md §环境变量](./部署运维-DEPLOYMENT.md#2-环境变量serverenv)。
 
 ---
 
@@ -43,7 +43,7 @@ process.exit(0);
 "
 ```
 
-2. **CS-ALGO = 0**：LeetCode 未导入 → [DATA_IMPORT.md §3](./DATA_IMPORT.md#3-java-实验--leetcode-编程题)
+2. **CS-ALGO = 0**：LeetCode 未导入 → [数据导入-DATA_IMPORT.md §3](./数据导入-DATA_IMPORT.md#3-java-实验--leetcode-编程题)
 
 3. **有题但页面空**：`curl "http://127.0.0.1:5000/api/questions?subjectCode=CS-JAVA&limit=5&random=true"`
 
@@ -55,7 +55,7 @@ process.exit(0);
 
 **原因**：容器内 **旧前端 dist**，不支持 `coding` 题型。
 
-**处理**：按 [DEPLOYMENT.md §4](./DEPLOYMENT.md#4-仅更新-web-前端不整镜像-build) 更新 `client/dist`。
+**处理**：按 [部署运维-DEPLOYMENT.md §4](./部署运维-DEPLOYMENT.md#4-仅更新-web-前端不整镜像-build) 更新 `client/dist`。
 
 ---
 
@@ -91,7 +91,7 @@ docker run --rm -v "$(pwd):/app" -w /app/client node:20-bullseye-slim bash -c "n
 
 - 确认容器内文件：`docker compose exec server ls -lh /app/server/data/import/`
 - 缺 `pdf-parse`：`docker compose exec server npm install pdf-parse --no-save`
-- 缺脚本：`docker cp` 见 [DATA_IMPORT.md §4](./DATA_IMPORT.md#4-旧镜像快速导入不全量-rebuild)
+- 缺脚本：`docker cp` 见 [数据导入-DATA_IMPORT.md §4](./数据导入-DATA_IMPORT.md#4-旧镜像快速导入不全量-rebuild)
 
 ---
 

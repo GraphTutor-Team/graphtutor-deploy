@@ -4,6 +4,15 @@
 const api = require('./api.js');
 const { stripHtml } = require('./home-api.js');
 
+function extractQuestionId(item) {
+  if (!item) return '';
+  const nested = item.questionId;
+  if (nested && typeof nested === 'object') {
+    return String(nested._id || nested.id || '');
+  }
+  return String(item.questionId || item._id || item.id || '');
+}
+
 function shortText(text, max) {
   const s = stripHtml(text || '');
   if (!s) return '';
@@ -43,7 +52,7 @@ function fetchPlanSummary() {
 function fetchWrongSummary() {
   return api.ensureValidAccessToken().then(() => Promise.allSettled([
     api.getWrongQuestionStats(),
-    api.getWrongQuestions({ limit: 5 }),
+    api.getWrongQuestions({ limit: 20 }),
   ])).then(([statsRes, listRes]) => {
     const stats = statsRes.status === 'fulfilled' ? statsRes.value : null;
     const items = listRes.status === 'fulfilled'
@@ -58,6 +67,7 @@ function fetchWrongSummary() {
       mastered: stats && stats.mastered != null ? stats.mastered : 0,
       items: items.map((item) => ({
         id: item._id || item.questionId,
+        questionId: extractQuestionId(item),
         title: shortText(
           (item.question && (item.question.content || item.question.title)) || '错题',
           40
@@ -117,6 +127,7 @@ function fetchPracticeSummary() {
     const recommendations = recRes.status === 'fulfilled'
       ? (recRes.value || []).map((q) => ({
           id: q._id || q.id,
+          questionId: q._id || q.id,
           title: shortText(q.content || q.title || '', 36) || '推荐题目',
         }))
       : [];

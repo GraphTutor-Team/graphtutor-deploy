@@ -52,14 +52,14 @@ start.bat  # 或 start.ps1
 
 | 文档 | 说明 |
 |------|------|
-| [部署与运维](docs/DEPLOYMENT.md) | Docker、`.env`、服务器更新、前端热更新 |
-| [数据导入](docs/DATA_IMPORT.md) | 演示题、二级 PDF、Java/LeetCode |
-| [本地开发](docs/DEVELOPMENT.md) | 环境、脚本、目录 |
-| [系统架构](docs/ARCHITECTURE.md) | 技术栈、模块、题型 |
-| [API 说明](docs/API.md) | 路由一览、认证、Swagger |
-| [故障排查](docs/TROUBLESHOOTING.md) | CSRF、无题目、构建慢等 |
-| [小程序对接](docs/MINIPROGRAM_INTEGRATION.md) | 微信端集成 |
-| [页面与功能](docs/PAGES_AND_FEATURES.md) | 全站功能说明 |
+| [部署与运维](docs/部署运维-DEPLOYMENT.md) | Docker、`.env`、服务器更新、前端热更新 |
+| [数据导入](docs/数据导入-DATA_IMPORT.md) | 演示题、二级 PDF、Java/LeetCode |
+| [本地开发](docs/本地开发-DEVELOPMENT.md) | 环境、脚本、目录 |
+| [系统架构](docs/系统架构-ARCHITECTURE.md) | 技术栈、模块、题型 |
+| [API 说明](docs/API接口-API.md) | 路由一览、认证、Swagger |
+| [故障排查](docs/故障排查-TROUBLESHOOTING.md) | CSRF、无题目、构建慢等 |
+| [小程序对接](docs/小程序对接-MINIPROGRAM_INTEGRATION.md) | 微信端集成 |
+| [页面与功能](docs/页面功能-PAGES_AND_FEATURES.md) | 全站功能说明 |
 
 其它：[数据库设计](DATABASE_DESIGN.md) · [代码规范](代码规范.md) · [功能清单](功能清单.md)
 

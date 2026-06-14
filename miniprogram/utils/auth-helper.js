@@ -50,6 +50,11 @@ function goCompleteAccount() {
   wx.navigateTo({ url: '/pages/account-complete/account-complete' });
 }
 
+function getUserId() {
+  const user = wx.getStorageSync('userInfo') || {};
+  return user._id || user.id || user.userId || '';
+}
+
 module.exports = {
   needsProfileCompletion,
   persistSession,
@@ -57,4 +62,5 @@ module.exports = {
   afterLoginNavigate,
   ensureProfileComplete,
   goCompleteAccount,
+  getUserId,
 };

@@ -1,0 +1,47 @@
+@import "../../styles/feature-page.wxss";
+
+.habit-tip {
+  margin-top: 16rpx;
+  font-size: 24rpx;
+  color: var(--color-text-secondary);
+  padding: 14rpx 18rpx;
+  background: rgba(21, 101, 192, 0.06);
+  border-radius: var(--radius-sm);
+}
+
+.trend-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 14rpx;
+}
+
+.trend-date {
+  width: 72rpx;
+  flex-shrink: 0;
+  font-size: 22rpx;
+  color: var(--color-text-muted);
+}
+
+.trend-bar-wrap {
+  flex: 1;
+  height: 16rpx;
+  background: rgba(21, 101, 192, 0.08);
+  border-radius: 999rpx;
+  overflow: hidden;
+}
+
+.trend-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary-light), var(--color-primary));
+  border-radius: 999rpx;
+  min-width: 8rpx;
+}
+
+.trend-meta {
+  width: 140rpx;
+  flex-shrink: 0;
+  text-align: right;
+  font-size: 22rpx;
+  color: var(--color-text-secondary);
+}

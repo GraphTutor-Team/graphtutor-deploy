@@ -1,0 +1,24 @@
+<view class="container">
+  <view wx:if="{{loading}}" class="state-text">加载中…</view>
+  <block wx:else>
+    <view class="card">
+      <view class="item-title" style="font-size:34rpx;">{{title}}</view>
+      <view class="note-body" style="margin-top:16rpx;">{{content}}</view>
+    </view>
+
+    <view class="card">
+      <view class="section-title">回复（{{replies.length}}）</view>
+      <view wx:if="{{replies.length === 0}}" class="state-text state-text--muted">暂无回复</view>
+      <view class="item-card" wx:for="{{replies}}" wx:key="id">
+        <view class="item-meta">{{item.author}} · {{item.timeText}}</view>
+        <view class="item-title" style="font-weight:500;margin-top:8rpx;">{{item.content}}</view>
+      </view>
+    </view>
+
+    <view class="card">
+      <view class="section-title">发表回复</view>
+      <textarea class="reply-input" placeholder="输入回复内容" value="{{replyText}}" bindinput="onReplyInput" />
+      <button class="primary-action" loading="{{submitting}}" bindtap="submitReply">发送回复</button>
+    </view>
+  </block>
+</view>

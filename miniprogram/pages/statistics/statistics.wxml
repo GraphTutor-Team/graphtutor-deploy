@@ -1,0 +1,67 @@
+<view class="container">
+  <view class="feature-header">
+    <view class="feature-title">学习统计</view>
+    <view class="feature-desc">与 Web 学习统计同步，详细分析请在 Web 端查看</view>
+  </view>
+
+  <view wx:if="{{!isLoggedIn}}" class="card">
+    <view class="state-box">
+      <view class="state-text">登录后查看学习统计</view>
+      <button class="state-btn" bindtap="goLogin">去登录</button>
+    </view>
+  </view>
+
+  <view wx:elif="{{loading}}" class="state-text">加载中…</view>
+  <view wx:elif="{{loadError}}" class="card">
+    <view class="state-box">
+      <view class="state-text">{{loadError}}</view>
+      <button class="state-btn" bindtap="reload">重试</button>
+    </view>
+  </view>
+
+  <block wx:else>
+    <view class="toolbar">
+      <picker mode="selector" range="{{dayLabels}}" value="{{dayIndex}}" bindchange="onDayChange">
+        <view class="tool-chip tool-chip--active">{{dayLabels[dayIndex]}} ▾</view>
+      </picker>
+    </view>
+
+    <view class="card">
+      <view class="section-title">核心指标</view>
+      <view class="stat-grid">
+        <view class="stat-item">
+          <view class="stat-num">{{accuracyText}}</view>
+          <view class="stat-label">正确率</view>
+        </view>
+        <view class="stat-item">
+          <view class="stat-num">{{totalQuestions}}</view>
+          <view class="stat-label">做题量</view>
+        </view>
+        <view class="stat-item">
+          <view class="stat-num">{{studyDays}}</view>
+          <view class="stat-label">学习天数</view>
+        </view>
+        <view class="stat-item">
+          <view class="stat-num">{{efficiencyScore}}</view>
+          <view class="stat-label">效率分</view>
+        </view>
+      </view>
+      <view wx:if="{{habitSummary}}" class="habit-tip">{{habitSummary}}</view>
+    </view>
+
+    <view class="card">
+      <view class="section-title">每日趋势</view>
+      <view wx:if="{{trendRows.length === 0}}" class="state-text state-text--muted">该时段暂无做题记录</view>
+      <view class="trend-row" wx:for="{{trendRows}}" wx:key="date">
+        <view class="trend-date">{{item.date}}</view>
+        <view class="trend-bar-wrap">
+          <view class="trend-bar" style="width: {{item.barWidth}}%;"></view>
+        </view>
+        <view class="trend-meta">
+          <text>{{item.total}} 题</text>
+          <text wx:if="{{item.accuracy != null}}"> · {{item.accuracy}}%</text>
+        </view>
+      </view>
+    </view>
+  </block>
+</view>

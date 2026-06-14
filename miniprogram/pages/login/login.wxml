@@ -40,8 +40,4 @@
       <text class="register-link" bindtap="goRegister">去注册</text>
     </view>
   </view>
-
-  <view class="login-tip" wx:if="{{useVirtual}}">
-    <text>当前为虚拟登录模式，请在 utils/config.js 关闭 USE_VIRTUAL_LOGIN。</text>
-  </view>
 </view>

@@ -31,6 +31,22 @@
           <view class="stat-label">进行中计划</view>
         </view>
       </view>
+      <button
+        wx:if="{{todayReviewCount > 0}}"
+        class="review-btn"
+        bindtap="startTodayReview"
+      >
+        开始今日复习（{{todayReviewCount}} 题）
+      </button>
+      <view wx:elif="{{connected && isLoggedIn}}" class="state-text state-text--muted">今日复习已完成 🎉</view>
+      <button
+        wx:if="{{activePlanId}}"
+        class="review-btn review-btn--secondary"
+        loading="{{checkingIn}}"
+        bindtap="doCheckIn"
+      >
+        今日打卡
+      </button>
       <view wx:if="{{activePlans.length > 0}}" class="list-block">
         <view class="list-block-title">进行中的计划</view>
         <view class="list-row" wx:for="{{activePlans}}" wx:key="id">
@@ -64,5 +80,6 @@
         <view class="stat-label">累计做题</view>
       </view>
     </view>
+    <button wx:if="{{isLoggedIn && !loading}}" class="review-btn review-btn--secondary" bindtap="goCheckInPage">查看打卡记录</button>
   </view>
 </view>

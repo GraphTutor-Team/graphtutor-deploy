@@ -1,0 +1,39 @@
+<view class="container">
+  <view class="feature-header">
+    <view class="feature-title">每日打卡</view>
+    <view class="feature-desc">记录学习打卡，与 Web 学习计划同步</view>
+  </view>
+
+  <view wx:if="{{!isLoggedIn}}" class="card">
+    <view class="state-box">
+      <view class="state-text">登录后打卡</view>
+      <button class="state-btn" bindtap="goLogin">去登录</button>
+    </view>
+  </view>
+
+  <view wx:elif="{{loading}}" class="state-text">加载中…</view>
+  <view wx:elif="{{loadError}}" class="card">
+    <view class="state-box">
+      <view class="state-text">{{loadError}}</view>
+      <button class="state-btn" bindtap="reload">重试</button>
+    </view>
+  </view>
+
+  <block wx:else>
+    <view class="card">
+      <view class="section-title">今日打卡</view>
+      <view wx:if="{{activePlanId}}" class="item-meta" style="margin-bottom:16rpx;">关联计划：{{activePlanName}}</view>
+      <view wx:else class="item-meta" style="margin-bottom:16rpx;">暂无进行中的计划，请先在 Web 端创建</view>
+      <button class="primary-action" style="margin-top:0;" loading="{{checkingIn}}" bindtap="doCheckIn">立即打卡</button>
+    </view>
+
+    <view class="card">
+      <view class="section-title">最近打卡</view>
+      <view wx:if="{{records.length === 0}}" class="state-text state-text--muted">暂无打卡记录</view>
+      <view class="item-card" wx:for="{{records}}" wx:key="id">
+        <view class="item-title">{{item.planName}}</view>
+        <view class="item-meta">{{item.dateText}} · 完成 {{item.questions}} 题</view>
+      </view>
+    </view>
+  </block>
+</view>

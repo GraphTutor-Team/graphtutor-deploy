@@ -96,6 +96,14 @@
   margin-bottom: 12rpx;
 }
 
+.wrong-card:active {
+  background: rgba(21, 101, 192, 0.1);
+}
+
+.wrong-list {
+  margin-top: 16rpx;
+}
+
 .wrong-card-title {
   font-size: 27rpx;
   color: var(--color-text);
@@ -120,6 +128,18 @@
   font-weight: 700;
 }
 
+.wrong-actions {
+  display: flex;
+  gap: 16rpx;
+  align-items: center;
+}
+
+.wrong-mastered {
+  font-size: 23rpx;
+  color: #2e7d32;
+  font-weight: 700;
+}
+
 .review-btn {
   margin-top: 16rpx;
   width: 100%;
@@ -134,4 +154,17 @@
 
 .review-btn::after {
   border: none;
+}
+
+.section-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8rpx;
+}
+
+.section-link {
+  font-size: 24rpx;
+  color: var(--color-primary);
+  font-weight: 600;
 }

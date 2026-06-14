@@ -1,0 +1,24 @@
+@import "../../styles/feature-page.wxss";
+
+.req-actions {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 14rpx;
+}
+
+.req-btn {
+  flex: 1;
+  border-radius: 999rpx !important;
+  font-size: 24rpx !important;
+  font-weight: 700;
+}
+
+.req-btn--accept {
+  background: var(--color-primary) !important;
+  color: #fff !important;
+}
+
+.req-btn--reject {
+  background: rgba(21, 101, 192, 0.08) !important;
+  color: var(--color-text-secondary) !important;
+}

@@ -1,13 +1,4 @@
 <view class="container">
-  <view class="backend-bar backend-bar--ok" wx:if="{{backendReady}}">
-    <text class="backend-dot backend-dot--ok"></text>
-    <text>{{backendStatusText}} · 登录后同步学习数据</text>
-  </view>
-  <view class="backend-bar backend-bar--fail" wx:elif="{{!backendReady && backendStatusText}}" bindtap="checkBackend">
-    <text class="backend-dot backend-dot--fail"></text>
-    <text>{{backendStatusText}} · 点此重试</text>
-  </view>
-
   <view class="index-hero">
     <image class="index-hero-bg" src="{{heroImage}}" mode="aspectFill" binderror="onHeroImageError" />
     <view class="index-hero-mask"></view>
@@ -34,14 +25,20 @@
   </view>
 
   <view class="guest-bar" wx:else>
-    <view class="guest-bar-text">{{backendReady ? '后端已就绪，登录后同步练习进度' : '请先确保后端可访问，再登录账号'}}</view>
+    <view class="guest-bar-text">登录后同步练习进度与学习数据</view>
     <button class="guest-bar-btn" bindtap="goLogin">去登录</button>
   </view>
 
   <view class="start-card" wx:if="{{isLoggedIn}}">
     <view class="start-title">立即开始练习</view>
-    <view class="start-desc">选择题库即可做题，错题会自动进入错题本</view>
+    <view class="start-desc">选择题库、每日挑战或复习错题</view>
     <button class="start-btn" bindtap="goPractice">开始练习</button>
+    <view class="start-links">
+      <text class="start-link" bindtap="startDailyChallenge">每日挑战</text>
+      <text class="start-link" bindtap="goExam">考试模式</text>
+      <text class="start-link" bindtap="goNotifications">通知</text>
+      <text class="start-link" bindtap="goFavorites">收藏</text>
+    </view>
   </view>
 
   <view class="card">
@@ -68,9 +65,10 @@
     <view class="section-title">学习概览</view>
     <view wx:if="{{homeLoading}}" class="state-text">加载中…</view>
     <view wx:elif="{{homeConnected}}" class="overview-grid">
-      <view class="overview-item">
+      <view class="overview-item overview-item--tap" bindtap="startTodayReview">
         <view class="overview-num">{{todayReviewCount}}</view>
         <view class="overview-label">今日需复习</view>
+        <view wx:if="{{todayReviewCount > 0}}" class="overview-hint">点击开始 ›</view>
       </view>
       <view class="overview-item">
         <view class="overview-num">{{efficiencyScoreDisplay}}</view>
@@ -78,8 +76,8 @@
       </view>
     </view>
     <view wx:else class="state-box">
-      <view class="state-text">{{backendReady ? '登录态异常或数据加载失败' : '后端未连接，无法拉取数据'}}</view>
-      <button class="state-btn" bindtap="{{backendReady ? 'loadHomeData' : 'checkBackend'}}">{{backendReady ? '重试' : '检测后端'}}</button>
+      <view class="state-text">数据加载失败，请稍后重试</view>
+      <button class="state-btn" bindtap="loadHomeData">重试</button>
     </view>
   </view>
 
@@ -97,8 +95,15 @@
       </view>
       <view wx:if="{{recommendations.length > 0}}" class="feed-block">
         <view class="feed-label">推荐练习</view>
-        <view class="feed-item feed-item--rec" wx:for="{{recommendations}}" wx:key="id">
+        <view
+          class="feed-item feed-item--rec feed-item--tap"
+          wx:for="{{recommendations}}"
+          wx:key="id"
+          data-qid="{{item.questionId}}"
+          bindtap="startSingleRecommend"
+        >
           <view class="feed-title">{{item.title}}</view>
+          <view class="feed-action">练这题 ›</view>
         </view>
       </view>
       <view wx:if="{{notifications.length === 0 && recommendations.length === 0}}" class="state-text">暂无新通知与推荐</view>

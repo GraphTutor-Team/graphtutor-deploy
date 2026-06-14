@@ -2,7 +2,6 @@
 // 后端地址在 utils/config.js 中配置
 
 const config = require('./utils/config.js');
-const { PRODUCTS } = require('./utils/shop-data.js');
 
 App({
   globalData: {
@@ -10,9 +9,7 @@ App({
     token: null,
     refreshToken: null,
     baseUrl: config.BASE_URL,
-    backendReady: false,
-    backendStatus: null,
-    products: PRODUCTS.slice(),
+    products: [],
   },
 
   onLaunch() {
@@ -24,9 +21,6 @@ App({
       this.globalData.userInfo = userInfo || null;
       this.globalData.refreshToken = refreshToken || null;
     }
-
-    const backendStatus = require('./utils/backend-status.js');
-    backendStatus.refreshBackendStatus();
 
     if (!config.USE_VIRTUAL_LOGIN && token && refreshToken) {
       const api = require('./utils/api.js');

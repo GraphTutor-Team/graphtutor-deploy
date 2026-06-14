@@ -1,0 +1,30 @@
+<view class="chat-page">
+  <view wx:if="{{loading}}" class="state-text">加载消息…</view>
+
+  <scroll-view wx:else class="chat-list" scroll-y scroll-into-view="{{scrollInto}}">
+    <view wx:if="{{messages.length === 0}}" class="state-text state-text--muted">暂无消息，发一条打个招呼吧</view>
+    <view
+      wx:for="{{messages}}"
+      wx:key="id"
+      class="chat-row {{item.isMine ? 'chat-row--mine' : 'chat-row--other'}}"
+    >
+      <view class="chat-bubble">
+        <view class="chat-text">{{item.content}}</view>
+        <view class="chat-time">{{item.timeText}}</view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <view class="chat-input-bar">
+    <input
+      class="chat-input"
+      placeholder="输入消息…"
+      value="{{draft}}"
+      bindinput="onInput"
+      confirm-type="send"
+      bindconfirm="send"
+    />
+    <button class="chat-send" loading="{{sending}}" bindtap="send">发送</button>
+  </view>
+</view>
+

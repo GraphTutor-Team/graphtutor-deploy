@@ -41,14 +41,43 @@
   </view>
 
   <view class="card">
-    <view class="section-title">最近错题</view>
+    <view class="section-row">
+      <view class="section-title">最近错题</view>
+      <view class="section-link" bindtap="goReviewPlans">复习计划 ›</view>
+    </view>
+    <view wx:if="{{isLoggedIn}}" class="toolbar">
+      <view
+        class="tool-chip {{masteryTab === item.key ? 'tool-chip--active' : ''}}"
+        wx:for="{{masteryTabs}}"
+        wx:key="key"
+        data-key="{{item.key}}"
+        bindtap="switchMasteryTab"
+      >{{item.label}}</view>
+    </view>
     <view wx:if="{{!isLoggedIn}}" class="state-text">登录后查看错题列表</view>
     <view wx:elif="{{loading}}" class="state-text">加载中…</view>
     <block wx:else>
-      <view wx:if="{{items.length > 0}}">
-        <view class="list-row" wx:for="{{items}}" wx:key="id">
-          <view class="list-row-title">{{item.title}}</view>
-          <view class="list-row-meta">错误 {{item.errorCount}} 次</view>
+      <button
+        wx:if="{{unmastered > 0}}"
+        class="review-btn"
+        bindtap="startWrongPractice"
+      >
+        巩固待掌握错题（{{unmastered}} 题）
+      </button>
+      <view wx:if="{{items.length > 0}}" class="wrong-list">
+        <view
+          class="wrong-card"
+          wx:for="{{items}}"
+          wx:key="id"
+        >
+          <view class="wrong-card-title">{{item.title}}</view>
+          <view class="wrong-card-meta">
+            <view class="wrong-tag">错误 {{item.errorCount}} 次</view>
+            <view class="wrong-actions">
+              <view class="wrong-status" catchtap="startSingleWrong" data-qid="{{item.questionId}}">重做</view>
+              <view class="wrong-mastered" catchtap="markMastered" data-qid="{{item.questionId}}">已掌握</view>
+            </view>
+          </view>
         </view>
       </view>
       <view wx:elif="{{connected}}" class="state-text state-text--muted">暂无错题，继续保持</view>

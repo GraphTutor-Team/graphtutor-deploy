@@ -228,7 +228,7 @@ pages/account-complete/account-complete
 
 ### 待接入（页面多为本地 mock）
 
-练习、计划、错题、图谱、商城、好友等需按 `docs/PAGES_AND_FEATURES.md` 逐步对接对应 REST 路由。对接时在 `utils/api.js` 增加封装，并带上 `Authorization` 头。
+练习、计划、错题、图谱、商城、好友等需按 `docs/页面功能-PAGES_AND_FEATURES.md` 逐步对接对应 REST 路由。对接时在 `utils/api.js` 增加封装，并带上 `Authorization` 头。
 
 ---
 

@@ -21,39 +21,74 @@
     </view>
   </view>
 
-  <view class="card">
-    <view class="section-title">学习工具</view>
+  <view class="card" wx:if="{{isLoggedIn}}">
+    <view class="section-title">学习中心</view>
     <view class="menu-list">
-      <view class="menu-row" bindtap="goGraph">
-        <image class="menu-icon" src="{{icons.graph}}" mode="aspectFit" />
+      <view class="menu-row" wx:for="{{learningCenter}}" wx:key="title" data-url="{{item.url}}" bindtap="onToolTap">
+        <image class="menu-icon" src="{{icons[item.iconKey]}}" mode="aspectFit" />
         <view class="menu-body">
-          <view class="menu-title">知识图谱</view>
-          <view class="menu-desc">掌握度与路径推荐</view>
-        </view>
-        <text class="menu-arrow">›</text>
-      </view>
-      <view class="menu-row" bindtap="goShop">
-        <image class="menu-icon" src="{{icons.shop}}" mode="aspectFit" />
-        <view class="menu-body">
-          <view class="menu-title">简易商城</view>
-          <view class="menu-desc">课程包与题单</view>
+          <view class="menu-title">{{item.title}}</view>
+          <view class="menu-desc">{{item.desc}}</view>
         </view>
         <text class="menu-arrow">›</text>
       </view>
     </view>
   </view>
 
-  <view class="card">
-    <view class="section-title">账号与连接</view>
-    <view class="info-row">
-      <text class="info-label">后端状态</text>
-      <text class="info-value {{backendReady ? 'info-value--ok' : 'info-value--fail'}}">{{backendStatusText}}</text>
+  <view class="card" wx:if="{{isLoggedIn}}">
+    <view class="section-title">学习工具</view>
+    <view class="menu-list">
+      <view class="menu-row" wx:for="{{learningTools}}" wx:key="title" data-url="{{item.url}}" data-tab="{{item.tab}}" bindtap="onToolTap">
+        <image class="menu-icon" src="{{icons[item.iconKey]}}" mode="aspectFit" />
+        <view class="menu-body">
+          <view class="menu-title">{{item.title}}</view>
+          <view class="menu-desc">{{item.desc}}</view>
+        </view>
+        <text class="menu-arrow">›</text>
+      </view>
     </view>
-    <view class="info-row">
-      <text class="info-label">登录模式</text>
-      <text class="info-value">{{useVirtualLogin ? '虚拟登录' : '真实后端'}}</text>
+  </view>
+
+  <view class="card" wx:if="{{isLoggedIn}}">
+    <view class="section-title">学习分析</view>
+    <view class="menu-list">
+      <view class="menu-row" wx:for="{{learningAnalysis}}" wx:key="title" data-url="{{item.url}}" bindtap="onToolTap">
+        <image class="menu-icon" src="{{icons[item.iconKey]}}" mode="aspectFit" />
+        <view class="menu-body">
+          <view class="menu-title">{{item.title}}</view>
+          <view class="menu-desc">{{item.desc}}</view>
+        </view>
+        <text class="menu-arrow">›</text>
+      </view>
     </view>
-    <button class="btn btn--ghost" bindtap="checkBackend">检测后端连接</button>
+  </view>
+
+  <view class="card" wx:if="{{isLoggedIn}}">
+    <view class="section-title">社交与社区</view>
+    <view class="menu-list">
+      <view class="menu-row" wx:for="{{socialTools}}" wx:key="title" data-url="{{item.url}}" bindtap="onToolTap">
+        <image class="menu-icon" src="{{icons[item.iconKey]}}" mode="aspectFit" />
+        <view class="menu-body">
+          <view class="menu-title">{{item.title}}</view>
+          <view class="menu-desc">{{item.desc}}</view>
+        </view>
+        <text class="menu-arrow">›</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card" wx:if="{{isLoggedIn}}">
+    <view class="section-title">个人中心</view>
+    <view class="menu-list">
+      <view class="menu-row" wx:for="{{profileTools}}" wx:key="title" data-url="{{item.url}}" bindtap="onToolTap">
+        <image class="menu-icon" src="{{icons[item.iconKey]}}" mode="aspectFit" />
+        <view class="menu-body">
+          <view class="menu-title">{{item.title}}</view>
+          <view class="menu-desc">{{item.desc}}</view>
+        </view>
+        <text class="menu-arrow">›</text>
+      </view>
+    </view>
   </view>
 
   <view class="card card--actions" wx:if="{{isLoggedIn}}">

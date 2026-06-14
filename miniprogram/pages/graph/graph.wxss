@@ -131,3 +131,21 @@
   font-size: 23rpx;
   color: var(--color-text-muted);
 }
+
+.list-row--tap {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 16rpx 0;
+}
+
+.list-row--tap:active {
+  opacity: 0.75;
+}
+
+.list-row-action {
+  flex-shrink: 0;
+  font-size: 24rpx;
+  color: var(--color-primary);
+  font-weight: 600;
+}

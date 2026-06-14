@@ -84,7 +84,7 @@ GraphTutor 是基于知识图谱的智能学习平台：**React 前端 + Express
 
 ## 6. 部署架构（生产）
 
-见 [DEPLOYMENT.md](./DEPLOYMENT.md)：
+见 [部署运维-DEPLOYMENT.md](./部署运维-DEPLOYMENT.md)：
 
 - 单节点 Docker：`server` + `mongodb` + `redis`
 - 无 Nginx 时直接 `:5000`
@@ -102,4 +102,4 @@ GraphTutor 是基于知识图谱的智能学习平台：**React 前端 + Express
 | `server/src/routes/quizzes.js` | 测验会话 API |
 | `server/scripts/import-*.js` | 外部数据导入 |
 
-功能页面全览：[PAGES_AND_FEATURES.md](./PAGES_AND_FEATURES.md)。
+功能页面全览：[页面功能-PAGES_AND_FEATURES.md](./页面功能-PAGES_AND_FEATURES.md)。

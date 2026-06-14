@@ -1,0 +1,53 @@
+@import "../../../styles/page-data.wxss";
+
+.field {
+  margin-bottom: 28rpx;
+}
+
+.field:last-child {
+  margin-bottom: 0;
+}
+
+.field-label {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 12rpx;
+}
+
+.picker-value {
+  padding: 22rpx 24rpx;
+  border-radius: 18rpx;
+  background: rgba(21, 101, 192, 0.05);
+  border: 1rpx solid rgba(21, 101, 192, 0.12);
+  font-size: 28rpx;
+  color: var(--color-text);
+}
+
+.field-hint {
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  color: var(--color-text-muted);
+  line-height: 1.45;
+}
+
+.start-btn {
+  width: 100%;
+  height: 88rpx;
+  line-height: 88rpx;
+  border-radius: 44rpx;
+  background: linear-gradient(135deg, var(--color-primary-light), var(--color-primary));
+  color: #fff;
+  font-size: 30rpx;
+  font-weight: 700;
+  border: none;
+  box-shadow: 0 12rpx 28rpx rgba(21, 101, 192, 0.28);
+}
+
+.start-btn::after {
+  border: none;
+}
+
+.start-btn[disabled] {
+  opacity: 0.65;
+}

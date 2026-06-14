@@ -134,7 +134,7 @@ docker compose exec server npm install pdf-parse --no-save
 | Java 编程 | 99 道编程题 |
 | 算法与 LeetCode | 66 道编程题 |
 
-练习页选学科后点 **重新加载**。编程题需 **新前端 dist** 才显示代码编辑器，见 [DEPLOYMENT.md §4](./DEPLOYMENT.md#4-仅更新-web-前端不整镜像-build)。
+练习页选学科后点 **重新加载**。编程题需 **新前端 dist** 才显示代码编辑器，见 [部署运维-DEPLOYMENT.md §4](./部署运维-DEPLOYMENT.md#4-仅更新-web-前端不整镜像-build)。
 
 ---
 

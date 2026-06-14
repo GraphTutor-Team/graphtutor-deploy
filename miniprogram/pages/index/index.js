@@ -4,7 +4,7 @@ const api = require('../../utils/api.js');
 const authHelper = require('../../utils/auth-helper.js');
 const config = require('../../utils/config.js');
 const homeApi = require('../../utils/home-api.js');
-const backendStatus = require('../../utils/backend-status.js');
+const quizLaunch = require('../../utils/quiz-launch.js');
 const { HOME_IMAGE_SET } = require('../../utils/image-library.js');
 
 const roleMap = { student: '学生', question_manager: '出题负责人', admin: '管理员', user: '用户' };
@@ -25,10 +25,10 @@ Page({
     heroImageFallback: HOME_IMAGE_SET.hero.fallback,
 
     navFeatures: [
-      { id: 'practice', title: '练习', desc: '选择题库开始刷题', img: ICON.practice, type: 'switchTab', url: '/pages/practice/practice' },
+      { id: 'practice', title: '练习模式', desc: '选择题库开始刷题', img: ICON.practice, type: 'navigateTo', url: '/pages/quiz/setup/setup' },
       { id: 'plan', title: '学习计划', desc: '今日任务与复习安排', img: ICON.plan, type: 'switchTab', url: '/pages/plan/plan' },
-      { id: 'graph', title: '知识图谱', desc: '图结构路径规划练习', img: ICON.graph, type: 'navigateTo', url: '/pages/graph/graph' },
-      { id: 'wrong', title: '错题本', desc: '巩固薄弱知识点', img: ICON.wrong, type: 'switchTab', url: '/pages/wrong/wrong' },
+      { id: 'graph', title: '知识图谱', desc: '掌握度与路径推荐', img: ICON.graph, type: 'navigateTo', url: '/pages/graph/graph' },
+      { id: 'wrong', title: '错题复习', desc: '巩固薄弱知识点', img: ICON.wrong, type: 'switchTab', url: '/pages/wrong/wrong' },
     ],
 
     homeLoading: false,
@@ -39,30 +39,11 @@ Page({
     todayReviewCount: 0,
     efficiencyScore: null,
     efficiencyScoreDisplay: '—',
-
-    backendReady: false,
-    backendStatusText: '正在检测后端…',
   },
 
   onShow() {
     if (!authHelper.ensureProfileComplete()) return;
-    this.checkBackend().then(() => this.bootstrapSession());
-  },
-
-  checkBackend() {
-    if (config.USE_VIRTUAL_LOGIN) {
-      this.setData({
-        backendReady: false,
-        backendStatusText: '虚拟登录模式，未连接后端',
-      });
-      return Promise.resolve();
-    }
-    return backendStatus.refreshBackendStatus().then((status) => {
-      this.setData({
-        backendReady: !!status.ok,
-        backendStatusText: status.message || (status.ok ? '后端已连接' : '无法连接后端'),
-      });
-    });
+    this.bootstrapSession();
   },
 
   setGuestState() {
@@ -112,14 +93,6 @@ Page({
     if (config.USE_VIRTUAL_LOGIN && api.isVirtualToken()) {
       const userInfo = wx.getStorageSync('userInfo') || {};
       this.applyLoggedIn(userInfo);
-      return;
-    }
-
-    if (!this.data.backendReady && !config.USE_VIRTUAL_LOGIN) {
-      this.setData({
-        isLoggedIn: false,
-        homeConnected: false,
-      });
       return;
     }
 
@@ -179,7 +152,49 @@ Page({
   },
 
   goPractice() {
+    const token = wx.getStorageSync('token');
+    if (token && !api.isVirtualToken() && !config.USE_VIRTUAL_LOGIN) {
+      wx.navigateTo({ url: '/pages/quiz/setup/setup' });
+      return;
+    }
     wx.switchTab({ url: '/pages/practice/practice' });
+  },
+
+  startTodayReview() {
+    if (!this.data.isLoggedIn) {
+      this.goLogin();
+      return;
+    }
+    quizLaunch.launchTodayReview();
+  },
+
+  startSingleRecommend(e) {
+    if (!this.data.isLoggedIn) {
+      this.goLogin();
+      return;
+    }
+    const questionId = e.currentTarget.dataset.qid;
+    quizLaunch.launchSingleQuestion(questionId);
+  },
+
+  startDailyChallenge() {
+    if (!this.data.isLoggedIn) {
+      this.goLogin();
+      return;
+    }
+    quizLaunch.launchDailyChallenge();
+  },
+
+  goNotifications() {
+    wx.navigateTo({ url: '/pages/notifications/notifications' });
+  },
+
+  goFavorites() {
+    wx.navigateTo({ url: '/pages/favorites/favorites' });
+  },
+
+  goExam() {
+    wx.navigateTo({ url: '/pages/exam/setup/setup' });
   },
 
   featureNav(e) {

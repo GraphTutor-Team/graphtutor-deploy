@@ -316,8 +316,8 @@
 | 文档 | 关系说明 |
 |------|----------|
 | 根目录 [功能清单.md](../功能清单.md) | 精简版页面列表，与本文第一～十三节对应；本文更细且含实现状态与详细功能描述。 |
-| [docs/IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) | 基于本文第十四节「产品愿景」拆解的实施步骤与优先级。 |
-| [docs/ai-context-schema.md](ai-context-schema.md) | AI 学习伴侣的上下文字段约定，与本文「零、AI 深度整合」配合使用。 |
+| [实施计划-IMPLEMENTATION_PLAN.md](实施计划-IMPLEMENTATION_PLAN.md) | 基于本文第十四节「产品愿景」拆解的实施步骤与优先级。 |
+| [AI上下文-ai-context-schema.md](AI上下文-ai-context-schema.md) | AI 学习伴侣的上下文字段约定，与本文「零、AI 深度整合」配合使用。 |
 | README / 技术架构 / API 端点文档 | 本文侧重「页面与功能」；架构与接口见对应文档。 |
 
 ---

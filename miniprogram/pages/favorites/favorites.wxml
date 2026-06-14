@@ -1,0 +1,46 @@
+<view class="container">
+  <view class="feature-header">
+    <view class="feature-title">我的收藏</view>
+    <view class="feature-desc">从收藏夹一键练习，与 Web 同步</view>
+  </view>
+
+  <view wx:if="{{!isLoggedIn}}" class="card">
+    <view class="state-box">
+      <view class="state-text">登录后查看收藏</view>
+      <button class="state-btn" bindtap="goLogin">去登录</button>
+    </view>
+  </view>
+
+  <view wx:elif="{{loading}}" class="state-text">加载中…</view>
+  <view wx:elif="{{loadError}}" class="card">
+    <view class="state-box">
+      <view class="state-text">{{loadError}}</view>
+      <button class="state-btn" bindtap="reload">重试</button>
+    </view>
+  </view>
+
+  <block wx:else>
+    <view class="card">
+      <view class="field-label" style="font-size:26rpx;font-weight:700;margin-bottom:12rpx;">收藏夹</view>
+      <picker mode="selector" range="{{folderNames}}" value="{{folderIndex}}" bindchange="onFolderChange">
+        <view class="picker-value">{{folderNames[folderIndex]}}</view>
+      </picker>
+      <button wx:if="{{items.length > 0}}" class="primary-action" bindtap="practiceFolder">练习本夹全部题目</button>
+    </view>
+
+    <view class="card">
+      <view class="section-title">收藏题目</view>
+      <view wx:if="{{items.length === 0}}" class="state-text state-text--muted">该收藏夹暂无题目</view>
+      <view
+        class="item-card item-row"
+        wx:for="{{items}}"
+        wx:key="id"
+        data-qid="{{item.questionId}}"
+        bindtap="practiceOne"
+      >
+        <view class="item-title">{{item.title}}</view>
+        <view class="item-action">练习 ›</view>
+      </view>
+    </view>
+  </block>
+</view>

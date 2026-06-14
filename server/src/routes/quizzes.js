@@ -68,24 +68,49 @@ async function selectQuestions({ size = 10, difficulty, node, bankId, subjectCod
   return docs.map(snapshotQuestion);
 }
 
+async function selectQuestionsByIds(questionIds) {
+  const oids = [];
+  const order = [];
+  (questionIds || []).forEach((rawId) => {
+    try {
+      const oid = new mongoose.Types.ObjectId(String(rawId));
+      oids.push(oid);
+      order.push(String(oid));
+    } catch {
+      // skip invalid id
+    }
+  });
+  if (!oids.length) return [];
+
+  const docs = await Question.find({ _id: { $in: oids } }).lean();
+  const map = new Map(docs.map((d) => [String(d._id), d]));
+  return order.map((id) => map.get(id)).filter(Boolean).map(snapshotQuestion);
+}
+
 /**
  * POST /api/quizzes/session/start
  * 创建新会话
  */
 router.post('/session/start', async (req, res) => {
   try {
-    const { userId, size = 10, difficulty, node, bankId, subjectCode } = req.body;
+    const { userId, size = 10, difficulty, node, bankId, subjectCode, questionIds } = req.body;
     if (!userId) {
       return res.status(400).json({ error: 'userId 是必填项' });
     }
 
     console.log('[Quiz] Creating session with params:', {
-      userId, size, difficulty, node, bankId, subjectCode,
+      userId, size, difficulty, node, bankId, subjectCode, questionIds: questionIds?.length,
     });
 
-    const questions = await selectQuestions({
-      size, difficulty, node, bankId, subjectCode,
-    });
+    let questions;
+    if (Array.isArray(questionIds) && questionIds.length > 0) {
+      const maxIds = Math.min(questionIds.length, 200);
+      questions = await selectQuestionsByIds(questionIds.slice(0, maxIds));
+    } else {
+      questions = await selectQuestions({
+        size, difficulty, node, bankId, subjectCode,
+      });
+    }
     console.log('[Quiz] Selected questions count:', questions.length);
     
     if (!questions.length) {

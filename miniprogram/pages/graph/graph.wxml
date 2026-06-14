@@ -33,6 +33,10 @@
         <view class="stat-num">{{avgMasteryDisplay}}</view>
         <view class="stat-label">平均掌握度</view>
       </view>
+      <view class="stat-item">
+        <view class="stat-num">{{reviewAlertCount}}</view>
+        <view class="stat-label">遗忘预警</view>
+      </view>
     </view>
   </view>
 
@@ -42,9 +46,12 @@
     <view wx:elif="{{loading}}" class="state-text">加载中…</view>
     <block wx:else>
       <view wx:if="{{paths.length > 0}}">
-        <view class="list-row" wx:for="{{paths}}" wx:key="id">
-          <view class="list-row-title">{{item.name}}</view>
-          <view class="list-row-meta">{{item.reason}}</view>
+        <view class="list-row list-row--tap" wx:for="{{paths}}" wx:key="id" bindtap="startPathPractice" data-key="{{item.id}}">
+          <view style="flex:1;">
+            <view class="list-row-title">{{item.name}}</view>
+            <view class="list-row-meta">{{item.reason}}</view>
+          </view>
+          <text class="list-row-action">去练习 ›</text>
         </view>
       </view>
       <view wx:elif="{{connected}}" class="state-text state-text--muted">暂无路径推荐，先去练习吧</view>

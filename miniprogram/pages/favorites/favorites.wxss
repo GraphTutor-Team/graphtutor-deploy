@@ -1,0 +1,9 @@
+@import "../../styles/feature-page.wxss";
+
+.picker-value {
+  padding: 22rpx 24rpx;
+  border-radius: 18rpx;
+  background: rgba(21, 101, 192, 0.05);
+  border: 1rpx solid rgba(21, 101, 192, 0.12);
+  font-size: 28rpx;
+}

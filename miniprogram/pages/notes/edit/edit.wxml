@@ -1,0 +1,24 @@
+<view class="container">
+  <view class="card">
+    <view class="field">
+      <view class="field-label">标题</view>
+      <input class="field-input" placeholder="笔记标题" value="{{title}}" bindinput="onTitleInput" />
+    </view>
+    <view class="field">
+      <view class="field-label">内容</view>
+      <textarea
+        class="field-textarea"
+        placeholder="笔记内容"
+        value="{{content}}"
+        bindinput="onContentInput"
+        maxlength="-1"
+        auto-height
+      />
+    </view>
+    <view class="field field--row">
+      <view class="field-label">公开笔记</view>
+      <switch checked="{{isPublic}}" bindchange="onPublicChange" color="#1565c0" />
+    </view>
+  </view>
+  <button class="save-btn" loading="{{saving}}" bindtap="saveNote">保存</button>
+</view>

@@ -155,3 +155,26 @@
   font-size: 22rpx;
   color: var(--color-text-muted);
 }
+
+.review-btn {
+  margin-top: 20rpx;
+  width: 100%;
+  height: 84rpx;
+  line-height: 84rpx;
+  border-radius: 999rpx;
+  color: #fff;
+  border: none;
+  font-weight: 700;
+  font-size: 28rpx;
+  background: linear-gradient(135deg, var(--color-primary-light), var(--color-primary));
+}
+
+.review-btn::after {
+  border: none;
+}
+
+.review-btn--secondary {
+  background: rgba(21, 101, 192, 0.08);
+  color: var(--color-primary);
+  box-shadow: none;
+}

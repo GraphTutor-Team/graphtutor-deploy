@@ -1,0 +1,39 @@
+<view class="container">
+  <view class="feature-header">
+    <view class="feature-title">学习社区</view>
+    <view class="feature-desc">讨论与学习动态，与 Web 端同步</view>
+  </view>
+
+  <view wx:if="{{!isLoggedIn}}" class="card">
+    <view class="state-box">
+      <view class="state-text">登录后查看社区</view>
+      <button class="state-btn" bindtap="goLogin">去登录</button>
+    </view>
+  </view>
+
+  <view wx:elif="{{loading}}" class="state-text">加载中…</view>
+
+  <block wx:else>
+    <view class="toolbar">
+      <view class="tool-chip {{tab === 'discussions' ? 'tool-chip--active' : ''}}" data-tab="discussions" bindtap="switchTab">讨论</view>
+      <view class="tool-chip {{tab === 'posts' ? 'tool-chip--active' : ''}}" data-tab="posts" bindtap="switchTab">学习动态</view>
+    </view>
+
+    <view class="card">
+      <block wx:if="{{tab === 'discussions'}}">
+        <view wx:if="{{discussions.length === 0}}" class="state-text state-text--muted">暂无讨论</view>
+        <view class="item-card" wx:for="{{discussions}}" wx:key="id" data-id="{{item.id}}" bindtap="openDiscussion">
+          <view class="item-title">{{item.title}}</view>
+          <view class="item-meta">{{item.author}} · {{item.replyCount}} 回复 · {{item.timeText}}</view>
+        </view>
+      </block>
+      <block wx:else>
+        <view wx:if="{{posts.length === 0}}" class="state-text state-text--muted">暂无动态</view>
+        <view class="item-card" wx:for="{{posts}}" wx:key="id">
+          <view class="item-title">{{item.title}}</view>
+          <view class="item-meta">{{item.author}} · {{item.timeText}}</view>
+        </view>
+      </block>
+    </view>
+  </block>
+</view>
