@@ -67,4 +67,5 @@ function fetchDashboard() {
 module.exports = {
   fetchDashboard,
   formatTimeAgo,
+  stripHtml,
 };

@@ -299,7 +299,30 @@ function getMe() {
 }
 
 function health() {
-  return request('/api/health', { method: 'GET' });
+  return request('/api/health', { method: 'GET', skipAuth: true }, false);
+}
+
+/** 检测后端是否可达（无需登录） */
+function checkBackendConnection() {
+  if (config.USE_VIRTUAL_LOGIN) {
+    return Promise.resolve({ ok: false, virtual: true, message: '当前为虚拟登录，未连接后端' });
+  }
+  return health()
+    .then((data) => {
+      const mp = data && data.features && data.features.miniprogramLogin;
+      return {
+        ok: !!(data && data.ok),
+        virtual: false,
+        miniprogramLogin: !!(mp && mp.configured),
+        message: data && data.ok ? '后端已连接' : '后端响应异常',
+      };
+    })
+    .catch((err) => ({
+      ok: false,
+      virtual: false,
+      miniprogramLogin: false,
+      message: (err && err.message) || '无法连接后端，请检查网络与 BASE_URL',
+    }));
 }
 
 /**
@@ -358,6 +381,60 @@ function getComprehensiveAnalysis(days) {
   }).then((res) => (res && res.success && res.data) || null);
 }
 
+function getWrongQuestions(params) {
+  const p = params || {};
+  return request('/api/v3/wrong-questions', {
+    method: 'GET',
+    data: cleanQuery({
+      page: p.page || 1,
+      limit: p.limit || 10,
+      masteryStatus: p.masteryStatus,
+      sortBy: p.sortBy || 'lastErrorAt',
+      sortOrder: p.sortOrder || 'desc',
+    }),
+  }).then((res) => (res && res.success && res.data) || { items: [], total: 0 });
+}
+
+function getWrongQuestionStats() {
+  return request('/api/v3/wrong-questions/stats', { method: 'GET' })
+    .then((res) => (res && res.success && res.data) || null);
+}
+
+function getStudyPlans(params) {
+  const p = params || {};
+  return request('/api/v3/study-plans', {
+    method: 'GET',
+    data: cleanQuery({
+      page: p.page || 1,
+      limit: p.limit || 5,
+      status: p.status,
+    }),
+  }).then((res) => (res && res.success && res.data) || { items: [], total: 0 });
+}
+
+function getStudyPlanStats() {
+  return request('/api/v3/study-plans/stats', { method: 'GET' })
+    .then((res) => (res && res.success && res.data) || null);
+}
+
+function getGraphHeatmap(days) {
+  return request('/api/v3/enhanced-analytics/graph-heatmap', {
+    method: 'GET',
+    data: cleanQuery({ days: days || 90 }),
+  }).then((res) => (res && res.success && res.data) || []);
+}
+
+function getPathRecommendations(params) {
+  const p = params || {};
+  return request('/api/v3/enhanced-analytics/path-recommendations', {
+    method: 'GET',
+    data: cleanQuery({
+      days: p.days || 90,
+      limit: p.limit || 5,
+    }),
+  }).then((res) => (res && res.success && res.data) || []);
+}
+
 module.exports = {
   request,
   getBaseUrl,
@@ -376,11 +453,18 @@ module.exports = {
   loginWithAvatar,
   getMe,
   health,
+  checkBackendConnection,
   completeAccount,
   getNotifications,
   getRecommendedQuestions,
   getTodayReviewQuestions,
   getComprehensiveAnalysis,
+  getWrongQuestions,
+  getWrongQuestionStats,
+  getStudyPlans,
+  getStudyPlanStats,
+  getGraphHeatmap,
+  getPathRecommendations,
   isVirtualToken,
   virtualLogin,
 };

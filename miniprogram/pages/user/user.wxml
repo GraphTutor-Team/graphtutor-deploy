@@ -4,60 +4,59 @@
     <view wx:else class="avatar">{{userFirstChar}}</view>
     <view class="user-name">{{userInfo.name || '未设置昵称'}}</view>
     <view class="user-email">{{userInfo.email || '—'}}</view>
+    <view class="user-role">{{roleText}}</view>
   </view>
 
-  <view class="card card--list" wx:if="{{isLoggedIn}}">
-    <view class="list-item list-item--warn" wx:if="{{needsComplete}}">
-      <text class="list-label">账号状态</text>
-      <text class="list-value list-value--warn">待完善</text>
-    </view>
-    <view class="list-item">
-      <text class="list-label">角色</text>
-      <text class="list-value">{{roleText}}</text>
-    </view>
-    <view class="list-item" wx:if="{{userInfo.phoneNumber}}">
-      <text class="list-label">手机号</text>
-      <text class="list-value">{{userInfo.phoneNumber}}</text>
-    </view>
-    <view class="list-item" wx:if="{{userInfo.gender}}">
-      <text class="list-label">性别</text>
-      <text class="list-value">{{userInfo.gender}}</text>
-    </view>
-    <view class="list-item" wx:if="{{userInfo.school}}">
-      <text class="list-label">学校</text>
-      <text class="list-value">{{userInfo.school}}</text>
-    </view>
-    <view class="list-item" wx:if="{{userInfo.grade}}">
-      <text class="list-label">年级</text>
-      <text class="list-value">{{userInfo.grade}}</text>
-    </view>
-    <view class="list-item">
-      <text class="list-label">账号 ID</text>
-      <text class="list-value list-value--muted">{{userInfo.id || '—'}}</text>
-    </view>
-  </view>
-
-  <view class="card card--dev">
-    <view class="dev-title">连接与模式</view>
-    <view class="dev-row">
-      <text class="dev-label">登录模式</text>
-      <text class="dev-value">{{useVirtualLogin ? '虚拟登录（本地）' : '真实后端'}}</text>
-    </view>
-    <view class="dev-row">
-      <text class="dev-label">BASE_URL</text>
-      <text class="dev-value dev-value--url">{{baseUrlDisplay}}</text>
-    </view>
-    <button class="btn btn--ghost" bindtap="checkBackend">检测后端 /api/health</button>
-    <view class="dev-hint">修改地址请编辑 utils/config.js</view>
-  </view>
-
-  <view class="card card--empty" wx:if="{{isLoggedIn}}">
-    <button wx:if="{{needsComplete}}" class="btn btn--primary btn--block" bindtap="goCompleteAccount">去完善账号</button>
-    <button class="btn btn--outline" bindtap="logout">退出登录</button>
-  </view>
-
-  <view class="card card--empty" wx:else>
-    <view class="empty-desc">未登录</view>
+  <view class="guest-header" wx:else>
+    <image class="guest-icon" src="{{icons.user}}" mode="aspectFit" />
+    <view class="guest-title">登录 GraphTutor</view>
+    <view class="guest-desc">同步 Web 端练习、计划与错题数据</view>
     <button class="btn btn--primary btn--block" bindtap="goLogin">去登录</button>
+  </view>
+
+  <view class="card" wx:if="{{isLoggedIn && needsComplete}}">
+    <view class="warn-row">
+      <text class="warn-text">账号待完善，请绑定邮箱以同步学习数据</text>
+      <button class="btn btn--primary btn--sm" bindtap="goCompleteAccount">去完善</button>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="section-title">学习工具</view>
+    <view class="menu-list">
+      <view class="menu-row" bindtap="goGraph">
+        <image class="menu-icon" src="{{icons.graph}}" mode="aspectFit" />
+        <view class="menu-body">
+          <view class="menu-title">知识图谱</view>
+          <view class="menu-desc">掌握度与路径推荐</view>
+        </view>
+        <text class="menu-arrow">›</text>
+      </view>
+      <view class="menu-row" bindtap="goShop">
+        <image class="menu-icon" src="{{icons.shop}}" mode="aspectFit" />
+        <view class="menu-body">
+          <view class="menu-title">简易商城</view>
+          <view class="menu-desc">课程包与题单</view>
+        </view>
+        <text class="menu-arrow">›</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="section-title">账号与连接</view>
+    <view class="info-row">
+      <text class="info-label">后端状态</text>
+      <text class="info-value {{backendReady ? 'info-value--ok' : 'info-value--fail'}}">{{backendStatusText}}</text>
+    </view>
+    <view class="info-row">
+      <text class="info-label">登录模式</text>
+      <text class="info-value">{{useVirtualLogin ? '虚拟登录' : '真实后端'}}</text>
+    </view>
+    <button class="btn btn--ghost" bindtap="checkBackend">检测后端连接</button>
+  </view>
+
+  <view class="card card--actions" wx:if="{{isLoggedIn}}">
+    <button class="btn btn--outline btn--block" bindtap="logout">退出登录</button>
   </view>
 </view>

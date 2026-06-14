@@ -1,7 +1,7 @@
 <view class="container">
   <view class="sub-header">
     <view class="sub-title">错题巩固</view>
-    <view class="sub-desc">错题分布、错题卡片与巩固计划待接入后端。</view>
+    <view class="sub-desc">错题统计与清单，与 Web 端错题本同步</view>
   </view>
 
   <view class="page-banner">
@@ -14,8 +14,48 @@
   </view>
 
   <view class="card">
-    <view class="section-title">错题数据</view>
-    <view class="section-text">当前不展示假错题，待接入后端后显示真实错题清单。</view>
-    <button class="review-btn" bindtap="waitBackend">待接入后端</button>
+    <view class="section-title">错题概览</view>
+    <view wx:if="{{!isLoggedIn}}" class="state-box">
+      <view class="state-text">登录后查看错题统计</view>
+      <button class="state-btn" bindtap="goLogin">去登录</button>
+    </view>
+    <view wx:elif="{{loading}}" class="state-text">加载中…</view>
+    <view wx:else class="stat-grid">
+      <view class="stat-item">
+        <view class="stat-num">{{total}}</view>
+        <view class="stat-label">错题总数</view>
+      </view>
+      <view class="stat-item">
+        <view class="stat-num">{{unmastered}}</view>
+        <view class="stat-label">待巩固</view>
+      </view>
+      <view class="stat-item">
+        <view class="stat-num">{{learning}}</view>
+        <view class="stat-label">学习中</view>
+      </view>
+      <view class="stat-item">
+        <view class="stat-num">{{mastered}}</view>
+        <view class="stat-label">已掌握</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="section-title">最近错题</view>
+    <view wx:if="{{!isLoggedIn}}" class="state-text">登录后查看错题列表</view>
+    <view wx:elif="{{loading}}" class="state-text">加载中…</view>
+    <block wx:else>
+      <view wx:if="{{items.length > 0}}">
+        <view class="list-row" wx:for="{{items}}" wx:key="id">
+          <view class="list-row-title">{{item.title}}</view>
+          <view class="list-row-meta">错误 {{item.errorCount}} 次</view>
+        </view>
+      </view>
+      <view wx:elif="{{connected}}" class="state-text state-text--muted">暂无错题，继续保持</view>
+      <view wx:else class="state-box">
+        <view class="state-text">暂时无法获取数据</view>
+        <button class="state-btn" bindtap="reload">重试</button>
+      </view>
+    </block>
   </view>
 </view>

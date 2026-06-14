@@ -1,7 +1,7 @@
 <view class="container">
   <view class="sub-header">
     <view class="sub-title">知识图谱练习</view>
-    <view class="sub-desc">图谱节点、路径推荐、进度将由后端返回。</view>
+    <view class="sub-desc">掌握度与路径推荐，与 Web 端图谱同步</view>
   </view>
 
   <view class="page-banner">
@@ -15,12 +15,43 @@
 
   <view class="card">
     <view class="section-title">当前进度</view>
-    <view class="section-text">当前不显示假进度，待接入后端后显示真实学习进度。</view>
+    <view wx:if="{{!isLoggedIn}}" class="state-box">
+      <view class="state-text">登录后查看图谱掌握进度</view>
+      <button class="state-btn" bindtap="goLogin">去登录</button>
+    </view>
+    <view wx:elif="{{loading}}" class="state-text">加载中…</view>
+    <view wx:else class="stat-grid">
+      <view class="stat-item">
+        <view class="stat-num">{{nodeCount}}</view>
+        <view class="stat-label">知识点</view>
+      </view>
+      <view class="stat-item">
+        <view class="stat-num">{{practicedNodes}}</view>
+        <view class="stat-label">已练习</view>
+      </view>
+      <view class="stat-item">
+        <view class="stat-num">{{avgMasteryDisplay}}</view>
+        <view class="stat-label">平均掌握度</view>
+      </view>
+    </view>
   </view>
 
   <view class="card">
-    <view class="section-title">学习路径</view>
-    <view class="section-text">路径节点与状态待接入后端知识图谱服务。</view>
-    <button class="review-btn" bindtap="waitBackend">待接入后端</button>
+    <view class="section-title">推荐路径</view>
+    <view wx:if="{{!isLoggedIn}}" class="state-text">登录后查看下一步学习建议</view>
+    <view wx:elif="{{loading}}" class="state-text">加载中…</view>
+    <block wx:else>
+      <view wx:if="{{paths.length > 0}}">
+        <view class="list-row" wx:for="{{paths}}" wx:key="id">
+          <view class="list-row-title">{{item.name}}</view>
+          <view class="list-row-meta">{{item.reason}}</view>
+        </view>
+      </view>
+      <view wx:elif="{{connected}}" class="state-text state-text--muted">暂无路径推荐，先去练习吧</view>
+      <view wx:else class="state-box">
+        <view class="state-text">暂时无法获取数据</view>
+        <button class="state-btn" bindtap="reload">重试</button>
+      </view>
+    </block>
   </view>
 </view>

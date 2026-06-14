@@ -10,7 +10,7 @@ const PRODUCTS = [
     price: 39.9,
     stock: 98,
     cover: SHOP_IMAGE_SET.productCovers.p1,
-    coverFallback: "/images/icon_ebd74bn8zis/shumu.png",
+    coverFallback: "/images/icons/icon-edit.png",
     desc: "包含图的基本概念、存储结构与基础练习题。",
   },
   {
@@ -20,7 +20,7 @@ const PRODUCTS = [
     price: 29.9,
     stock: 120,
     cover: SHOP_IMAGE_SET.productCovers.p2,
-    coverFallback: "/images/icon_ebd74bn8zis/lujingtu.png",
+    coverFallback: "/images/icons/icon-share.png",
     desc: "按难度分层的 BFS / DFS 训练题，适合考前冲刺。",
   },
   {
@@ -30,7 +30,7 @@ const PRODUCTS = [
     price: 49.9,
     stock: 76,
     cover: SHOP_IMAGE_SET.productCovers.p3,
-    coverFallback: "/images/icon_ebd74bn8zis/guanxitu.png",
+    coverFallback: "/images/icons/icon-grid.png",
     desc: "涵盖 Dijkstra、Floyd 与典型应用场景。",
   },
   {
@@ -40,7 +40,7 @@ const PRODUCTS = [
     price: 19.9,
     stock: 200,
     cover: SHOP_IMAGE_SET.productCovers.p4,
-    coverFallback: "/images/icon_ebd74bn8zis/shijianrelitu.png",
+    coverFallback: "/images/icons/icon-cart.png",
     desc: "根据错题记录生成 7 天巩固节奏表。",
   },
 ];

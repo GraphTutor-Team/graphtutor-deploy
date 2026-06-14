@@ -1,4 +1,13 @@
 <view class="container">
+  <view class="backend-bar backend-bar--ok" wx:if="{{backendReady}}">
+    <text class="backend-dot backend-dot--ok"></text>
+    <text>{{backendStatusText}} · 登录后同步学习数据</text>
+  </view>
+  <view class="backend-bar backend-bar--fail" wx:elif="{{!backendReady && backendStatusText}}" bindtap="checkBackend">
+    <text class="backend-dot backend-dot--fail"></text>
+    <text>{{backendStatusText}} · 点此重试</text>
+  </view>
+
   <view class="index-hero">
     <image class="index-hero-bg" src="{{heroImage}}" mode="aspectFill" binderror="onHeroImageError" />
     <view class="index-hero-mask"></view>
@@ -25,7 +34,7 @@
   </view>
 
   <view class="guest-bar" wx:else>
-    <view class="guest-bar-text">登录后同步练习进度与学习数据</view>
+    <view class="guest-bar-text">{{backendReady ? '后端已就绪，登录后同步练习进度' : '请先确保后端可访问，再登录账号'}}</view>
     <button class="guest-bar-btn" bindtap="goLogin">去登录</button>
   </view>
 
@@ -69,8 +78,8 @@
       </view>
     </view>
     <view wx:else class="state-box">
-      <view class="state-text">暂时无法获取数据</view>
-      <button class="state-btn" bindtap="loadHomeData">重试</button>
+      <view class="state-text">{{backendReady ? '登录态异常或数据加载失败' : '后端未连接，无法拉取数据'}}</view>
+      <button class="state-btn" bindtap="{{backendReady ? 'loadHomeData' : 'checkBackend'}}">{{backendReady ? '重试' : '检测后端'}}</button>
     </view>
   </view>
 

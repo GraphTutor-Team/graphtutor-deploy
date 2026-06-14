@@ -1,7 +1,7 @@
 <view class="container">
   <view class="sub-header">
     <view class="sub-title">练习</view>
-    <view class="sub-desc">当前仅保留入口与框架，内容待接入后端。</view>
+    <view class="sub-desc">选择题库开始刷题，数据与 Web 端同步</view>
   </view>
 
   <view class="page-banner">
@@ -18,14 +18,14 @@
     <view class="grid">
       <view class="tile" bindtap="goGraph">
         <view class="tile-icon">
-          <image class="tile-icon-img" src="/images/icon_ebd74bn8zis/guanxitu.png" mode="aspectFit" />
+          <image class="tile-icon-img" src="{{icons.graph}}" mode="aspectFit" />
         </view>
         <view class="tile-title">知识图谱练习</view>
         <view class="tile-desc">按知识点推进</view>
       </view>
       <view class="tile" bindtap="goWrong">
         <view class="tile-icon">
-          <image class="tile-icon-img" src="/images/icon_ebd74bn8zis/shuzi.png" mode="aspectFit" />
+          <image class="tile-icon-img" src="{{icons.wrong}}" mode="aspectFit" />
         </view>
         <view class="tile-title">错题巩固</view>
         <view class="tile-desc">专注薄弱点</view>
@@ -35,9 +35,45 @@
 
   <view class="card">
     <view class="section-title">练习数据</view>
-    <view class="section-text">
-      练习推荐、练习记录、正确率统计等数据待接入后端。
+
+    <view wx:if="{{!isLoggedIn}}" class="state-box">
+      <view class="state-text">登录后查看练习统计与推荐</view>
+      <button class="state-btn" bindtap="goLogin">去登录</button>
     </view>
-    <button class="review-btn" bindtap="waitBackend">待接入后端</button>
+
+    <view wx:elif="{{loading}}" class="state-text">加载中…</view>
+
+    <block wx:else>
+      <view class="stat-grid">
+        <view class="stat-item">
+          <view class="stat-num">{{todayReviewCount}}</view>
+          <view class="stat-label">今日需复习</view>
+        </view>
+        <view class="stat-item">
+          <view class="stat-num">{{accuracyText}}</view>
+          <view class="stat-label">近7日正确率</view>
+        </view>
+        <view class="stat-item">
+          <view class="stat-num">{{efficiencyScoreDisplay}}</view>
+          <view class="stat-label">学习效率分</view>
+        </view>
+        <view class="stat-item">
+          <view class="stat-num">{{studyDaysDisplay}}</view>
+          <view class="stat-label">近7日学习天</view>
+        </view>
+      </view>
+
+      <view wx:if="{{recommendations.length > 0}}" class="list-block">
+        <view class="list-block-title">推荐练习</view>
+        <view class="list-row" wx:for="{{recommendations}}" wx:key="id">
+          <view class="list-row-title">{{item.title}}</view>
+        </view>
+      </view>
+      <view wx:elif="{{connected}}" class="state-text state-text--muted">暂无推荐题目，先去刷题吧</view>
+      <view wx:else class="state-box">
+        <view class="state-text">暂时无法获取数据</view>
+        <button class="state-btn" bindtap="reload">重试</button>
+      </view>
+    </block>
   </view>
 </view>

@@ -29,7 +29,7 @@ page {
 .container {
   box-sizing: border-box;
   min-height: 100vh;
-  padding: 28rpx 32rpx calc(env(safe-area-inset-bottom) + 120rpx);
+  padding: 28rpx 32rpx calc(env(safe-area-inset-bottom) + 140rpx);
   overflow-x: hidden;
 }
 

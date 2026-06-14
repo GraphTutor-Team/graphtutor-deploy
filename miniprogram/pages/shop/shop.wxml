@@ -1,7 +1,7 @@
 <view class="container">
   <view class="sub-header">
     <view class="sub-title">简易商城</view>
-    <view class="sub-desc">课程包与题单雏形，后续可接入后端商品与订单接口。</view>
+    <view class="sub-desc">课程包与题单，支持本地购物车</view>
   </view>
 
   <view class="card">

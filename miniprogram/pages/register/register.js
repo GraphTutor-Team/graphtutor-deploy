@@ -69,7 +69,11 @@ Page({
         authHelper.afterLoginNavigate(user);
       }, 450);
     }).catch((err) => {
-      this.setData({ loading: false, error: (err && err.message) || '注册失败，请稍后重试' });
+      let msg = (err && err.message) || '注册失败，请稍后重试';
+      if (msg.indexOf('409') >= 0 || msg.indexOf('已被注册') >= 0) {
+        msg = '该邮箱已注册，请直接登录';
+      }
+      this.setData({ loading: false, error: msg });
     });
   },
 

@@ -48,6 +48,6 @@ Page({
   },
 
   checkout() {
-    wx.showToast({ title: "待接入订单后端", icon: "none" });
+    wx.showToast({ title: "结算功能即将上线", icon: "none" });
   },
 });

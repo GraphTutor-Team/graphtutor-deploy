@@ -10,7 +10,8 @@ App({
     token: null,
     refreshToken: null,
     baseUrl: config.BASE_URL,
-    // 第五周要求：商品数组放全局，多个页面共享
+    backendReady: false,
+    backendStatus: null,
     products: PRODUCTS.slice(),
   },
 
@@ -23,6 +24,9 @@ App({
       this.globalData.userInfo = userInfo || null;
       this.globalData.refreshToken = refreshToken || null;
     }
+
+    const backendStatus = require('./utils/backend-status.js');
+    backendStatus.refreshBackendStatus();
 
     if (!config.USE_VIRTUAL_LOGIN && token && refreshToken) {
       const api = require('./utils/api.js');

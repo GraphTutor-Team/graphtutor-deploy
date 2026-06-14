@@ -37,7 +37,7 @@ miniprogram/
     └── api.js             # 请求封装、login / loginWithMiniProgram / getMe
 ```
 
-**对接总览文档**：[`docs/MINIPROGRAM_INTEGRATION.md`](../docs/MINIPROGRAM_INTEGRATION.md)（部署、env、合法域名、接口清单）
+**对接总览文档**：[`docs/小程序对接-MINIPROGRAM_INTEGRATION.md`](../docs/小程序对接-MINIPROGRAM_INTEGRATION.md)（部署、env、合法域名、接口清单）
 
 ---
 
@@ -103,7 +103,7 @@ miniprogram/
 | **server/.env** | `MINIPROGRAM_APP_ID`、`MINIPROGRAM_APP_SECRET`（小程序凭证，非开放平台网站应用） |
 | **后端** | `POST /api/auth/mp/login` 已实现；对 `X-Client: miniprogram` 做 CSRF 豁免（已内置） |
 
-详见 [`docs/MINIPROGRAM_INTEGRATION.md`](../docs/MINIPROGRAM_INTEGRATION.md)。
+详见 [`docs/小程序对接-MINIPROGRAM_INTEGRATION.md`](../docs/小程序对接-MINIPROGRAM_INTEGRATION.md)。
 
 ---
 
@@ -138,7 +138,7 @@ miniprogram/
 | 日期 | 变更摘要 |
 |------|----------|
 | 2026-05-26 | 账号完善页 + `POST /api/auth/mp/complete-account`；微信登录后绑定/注册同步 Web 账号 |
-| 2026-05-26 | 后端 `POST /api/auth/mp/login`；登录页改为邮箱+微信快捷登录；对接文档 `docs/MINIPROGRAM_INTEGRATION.md` |
+| 2026-05-26 | 后端 `POST /api/auth/mp/login`；登录页改为邮箱+微信快捷登录；对接文档 `docs/小程序对接-MINIPROGRAM_INTEGRATION.md` |
 | 2025-xx-xx | 初版：首页、登录、我的；虚拟登录 + 后端预留 |
 
 ---

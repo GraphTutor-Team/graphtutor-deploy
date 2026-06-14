@@ -1,4 +1,42 @@
 /* Hero */
+.backend-bar {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 16rpx 20rpx;
+  margin-bottom: 20rpx;
+  border-radius: 16rpx;
+  font-size: 24rpx;
+  line-height: 1.45;
+}
+
+.backend-bar--ok {
+  background: rgba(46, 125, 50, 0.08);
+  color: #2e7d32;
+  border: 1rpx solid rgba(46, 125, 50, 0.16);
+}
+
+.backend-bar--fail {
+  background: rgba(211, 47, 47, 0.06);
+  color: #c62828;
+  border: 1rpx solid rgba(211, 47, 47, 0.14);
+}
+
+.backend-dot {
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.backend-dot--ok {
+  background: #43a047;
+}
+
+.backend-dot--fail {
+  background: #e53935;
+}
+
 .index-hero {
   position: relative;
   overflow: hidden;

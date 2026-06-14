@@ -6,15 +6,15 @@
     "pages/account-complete/account-complete",
     "pages/user/user",
     "pages/practice/practice",
-    "pages/graph/graph",
-    "pages/wrong/wrong",
     "pages/plan/plan",
-    "pages/contacts/contacts",
-    "pages/contacts/add/add",
-    "pages/dialpad/dialpad",
+    "pages/wrong/wrong",
+    "pages/graph/graph",
     "pages/shop/shop",
     "pages/shop/detail/detail",
-    "pages/shop/cart/cart"
+    "pages/shop/cart/cart",
+    "pages/contacts/contacts",
+    "pages/contacts/add/add",
+    "pages/dialpad/dialpad"
   ],
   "window": {
     "backgroundTextStyle": "light",
@@ -25,38 +25,38 @@
   "tabBar": {
     "color": "#8b9dc9",
     "selectedColor": "#1565c0",
-    "backgroundColor": "#fafcff",
-    "borderStyle": "white",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
     "list": [
       {
         "pagePath": "pages/index/index",
         "text": "首页",
-        "iconPath": "images/icon_ebd74bn8zis/shouye.png",
-        "selectedIconPath": "images/icon_ebd74bn8zis/shouye.png"
+        "iconPath": "images/tab/home.png",
+        "selectedIconPath": "images/tab/home-active.png"
       },
       {
         "pagePath": "pages/practice/practice",
         "text": "练习",
-        "iconPath": "images/icon_ebd74bn8zis/guanxitu.png",
-        "selectedIconPath": "images/icon_ebd74bn8zis/guanxitu.png"
+        "iconPath": "images/tab/practice.png",
+        "selectedIconPath": "images/tab/practice-active.png"
       },
       {
         "pagePath": "pages/plan/plan",
         "text": "计划",
-        "iconPath": "images/icon_ebd74bn8zis/rilizuobiaoxi.png",
-        "selectedIconPath": "images/icon_ebd74bn8zis/rilizuobiaoxi.png"
+        "iconPath": "images/tab/plan.png",
+        "selectedIconPath": "images/tab/plan-active.png"
+      },
+      {
+        "pagePath": "pages/wrong/wrong",
+        "text": "错题",
+        "iconPath": "images/tab/wrong.png",
+        "selectedIconPath": "images/tab/wrong-active.png"
       },
       {
         "pagePath": "pages/user/user",
         "text": "我的",
-        "iconPath": "images/icon_ebd74bn8zis/zhifangtu.png",
-        "selectedIconPath": "images/icon_ebd74bn8zis/zhifangtu.png"
-      },
-      {
-        "pagePath": "pages/shop/shop",
-        "text": "商城",
-        "iconPath": "images/icon_ebd74bn8zis/shijianrelitu.png",
-        "selectedIconPath": "images/icon_ebd74bn8zis/shijianrelitu.png"
+        "iconPath": "images/tab/user.png",
+        "selectedIconPath": "images/tab/user-active.png"
       }
     ]
   },

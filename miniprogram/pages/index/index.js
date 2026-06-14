@@ -1,9 +1,10 @@
-const ICON_DIR = '/images/icon_ebd74bn8zis';
+const { ICON } = require('../../utils/icons.js');
 
 const api = require('../../utils/api.js');
 const authHelper = require('../../utils/auth-helper.js');
 const config = require('../../utils/config.js');
 const homeApi = require('../../utils/home-api.js');
+const backendStatus = require('../../utils/backend-status.js');
 const { HOME_IMAGE_SET } = require('../../utils/image-library.js');
 
 const roleMap = { student: '学生', question_manager: '出题负责人', admin: '管理员', user: '用户' };
@@ -24,10 +25,10 @@ Page({
     heroImageFallback: HOME_IMAGE_SET.hero.fallback,
 
     navFeatures: [
-      { id: 'practice', title: '练习', desc: '选择题库开始刷题', img: `${ICON_DIR}/guanxitu.png`, type: 'switchTab', url: '/pages/practice/practice' },
-      { id: 'plan', title: '学习计划', desc: '今日任务与复习安排', img: `${ICON_DIR}/rilizuobiaoxi.png`, type: 'switchTab', url: '/pages/plan/plan' },
-      { id: 'graph', title: '知识图谱', desc: '图结构路径规划练习', img: `${ICON_DIR}/lujingtu.png`, type: 'navigateTo', url: '/pages/graph/graph' },
-      { id: 'wrong', title: '错题本', desc: '巩固薄弱知识点', img: `${ICON_DIR}/shuzi.png`, type: 'navigateTo', url: '/pages/wrong/wrong' },
+      { id: 'practice', title: '练习', desc: '选择题库开始刷题', img: ICON.practice, type: 'switchTab', url: '/pages/practice/practice' },
+      { id: 'plan', title: '学习计划', desc: '今日任务与复习安排', img: ICON.plan, type: 'switchTab', url: '/pages/plan/plan' },
+      { id: 'graph', title: '知识图谱', desc: '图结构路径规划练习', img: ICON.graph, type: 'navigateTo', url: '/pages/graph/graph' },
+      { id: 'wrong', title: '错题本', desc: '巩固薄弱知识点', img: ICON.wrong, type: 'switchTab', url: '/pages/wrong/wrong' },
     ],
 
     homeLoading: false,
@@ -38,11 +39,30 @@ Page({
     todayReviewCount: 0,
     efficiencyScore: null,
     efficiencyScoreDisplay: '—',
+
+    backendReady: false,
+    backendStatusText: '正在检测后端…',
   },
 
   onShow() {
     if (!authHelper.ensureProfileComplete()) return;
-    this.bootstrapSession();
+    this.checkBackend().then(() => this.bootstrapSession());
+  },
+
+  checkBackend() {
+    if (config.USE_VIRTUAL_LOGIN) {
+      this.setData({
+        backendReady: false,
+        backendStatusText: '虚拟登录模式，未连接后端',
+      });
+      return Promise.resolve();
+    }
+    return backendStatus.refreshBackendStatus().then((status) => {
+      this.setData({
+        backendReady: !!status.ok,
+        backendStatusText: status.message || (status.ok ? '后端已连接' : '无法连接后端'),
+      });
+    });
   },
 
   setGuestState() {
@@ -92,6 +112,14 @@ Page({
     if (config.USE_VIRTUAL_LOGIN && api.isVirtualToken()) {
       const userInfo = wx.getStorageSync('userInfo') || {};
       this.applyLoggedIn(userInfo);
+      return;
+    }
+
+    if (!this.data.backendReady && !config.USE_VIRTUAL_LOGIN) {
+      this.setData({
+        isLoggedIn: false,
+        homeConnected: false,
+      });
       return;
     }
 
@@ -166,6 +194,6 @@ Page({
   },
 
   onHeroImageError() {
-    this.setData({ heroImage: this.data.heroImageFallback || `${ICON_DIR}/guanxitu.png` });
+    this.setData({ heroImage: this.data.heroImageFallback || ICON.practice });
   },
 });

@@ -1,0 +1,12 @@
+<view class="index-hero">
+  <image
+    class="index-hero-bg"
+    src="{{displayImage}}"
+    mode="aspectFill"
+    binderror="onImageError"
+  />
+  <view class="index-hero-mask"></view>
+  <view class="index-hero-badge" wx:if="{{badge}}">{{badge}}</view>
+  <view class="index-hero-title">{{title}}</view>
+  <view class="index-hero-desc" wx:if="{{desc}}">{{desc}}</view>
+</view>

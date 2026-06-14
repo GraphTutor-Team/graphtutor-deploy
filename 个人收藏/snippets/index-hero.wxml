@@ -1,0 +1,8 @@
+<!-- 摘自 miniprogram/pages/index/index.wxml，可直接粘贴到页面 -->
+<view class="index-hero">
+  <image class="index-hero-bg" src="{{heroImage}}" mode="aspectFill" binderror="onHeroImageError" />
+  <view class="index-hero-mask"></view>
+  <view class="index-hero-badge">GraphTutor</view>
+  <view class="index-hero-title">图结构 · 智能练习</view>
+  <view class="index-hero-desc">知识图谱、练习与计划，一站入口</view>
+</view>

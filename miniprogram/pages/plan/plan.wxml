@@ -1,7 +1,7 @@
 <view class="container">
   <view class="sub-header">
     <view class="sub-title">学习计划</view>
-    <view class="sub-desc">计划任务、打卡、提醒将由后端统一下发。</view>
+    <view class="sub-desc">今日复习、打卡与学习节奏与 Web 端同步</view>
   </view>
 
   <view class="page-banner">
@@ -15,12 +15,54 @@
 
   <view class="card">
     <view class="section-title">今日计划</view>
-    <view class="section-text">当前无本地假数据展示，待接入后端后显示真实任务。</view>
+    <view wx:if="{{!isLoggedIn}}" class="state-box">
+      <view class="state-text">登录后查看今日复习与计划</view>
+      <button class="state-btn" bindtap="goLogin">去登录</button>
+    </view>
+    <view wx:elif="{{loading}}" class="state-text">加载中…</view>
+    <block wx:else>
+      <view class="stat-grid">
+        <view class="stat-item">
+          <view class="stat-num">{{todayReviewCount}}</view>
+          <view class="stat-label">今日需复习</view>
+        </view>
+        <view class="stat-item">
+          <view class="stat-num">{{activePlans.length}}</view>
+          <view class="stat-label">进行中计划</view>
+        </view>
+      </view>
+      <view wx:if="{{activePlans.length > 0}}" class="list-block">
+        <view class="list-block-title">进行中的计划</view>
+        <view class="list-row" wx:for="{{activePlans}}" wx:key="id">
+          <view class="list-row-title">{{item.name}}</view>
+          <view class="list-row-meta">每日目标 {{item.dailyTarget}} 题</view>
+        </view>
+      </view>
+      <view wx:elif="{{connected}}" class="state-text state-text--muted">暂无进行中的计划</view>
+      <view wx:else class="state-box">
+        <view class="state-text">暂时无法获取数据</view>
+        <button class="state-btn" bindtap="reload">重试</button>
+      </view>
+    </block>
   </view>
 
   <view class="card">
     <view class="section-title">本周节奏</view>
-    <view class="section-text">本周打卡与连续天数待接入后端统计。</view>
-    <button class="review-btn" bindtap="waitBackend">待接入后端</button>
+    <view wx:if="{{!isLoggedIn}}" class="state-text">登录后查看打卡统计</view>
+    <view wx:elif="{{loading}}" class="state-text">加载中…</view>
+    <view wx:else class="stat-grid">
+      <view class="stat-item">
+        <view class="stat-num">{{checkInDaysDisplay}}</view>
+        <view class="stat-label">打卡天数</view>
+      </view>
+      <view class="stat-item">
+        <view class="stat-num">{{currentStreakDisplay}}</view>
+        <view class="stat-label">连续打卡</view>
+      </view>
+      <view class="stat-item">
+        <view class="stat-num">{{weekQuestionsDisplay}}</view>
+        <view class="stat-label">累计做题</view>
+      </view>
+    </view>
   </view>
 </view>
