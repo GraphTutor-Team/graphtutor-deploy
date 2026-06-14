@@ -155,7 +155,29 @@ function listZipEntries(zipPath) {
       encoding: "utf-8",
       maxBuffer: 50 * 1024 * 1024,
     });
-    return output.split(/\r?\n/).filter(Boolean);
+    const entries = output.split(/\r?\n/).filter(Boolean);
+    if (entries.length > 0) return entries;
+  } catch {
+    // tar 在 slim 镜像里常无法读 zip，改用 unzip
+  }
+
+  try {
+    const output = execFileSync("unzip", ["-l", zipPath], {
+      encoding: "utf-8",
+      maxBuffer: 50 * 1024 * 1024,
+    });
+    return output
+      .split(/\r?\n/)
+      .slice(3)
+      .map((line) => {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith("---") || trimmed.startsWith("Archive:")) {
+          return null;
+        }
+        const parts = trimmed.split(/\s+/);
+        return parts.length >= 4 ? parts.slice(3).join(" ") : null;
+      })
+      .filter(Boolean);
   } catch {
     return [];
   }
@@ -168,7 +190,14 @@ function readZipEntry(zipPath, entryPath) {
       maxBuffer: 5 * 1024 * 1024,
     });
   } catch {
-    return "";
+    try {
+      return execFileSync("unzip", ["-p", zipPath, entryPath], {
+        encoding: "utf-8",
+        maxBuffer: 5 * 1024 * 1024,
+      });
+    } catch {
+      return "";
+    }
   }
 }
 

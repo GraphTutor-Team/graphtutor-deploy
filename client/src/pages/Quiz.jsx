@@ -672,7 +672,14 @@ export default function Quiz() {
       {loading ? (
         <div className="text-sm font-semibold text-slate-700">正在加载题目...</div>
       ) : !current ? (
-        <div className="text-xs text-slate-600">暂无题目。</div>
+        <div className="text-xs text-slate-600 space-y-2">
+          <p>暂无题目。</p>
+          {subjectCode && (
+            <p className="text-amber-700">
+              当前学科「{subjectCode}」下可能没有导入数据。可试：选「全部学科」、改选题库，或先导入对应题库后再点「重新加载」。
+            </p>
+          )}
+        </div>
       ) : (
         <>
           <section className="card space-y-4">

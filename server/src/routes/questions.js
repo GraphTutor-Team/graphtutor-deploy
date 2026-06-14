@@ -15,6 +15,7 @@
 // 题库 + 出题 + 导入 JSON 题库
 
 import express from 'express';
+import mongoose from 'mongoose';
 import Question from '../models/Question.js';
 import { sanitizeSearchQuery, validatePagination, sanitizeString, validateInt } from '../middleware/validation.js';
 import { requireAuth } from '../middleware/auth.js';
@@ -83,7 +84,11 @@ router.get('/', sanitizeSearchQuery('q'), validatePagination(), async (req, res)
     
     // 题库筛选
     if (bankId) {
-      cond.bankId = sanitizeString(bankId, { maxLength: 100 });
+      try {
+        cond.bankId = new mongoose.Types.ObjectId(bankId);
+      } catch {
+        return res.status(400).json({ error: '无效的 bankId' });
+      }
     }
     
     // 安全的正则查询（已通过中间件清理）
