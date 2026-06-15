@@ -284,7 +284,7 @@ router.post('/:id/check-in', requireAuth, async (req, res) => {
     const { id } = req.params;
     const { date, studyDuration, completedQuestions, correctQuestions, mood, summary, images } = req.body;
 
-    const checkIn = await checkIn(userId, id, {
+    const record = await checkIn(userId, id, {
       date: date || new Date(),
       studyDuration: validateInt(studyDuration, { min: 0, defaultValue: 0 }),
       completedQuestions: validateInt(completedQuestions, { min: 0, defaultValue: 0 }),
@@ -296,7 +296,7 @@ router.post('/:id/check-in', requireAuth, async (req, res) => {
 
     res.status(201).json({
       success: true,
-      data: checkIn,
+      data: record,
     });
   } catch (err) {
     console.error('POST /api/v3/study-plans/:id/check-in error:', err);

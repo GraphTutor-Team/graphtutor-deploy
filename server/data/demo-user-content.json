@@ -1,0 +1,194 @@
+{
+  "targetProfile": {
+    "name": "GraphTutor 学习者",
+    "school": "演示大学",
+    "grade": "大二",
+    "major": "计算机科学",
+    "learningRole": "学者",
+    "learningLevel": 5,
+    "learningExp": 1280,
+    "points": 360
+  },
+  "demoFriends": [
+    { "email": "demo.friend.01@graphtutor.local", "name": "张明", "school": "清华大学", "grade": "大二", "major": "计算机科学" },
+    { "email": "demo.friend.02@graphtutor.local", "name": "李雨桐", "school": "北京大学", "grade": "大三", "major": "软件工程" },
+    { "email": "demo.friend.03@graphtutor.local", "name": "王浩然", "school": "浙江大学", "grade": "研一", "major": "人工智能" },
+    { "email": "demo.friend.04@graphtutor.local", "name": "陈思远", "school": "复旦大学", "grade": "大一", "major": "数据科学" },
+    { "email": "demo.friend.05@graphtutor.local", "name": "刘佳宁", "school": "上海交通大学", "grade": "大四", "major": "信息安全" },
+    { "email": "demo.friend.06@graphtutor.local", "name": "赵一凡", "school": "南京大学", "grade": "大二", "major": "计算机科学" },
+    { "email": "demo.friend.07@graphtutor.local", "name": "孙晓雯", "school": "中国科学技术大学", "grade": "大三", "major": "应用数学" },
+    { "email": "demo.friend.08@graphtutor.local", "name": "周子轩", "school": "华中科技大学", "grade": "研二", "major": "计算机技术" }
+  ],
+  "pendingRequestCount": 2,
+  "friendRequestMessages": [
+    "你好，一起在 GraphTutor 刷题吧！",
+    "同校同学，加个好友一起学习～",
+    "看到你的学习排行，想和你组队复习",
+    "我们课程重叠，交流一下错题本？"
+  ],
+  "studyPlan": {
+    "name": "春季备考计划",
+    "description": "每日刷题 + 错题复习，为期 3 个月",
+    "type": "daily",
+    "dailyTarget": 15,
+    "subjectCodes": ["CS-DS", "CS-WEB"],
+    "checkInDaysBack": 7,
+    "stats": {
+      "totalDays": 7,
+      "completedDays": 5,
+      "totalQuestions": 86,
+      "completedQuestions": 86,
+      "currentStreak": 3,
+      "longestStreak": 5
+    }
+  },
+  "reviewPlan": {
+    "name": "每日错题复习",
+    "description": "按遗忘曲线复习错题本",
+    "type": "daily",
+    "strategy": "due",
+    "dailyCount": 10
+  },
+  "learningGoals": [
+    {
+      "title": "本周完成 100 道题",
+      "description": "保持每日练习节奏",
+      "type": "weekly",
+      "targetType": "questions",
+      "targetValue": 100,
+      "currentValue": 62,
+      "subjectCode": "CS-DS"
+    },
+    {
+      "title": "正确率达到 85%",
+      "description": "专注审题与错题复盘",
+      "type": "monthly",
+      "targetType": "accuracy",
+      "targetValue": 85,
+      "currentValue": 78
+    },
+    {
+      "title": "掌握 20 个知识点",
+      "description": "配合知识图谱推进",
+      "type": "custom",
+      "targetType": "knowledge_nodes",
+      "targetValue": 20,
+      "currentValue": 11
+    }
+  ],
+  "favoriteFolders": [
+    { "name": "重点难题", "description": "考试高频易错题", "color": "#EF4444", "icon": "🔥", "isDefault": true },
+    { "name": "Web 前端", "description": "HTML/CSS/JS 精选", "color": "#F59E0B", "icon": "🌍" }
+  ],
+  "wrongQuestionCount": 10,
+  "recordCount": 45,
+  "recordDaysBack": 14,
+  "achievements": [
+    { "type": "first_answer", "title": "初次答题", "description": "完成第一次练习", "icon": "🎯" },
+    { "type": "first_correct", "title": "首答正确", "description": "第一次答对题目", "icon": "✅" },
+    { "type": "streak_3", "title": "连续学习 3 天", "description": "坚持打卡 3 天", "icon": "🔥" },
+    { "type": "questions_100", "title": "百题达人", "description": "累计答题 100 道", "icon": "💯" }
+  ],
+  "notifications": [
+    { "type": "reminder", "title": "今日复习提醒", "content": "你有 6 道错题到期复习，点击查看复习计划。", "isRead": false, "link": "/review-plans" },
+    { "type": "achievement", "title": "成就解锁：连续学习 3 天", "content": "坚持就是胜利，继续加油！", "isRead": false, "relatedType": "achievement" },
+    { "type": "reply", "title": "李雨桐 回复了你的讨论", "content": "同感，栈的应用题可以多练几道。", "isRead": false, "relatedType": "discussion" },
+    { "type": "system", "title": "欢迎使用 GraphTutor", "content": "小程序与 Web 数据已同步，可在「计划」页打卡。", "isRead": true },
+    { "type": "goal", "title": "目标进度更新", "content": "「本周完成 100 道题」已完成 62%。", "isRead": true, "relatedType": "goal" }
+  ],
+  "messages": [
+    { "friendEmail": "demo.friend.03@graphtutor.local", "fromFriend": true, "content": "今天刷了多少题？我完成了 20 道数据结构。" },
+    { "friendEmail": "demo.friend.03@graphtutor.local", "fromFriend": false, "content": "不错！我这边 15 道，晚上一起复盘错题？" },
+    { "friendEmail": "demo.friend.03@graphtutor.local", "fromFriend": true, "content": "好呀，8 点见。" },
+    { "friendEmail": "demo.friend.07@graphtutor.local", "fromFriend": true, "content": "分享你一个 DP 笔记，在我的公开笔记里。" }
+  ],
+  "learningPosts": [
+    { "author": "target", "type": "checkin", "title": "今日打卡", "content": "完成 15 题，正确率 80%，继续加油！" },
+    { "author": "demo.friend.03@graphtutor.local", "type": "text", "title": "", "content": "刚做完一套栈与队列专题，推荐大家也试试 demo 题库。" },
+    { "author": "demo.friend.06@graphtutor.local", "type": "milestone", "title": "百题达成", "content": "累计刷题 100 道啦 🎉" }
+  ],
+  "discussions": [
+    {
+      "author": "target",
+      "type": "general",
+      "title": "栈和队列怎么区分应用场景？",
+      "content": "做题时经常混淆，求大家经验分享。",
+      "tags": ["数据结构", "栈", "队列"],
+      "replies": [
+        { "author": "demo.friend.02@graphtutor.local", "content": "BFS 用队列，DFS 用栈（或递归），记这个就不容易混。" },
+        { "author": "demo.friend.04@graphtutor.local", "content": "括号匹配、表达式求值典型用栈。" }
+      ]
+    },
+    {
+      "author": "demo.friend.05@graphtutor.local",
+      "type": "general",
+      "title": "HTTP 和 HTTPS 区别总结",
+      "content": "整理了常见考点，欢迎补充。",
+      "tags": ["网络", "HTTP"],
+      "replies": [
+        { "author": "target", "content": "HTTPS = HTTP + TLS，端口 443，谢谢分享！" }
+      ]
+    }
+  ],
+  "notesForTarget": [
+    {
+      "type": "general",
+      "title": "本周复习计划",
+      "tags": ["计划", "复习"],
+      "isPublic": false,
+      "summary": "整理本周数据结构与算法复习重点。",
+      "content": "# 本周复习计划\n\n## 周一～周三\n- 链表、栈、队列\n- 二叉树遍历\n\n## 周四～周五\n- 图论 BFS / DFS\n- 错题本到期题目 10 道"
+    },
+    {
+      "type": "general",
+      "title": "动态规划常见套路",
+      "tags": ["算法", "DP"],
+      "isPublic": true,
+      "summary": "五类 DP 问题识别与状态定义模板。",
+      "content": "# 动态规划常见套路\n\n1. 线性 DP\n2. 背包 DP\n3. 区间 DP\n4. 树形 DP\n5. 状态压缩 DP"
+    },
+    {
+      "type": "knowledge",
+      "title": "哈希表要点",
+      "knowledgeNodeId": "ds:hash",
+      "tags": ["数据结构", "哈希"],
+      "isPublic": false,
+      "summary": "冲突处理、负载因子与常见应用。",
+      "content": "## 哈希表\n\n- 链地址法 / 开放寻址\n- 负载因子约 0.75\n- 两数之和、字母异位词"
+    },
+    {
+      "type": "general",
+      "title": "错题复盘模板",
+      "tags": ["错题", "方法"],
+      "isPublic": false,
+      "summary": "每道错题四步复盘法。",
+      "content": "1. 错因 2. 正解思路 3. 同类题 4. 复习日期"
+    },
+    {
+      "type": "general",
+      "title": "GraphTutor 使用心得",
+      "tags": ["工具", "心得"],
+      "isPublic": true,
+      "summary": "练习、错题、复习计划联动建议。",
+      "content": "每日：复习计划 → 练习 → 错题 Tab → 打卡"
+    }
+  ],
+  "notesFromFriends": [
+    {
+      "friendEmail": "demo.friend.02@graphtutor.local",
+      "type": "general",
+      "title": "分享：二叉树刷题顺序",
+      "tags": ["二叉树", "分享"],
+      "isPublic": true,
+      "content": "层序遍历 → 最大深度 → 翻转二叉树 → 路径总和"
+    },
+    {
+      "friendEmail": "demo.friend.05@graphtutor.local",
+      "type": "general",
+      "title": "网络安全入门书单",
+      "tags": ["安全", "书单"],
+      "isPublic": true,
+      "content": "《图解 HTTP》《Web 安全深度剖析》"
+    }
+  ]
+}

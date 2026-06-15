@@ -156,35 +156,49 @@ ReviewPlanSchema.index({ userId: 1, type: 1 });
 // 实例方法：获取今日复习题目
 ReviewPlanSchema.methods.getTodayQuestions = async function () {
   const WrongQuestion = mongoose.model('WrongQuestion');
-  
+  const filters = this.filters || {};
+  const subjectCodes = filters.subjectCodes || [];
+  const categories = filters.categories || [];
+  const tags = filters.tags || [];
+  const masteryStatus = filters.masteryStatus || [];
+
   const query = {
     userId: this.userId,
   };
 
   // 根据策略筛选
   if (this.strategy === 'due') {
-    query.nextReviewAt = { $lte: new Date() };
+    query.$or = [
+      { nextReviewAt: { $lte: new Date() } },
+      { nextReviewAt: null },
+      { nextReviewAt: { $exists: false } },
+    ];
   } else if (this.strategy === 'unmastered') {
     query.masteryStatus = 'unmastered';
-  } else if (this.strategy === 'by_category' && this.filters.categories.length > 0) {
-    query.category = { $in: this.filters.categories };
+  } else if (this.strategy === 'by_category' && categories.length > 0) {
+    query.category = { $in: categories };
   }
 
   // 应用筛选条件
-  if (this.filters.subjectCodes.length > 0) {
-    query.subjectCode = { $in: this.filters.subjectCodes };
+  if (subjectCodes.length > 0) {
+    query.subjectCode = { $in: subjectCodes };
   }
-  if (this.filters.tags.length > 0) {
-    query.tags = { $in: this.filters.tags };
+  if (tags.length > 0) {
+    query.tags = { $in: tags };
   }
-  if (this.filters.masteryStatus.length > 0) {
-    query.masteryStatus = { $in: this.filters.masteryStatus };
+  if (masteryStatus.length > 0) {
+    query.masteryStatus = { $in: masteryStatus };
   }
 
-  const questions = await WrongQuestion.find(query)
+  const limit = this.dailyCount || 10;
+  let questions = await WrongQuestion.find(query)
     .sort({ nextReviewAt: 1, mastery: 1 })
-    .limit(this.dailyCount)
+    .limit(this.strategy === 'random' ? limit * 3 : limit)
     .lean();
+
+  if (this.strategy === 'random' && questions.length > limit) {
+    questions = questions.sort(() => Math.random() - 0.5).slice(0, limit);
+  }
 
   return questions;
 };
@@ -192,18 +206,22 @@ ReviewPlanSchema.methods.getTodayQuestions = async function () {
 // 实例方法：更新统计
 ReviewPlanSchema.methods.updateStats = async function () {
   const WrongQuestion = mongoose.model('WrongQuestion');
-  
+  const filters = this.filters || {};
+  const subjectCodes = filters.subjectCodes || [];
+  const categories = filters.categories || [];
+  const tags = filters.tags || [];
+
   const query = { userId: this.userId };
-  
+
   // 应用筛选条件
-  if (this.filters.subjectCodes.length > 0) {
-    query.subjectCode = { $in: this.filters.subjectCodes };
+  if (subjectCodes.length > 0) {
+    query.subjectCode = { $in: subjectCodes };
   }
-  if (this.filters.categories.length > 0) {
-    query.category = { $in: this.filters.categories };
+  if (categories.length > 0) {
+    query.category = { $in: categories };
   }
-  if (this.filters.tags.length > 0) {
-    query.tags = { $in: this.filters.tags };
+  if (tags.length > 0) {
+    query.tags = { $in: tags };
   }
 
   const stats = await WrongQuestion.aggregate([

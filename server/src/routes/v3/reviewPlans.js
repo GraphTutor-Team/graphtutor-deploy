@@ -261,14 +261,22 @@ router.post('/:id/execute', requireAuth, async (req, res) => {
     }
 
     const questions = await plan.getTodayQuestions();
+    const questionIds = questions
+      .map((item) => item.questionId)
+      .filter(Boolean);
+
     plan.lastExecutedAt = new Date();
-    plan.stats.totalReviews += 1;
+    if (!plan.stats) {
+      plan.stats = { totalReviews: 0, completedReviews: 0, masteredCount: 0 };
+    }
+    plan.stats.totalReviews = (plan.stats.totalReviews || 0) + 1;
     await plan.save();
 
     res.json({
       success: true,
       data: {
         questions,
+        questionIds,
         plan: plan.toObject(),
       },
     });
