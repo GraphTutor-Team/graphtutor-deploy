@@ -469,6 +469,30 @@ function submitQuizAnswer(sessionId, payload) {
   return request(`/api/quizzes/session/${sessionId}/answer`, { method: 'POST', data: payload });
 }
 
+function submitQuizAnswersBatch(sessionId, payload) {
+  return request(`/api/quizzes/session/${sessionId}/answers/batch`, { method: 'POST', data: payload });
+}
+
+function isBatchSubmitUnavailable(err) {
+  const msg = String((err && err.message) || '');
+  return msg.indexOf('404') >= 0
+    || msg.indexOf('Not Found') >= 0
+    || msg.indexOf('批量提交') >= 0;
+}
+
+/** 优先批量提交；旧服务器无 batch 接口时逐条降级 */
+function submitSessionAnswers(sessionId, payload) {
+  const list = (payload && payload.answers) || [];
+  if (!list.length) return Promise.resolve({ ok: true, submitted: 0 });
+  return submitQuizAnswersBatch(sessionId, payload).catch((err) => {
+    if (!isBatchSubmitUnavailable(err)) throw err;
+    return list.reduce(
+      (chain, item) => chain.then(() => submitQuizAnswer(sessionId, item)),
+      Promise.resolve()
+    ).then(() => ({ ok: true, submitted: list.length, fallback: true }));
+  });
+}
+
 function finishQuizSession(sessionId) {
   return request(`/api/quizzes/session/${sessionId}/finish`, { method: 'POST' });
 }
@@ -508,6 +532,8 @@ module.exports = {
   startQuizSession,
   getQuizSession,
   submitQuizAnswer,
+  submitQuizAnswersBatch,
+  submitSessionAnswers,
   finishQuizSession,
   isVirtualToken,
   virtualLogin,

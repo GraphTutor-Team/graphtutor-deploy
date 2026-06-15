@@ -17,10 +17,7 @@
 import express from 'express';
 import Record from '../models/Record.js';
 import Question from '../models/Question.js';
-import { updateLearningGoalsProgress } from '../services/learningGoalUpdater.js';
-import { checkAndAwardAchievements } from '../services/achievementService.js';
-import { addOrUpdateWrongQuestion } from '../services/wrongQuestionService.js';
-import { addLearningExp } from '../services/learningAvatarService.js';
+import { applySingleRecordSideEffects, applyBatchRecordSideEffects } from '../services/recordSideEffects.js';
 
 const router = express.Router();
 
@@ -69,9 +66,8 @@ router.post('/', async (req, res) => {
       timeSpentMs: timeSpentMs ? Number(timeSpentMs) : null,
     });
 
-    // 异步更新学习目标进度（不阻塞响应）
+    // 异步更新学习目标、成就、错题本
     if (userId && questionId) {
-      // 获取题目信息
       let question = null;
       try {
         question = await Question.findById(questionId).lean();
@@ -82,29 +78,13 @@ router.post('/', async (req, res) => {
         // 忽略错误
       }
 
-      updateLearningGoalsProgress(userId, {
-        questionId,
+      applySingleRecordSideEffects(userId, {
+        recordId: doc._id,
+        questionId: String(questionId),
         isCorrect: normalizedIsCorrect,
         timeSpentMs: timeSpentMs ? Number(timeSpentMs) : null,
-        subjectCode: question?.subjectCode || null,
-        bankId: question?.bankId || null,
         knowledgeNodeId: knowledgeNodeId ? String(knowledgeNodeId) : null,
-      }).catch(err => {
-        console.error('更新学习目标进度失败:', err);
-      });
-
-      // 检查并授予成就
-      checkAndAwardAchievements(userId, normalizedIsCorrect ? 'correct' : 'answer', {
-        questionId,
-        isCorrect: normalizedIsCorrect,
-      }).catch(err => {
-        console.error('检查成就失败:', err);
-      });
-
-      // 自动更新错题本（答错时添加，答对时更新掌握度）
-      addOrUpdateWrongQuestion(userId, doc._id, questionId, normalizedIsCorrect).catch(err => {
-        console.error('更新错题本失败:', err);
-      });
+      }, question);
     }
 
     res.json({ ok: true, id: doc._id });
@@ -173,63 +153,16 @@ router.post('/batch', async (req, res) => {
 
     const result = await Record.insertMany(docs);
 
-    // 异步更新学习目标进度和成就（不阻塞响应）
     if (userId) {
-      // 批量更新学习目标进度
-      const uniqueQuestionIds = [...new Set(records.map(r => r.questionId))];
-      const questions = await Question.find({
-        $or: [
-          { _id: { $in: uniqueQuestionIds } },
-          { id: { $in: uniqueQuestionIds } },
-        ],
-      }).lean();
-
-      const questionMap = {};
-      questions.forEach(q => {
-        const qid = q._id?.toString() || q.id;
-        questionMap[qid] = q;
-      });
-
-      // 为每条记录更新目标进度和检查成就
-      for (const record of records) {
-        const question = questionMap[record.questionId];
-        updateLearningGoalsProgress(userId, {
-          questionId: record.questionId,
-          isCorrect: record.isCorrect,
-          timeSpentMs: record.timeSpentMs || null,
-          subjectCode: question?.subjectCode || null,
-          bankId: question?.bankId || null,
-          knowledgeNodeId: record.knowledgeNodeId || null,
-        }).catch(err => {
-          console.error('更新学习目标进度失败:', err);
-        });
-
-        // 检查并授予成就
-        checkAndAwardAchievements(userId, record.isCorrect ? 'correct' : 'answer', {
-          questionId: record.questionId,
-          isCorrect: record.isCorrect,
-        }).catch(err => {
-          console.error('检查成就失败:', err);
-        });
-      }
-
-      // 检查考试相关成就（如果所有题目都答对）
-      const allCorrect = records.every(r => r.isCorrect === true);
-      const correctCount = records.filter(r => r.isCorrect).length;
-      if (allCorrect && records.length > 0) {
-        checkAndAwardAchievements(userId, 'exam_completed', {
-          accuracy: 100,
-          total: records.length,
-          correct: correctCount,
-        }).catch(err => {
-          console.error('检查考试成就失败:', err);
-        });
-      }
-
-      // 学习角色经验：每题基础 1，答对额外 +2
-      const expAmount = records.length + 2 * correctCount;
-      addLearningExp(userId, expAmount, 'answer').catch(err => {
-        console.error('学习经验更新失败:', err);
+      const entries = result.map((doc) => ({
+        recordId: doc._id,
+        questionId: String(doc.questionId),
+        isCorrect: doc.isCorrect === true,
+        timeSpentMs: doc.timeSpentMs,
+        knowledgeNodeId: doc.knowledgeNodeId,
+      }));
+      applyBatchRecordSideEffects(userId, entries).catch((err) => {
+        console.error('批量记录 side effects 失败:', err);
       });
     }
 

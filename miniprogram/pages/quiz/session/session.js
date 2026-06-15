@@ -269,10 +269,8 @@ Page({
     const arr = Array.isArray(prev) ? prev.slice() : [];
     arr[blankIndex] = (e.detail && e.detail.value) || '';
     const answers = Object.assign({}, this.data.answers, { [qid]: arr });
-    this.setData({ answers }, () => {
-      this.renderCurrent();
-      this.updateSheet();
-    });
+    const fillBlanks = quizHelper.buildFillBlanks(question, arr);
+    this.setData({ answers, fillBlanks }, () => this.updateSheet());
   },
 
   onShortInput(e) {
@@ -282,25 +280,45 @@ Page({
     const qid = quizHelper.normalizeQuestionId(question);
     const value = (e.detail && e.detail.value) || '';
     const answers = Object.assign({}, this.data.answers, { [qid]: value });
-    this.setData({ answers }, () => {
-      this.renderCurrent();
-      this.updateSheet();
-    });
+    this.setData({ answers, shortAnswer: value }, () => this.updateSheet());
   },
 
   skipCoding() {
     if (this.data.readonly || !this.data.isCoding) return;
-    if (this.data.examMode) {
-      if (this.data.currentIndex >= this.data.totalCount - 1) return;
-      this.setData({ currentIndex: this.data.currentIndex + 1 }, () => this.renderCurrent());
+    if (this.data.currentIndex >= this.data.totalCount - 1) {
+      if (!this.data.examMode && !this.reviewMode) this.finishPracticeSession();
       return;
     }
-    this.submitCurrentAndAdvance();
+    this.setData({ currentIndex: this.data.currentIndex + 1 }, () => this.renderCurrent());
   },
 
   goPrev() {
     if (this.data.currentIndex <= 0 || this.data.submitting) return;
     this.setData({ currentIndex: this.data.currentIndex - 1 }, () => this.renderCurrent());
+  },
+
+  validateCurrentAnswer() {
+    const { currentQuestion, answers } = this.data;
+    if (!currentQuestion) return false;
+    const type = currentQuestion.type || 'single';
+    const qid = quizHelper.normalizeQuestionId(currentQuestion);
+    const selected = quizHelper.getSelectedAnswer(answers, qid);
+    if (!quizHelper.hasValidSelection(type, selected)) {
+      wx.showToast({ title: quizHelper.selectionHint(type), icon: 'none' });
+      return false;
+    }
+    return true;
+  },
+
+  advancePractice() {
+    if (this.data.isLast) {
+      this.finishPracticeSession();
+      return;
+    }
+    this.setData({ currentIndex: this.data.currentIndex + 1 }, () => {
+      this.renderCurrent();
+      this.updateSheet();
+    });
   },
 
   goNext() {
@@ -314,53 +332,49 @@ Page({
       this.setData({ currentIndex: this.data.currentIndex + 1 }, () => this.renderCurrent());
       return;
     }
-    this.submitCurrentAndAdvance();
+    if (!this.validateCurrentAnswer()) return;
+    this.advancePractice();
   },
 
-  submitCurrentAndAdvance(isLastOverride) {
+  buildBatchAnswers() {
+    const { questions, answers } = this.data;
+    const userId = authHelper.getUserId();
+    const payloads = [];
+    questions.forEach((q) => {
+      const type = q.type || 'single';
+      const qid = quizHelper.normalizeQuestionId(q);
+      const selected = quizHelper.getSelectedAnswer(answers, qid);
+      if (!quizHelper.hasValidSelection(type, selected)) return;
+      q._timeSpentMs = 0;
+      payloads.push(quizHelper.buildAnswerPayload(q, selected, userId));
+    });
+    return payloads;
+  },
+
+  finishPracticeSession() {
     if (this.data.submitting) return;
-    const { currentQuestion, answers, sessionId } = this.data;
-    if (!currentQuestion) return;
-
-    const type = currentQuestion.type || 'single';
-    const qid = quizHelper.normalizeQuestionId(currentQuestion);
-    const selected = quizHelper.getSelectedAnswer(answers, qid);
-    const isLast = isLastOverride === undefined ? this.data.isLast : isLastOverride;
-
-    if (!quizHelper.hasValidSelection(type, selected)) {
-      wx.showToast({ title: quizHelper.selectionHint(type), icon: 'none' });
+    const { sessionId } = this.data;
+    const batch = this.buildBatchAnswers();
+    if (!batch.length) {
+      wx.showToast({ title: '请至少完成一题', icon: 'none' });
       return;
     }
-
-    const userId = authHelper.getUserId();
-    currentQuestion._timeSpentMs = Math.max(0, Date.now() - (this.questionStartAt || Date.now()));
-    const payload = quizHelper.buildAnswerPayload(currentQuestion, selected, userId);
     this.setData({ submitting: true });
-
-    api.submitQuizAnswer(sessionId, payload)
-      .then((res) => {
-        if (!this.examMode && !this.reviewMode && res && res.isCorrect != null) {
-          wx.showToast({
-            title: res.isCorrect ? '回答正确' : '回答错误',
-            icon: res.isCorrect ? 'success' : 'none',
-            duration: 800,
-          });
-        }
-        if (isLast) {
-          return api.finishQuizSession(sessionId).then((result) => {
-            this.showFinishedResult({
-              totalQuestions: result.total,
-              totalCorrect: result.correct,
-              acc: result.acc,
-            });
-          });
-        }
-        this.setData({ currentIndex: this.data.currentIndex + 1 }, () => this.renderCurrent());
+    wx.showLoading({ title: '提交中…', mask: true });
+    api.submitSessionAnswers(sessionId, { userId: authHelper.getUserId(), answers: batch })
+      .then(() => api.finishQuizSession(sessionId))
+      .then((result) => {
+        this.showFinishedResult({
+          totalQuestions: result.total,
+          totalCorrect: result.correct,
+          acc: result.acc,
+        });
       })
       .catch((err) => {
         wx.showToast({ title: (err && err.message) || '提交失败', icon: 'none' });
       })
       .finally(() => {
+        wx.hideLoading();
         this.setData({ submitting: false });
         this.updateSheet();
       });
@@ -382,21 +396,17 @@ Page({
       this.confirmSubmitExam();
       return;
     }
-    const { questions, answers, sessionId } = this.data;
-    const userId = authHelper.getUserId();
+    const { sessionId } = this.data;
+    const batch = this.buildBatchAnswers();
     this.clearTimer();
     this.setData({ submitting: true });
+    wx.showLoading({ title: '交卷中…', mask: true });
 
-    const chain = questions.reduce((p, q) => p.then(() => {
-      const qid = quizHelper.normalizeQuestionId(q);
-      const selected = quizHelper.getSelectedAnswer(answers, qid);
-      const type = q.type || 'single';
-      if (!quizHelper.hasValidSelection(type, selected)) return Promise.resolve();
-      q._timeSpentMs = 0;
-      return api.submitQuizAnswer(sessionId, quizHelper.buildAnswerPayload(q, selected, userId));
-    }), Promise.resolve());
+    const submitChain = batch.length
+      ? api.submitSessionAnswers(sessionId, { userId: authHelper.getUserId(), answers: batch })
+      : Promise.resolve({ ok: true });
 
-    chain
+    submitChain
       .then(() => api.finishQuizSession(sessionId))
       .then((result) => {
         this.showFinishedResult({
@@ -408,7 +418,10 @@ Page({
       .catch((err) => {
         wx.showToast({ title: (err && err.message) || '交卷失败', icon: 'none' });
       })
-      .finally(() => this.setData({ submitting: false }));
+      .finally(() => {
+        wx.hideLoading();
+        this.setData({ submitting: false });
+      });
   },
 
   toggleSheet() {

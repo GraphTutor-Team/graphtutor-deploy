@@ -20,8 +20,75 @@ import Question from '../models/Question.js';
 import QuizSession from '../models/QuizSession.js';
 import Record from '../models/Record.js';
 import { checkAnswer, resolveUserAnswer } from '../utils/questionScoring.js';
+import { applySingleRecordSideEffects, applyBatchBonusSideEffects } from '../services/recordSideEffects.js';
 
 const router = express.Router();
+
+function buildQuestionForCheck(snap) {
+  return {
+    type: snap.type || 'single',
+    answer: snap.answer,
+    answerIndex: snap.correctIndex,
+    options: snap.options,
+    codingMeta: snap.codingMeta,
+  };
+}
+
+function upsertSessionAnswer(session, questionId, resolvedAnswer, isCorrect, timeSpentMs) {
+  const existing = session.answers.find(
+    (a) => String(a.questionId) === String(questionId)
+  );
+  if (existing) {
+    existing.answerIndex = typeof resolvedAnswer === 'number' ? resolvedAnswer : existing.answerIndex;
+    existing.userAnswer = resolvedAnswer;
+    existing.isCorrect = isCorrect;
+    existing.timeSpentMs = timeSpentMs ?? existing.timeSpentMs;
+  } else {
+    session.answers.push({
+      questionId,
+      answerIndex: typeof resolvedAnswer === 'number' ? resolvedAnswer : 0,
+      userAnswer: resolvedAnswer,
+      isCorrect,
+      timeSpentMs,
+    });
+  }
+}
+
+async function persistAnswerRecord(session, snap, resolvedAnswer, isCorrect, timeSpentMs, userId) {
+  const recordUserId = userId || session.userId;
+  const doc = await Record.create({
+    userId: recordUserId,
+    questionId: snap.id,
+    knowledgeNodeId: snap.knowledgeNodeId,
+    isCorrect,
+    answerIndex: typeof resolvedAnswer === 'number' ? resolvedAnswer : undefined,
+    correctIndex: snap.correctIndex,
+    sessionId: session._id,
+    timeSpentMs,
+  });
+  applySingleRecordSideEffects(recordUserId, {
+    recordId: doc._id,
+    questionId: String(snap.id),
+    isCorrect,
+    timeSpentMs,
+    knowledgeNodeId: snap.knowledgeNodeId,
+  });
+  return doc;
+}
+
+function applyAnswerToSession(session, questionId, body) {
+  const { answerIndex, timeSpentMs, userAnswer, answer } = body;
+  const snap = session.questions.find(
+    (q) => String(q.id) === String(questionId)
+  );
+  if (!snap) {
+    return { error: '该题不属于本会话' };
+  }
+  const resolvedAnswer = resolveUserAnswer({ userAnswer, answer, answerIndex });
+  const { isCorrect } = checkAnswer(buildQuestionForCheck(snap), resolvedAnswer);
+  upsertSessionAnswer(session, questionId, resolvedAnswer, isCorrect, timeSpentMs);
+  return { snap, resolvedAnswer, isCorrect, timeSpentMs };
+}
 
 function snapshotQuestion(q) {
   let correctIndex = q.answerIndex;
@@ -297,7 +364,7 @@ router.get('/', async (req, res) => {
 router.post('/session/:id/answer', async (req, res) => {
   try {
     const { id } = req.params;
-    const { questionId, answerIndex, timeSpentMs, userId, userAnswer, answer } = req.body;
+    const { questionId, userId } = req.body;
 
     const session = await QuizSession.findById(id);
     if (!session) {
@@ -307,58 +374,72 @@ router.post('/session/:id/answer', async (req, res) => {
       return res.status(400).json({ error: '会话已结束或已取消' });
     }
 
-    const snap = session.questions.find(
-      (q) => String(q.id) === String(questionId)
-    );
-    if (!snap) {
-      return res.status(400).json({ error: '该题不属于本会话' });
+    const result = applyAnswerToSession(session, questionId, req.body);
+    if (result.error) {
+      return res.status(400).json({ error: result.error });
     }
-
-    const resolvedAnswer = resolveUserAnswer({ userAnswer, answer, answerIndex });
-    const questionForCheck = {
-      type: snap.type || 'single',
-      answer: snap.answer,
-      answerIndex: snap.correctIndex,
-      options: snap.options,
-      codingMeta: snap.codingMeta,
-    };
-    const { isCorrect } = checkAnswer(questionForCheck, resolvedAnswer);
-
-    const existing = session.answers.find(
-      (a) => String(a.questionId) === String(questionId)
-    );
-    if (existing) {
-      existing.answerIndex = typeof resolvedAnswer === 'number' ? resolvedAnswer : existing.answerIndex;
-      existing.userAnswer = resolvedAnswer;
-      existing.isCorrect = isCorrect;
-      existing.timeSpentMs = timeSpentMs ?? existing.timeSpentMs;
-    } else {
-      session.answers.push({
-        questionId,
-        answerIndex: typeof resolvedAnswer === 'number' ? resolvedAnswer : 0,
-        userAnswer: resolvedAnswer,
-        isCorrect,
-        timeSpentMs,
-      });
-    }
+    const { snap, resolvedAnswer, isCorrect, timeSpentMs: spentMs } = result;
     await session.save();
-
-    const recordUserId = userId || session.userId;
-    await Record.create({
-      userId: recordUserId,
-      questionId,
-      knowledgeNodeId: snap.knowledgeNodeId,
-      isCorrect,
-      answerIndex: typeof resolvedAnswer === 'number' ? resolvedAnswer : undefined,
-      correctIndex: snap.correctIndex,
-      sessionId: session._id,
-      timeSpentMs,
-    });
+    await persistAnswerRecord(session, snap, resolvedAnswer, isCorrect, spentMs, userId);
 
     res.json({ ok: true, isCorrect });
   } catch (e) {
     console.error('submit answer error:', e);
     res.status(500).json({ error: '提交答案失败' });
+  }
+});
+
+/**
+ * POST /api/quizzes/session/:id/answers/batch
+ * 批量提交作答（练习/考试交卷时用，减少请求次数）
+ */
+router.post('/session/:id/answers/batch', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { userId, answers } = req.body || {};
+    const list = Array.isArray(answers) ? answers : [];
+    if (!list.length) {
+      return res.json({ ok: true, submitted: 0 });
+    }
+    if (list.length > 100) {
+      return res.status(400).json({ error: '单次最多提交 100 题' });
+    }
+
+    const session = await QuizSession.findById(id);
+    if (!session) {
+      return res.status(404).json({ error: '会话不存在' });
+    }
+    if (session.status !== 'ongoing') {
+      return res.status(400).json({ error: '会话已结束或已取消' });
+    }
+
+    let submitted = 0;
+    const bonusEntries = [];
+    for (const item of list) {
+      if (!item || !item.questionId) continue;
+      const result = applyAnswerToSession(session, item.questionId, item);
+      if (result.error) continue;
+      const { snap, resolvedAnswer, isCorrect, timeSpentMs } = result;
+      await persistAnswerRecord(session, snap, resolvedAnswer, isCorrect, timeSpentMs, userId);
+      bonusEntries.push({
+        questionId: String(snap.id),
+        isCorrect,
+        timeSpentMs,
+        knowledgeNodeId: snap.knowledgeNodeId,
+      });
+      submitted += 1;
+    }
+    await session.save();
+
+    const recordUserId = userId || session.userId;
+    if (recordUserId && bonusEntries.length) {
+      applyBatchBonusSideEffects(recordUserId, bonusEntries);
+    }
+
+    res.json({ ok: true, submitted });
+  } catch (e) {
+    console.error('batch submit answers error:', e);
+    res.status(500).json({ error: '批量提交答案失败' });
   }
 });
 
