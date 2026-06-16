@@ -342,6 +342,18 @@ function markMessagesAsRead(userId) {
   }).then(dataOf));
 }
 
+function deleteConversation(userId) {
+  return withAuth(() => api.request(`/api/v3/messages/conversation/${userId}`, {
+    method: 'DELETE',
+  }).then(dataOf));
+}
+
+function deleteMessage(messageId) {
+  return withAuth(() => api.request(`/api/v3/messages/${messageId}`, {
+    method: 'DELETE',
+  }).then(dataOf));
+}
+
 module.exports = {
   getAchievements,
   getAchievementStats,
@@ -389,4 +401,6 @@ module.exports = {
   getConversation,
   sendMessage,
   markMessagesAsRead,
+  deleteConversation,
+  deleteMessage,
 };

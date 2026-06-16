@@ -228,6 +228,40 @@ export async function deleteMessage(userId, messageId) {
 }
 
 /**
+ * 清空与某用户的会话（当前用户侧软删除）
+ * @param {string} userId - 当前用户 ID
+ * @param {string} partnerId - 对方用户 ID
+ */
+export async function deleteConversation(userId, partnerId) {
+  const uid = String(userId);
+  const pid = String(partnerId);
+  const messages = await Message.find({
+    $or: [
+      { senderId: uid, receiverId: pid },
+      { senderId: pid, receiverId: uid },
+    ],
+  });
+
+  let count = 0;
+  for (const message of messages) {
+    if (String(message.senderId) === uid) {
+      message.isDeletedBySender = true;
+    }
+    if (String(message.receiverId) === uid) {
+      message.isDeletedByReceiver = true;
+    }
+    await message.save();
+    count += 1;
+  }
+
+  return {
+    success: true,
+    deleted: count,
+    message: count > 0 ? '聊天记录已清空' : '暂无聊天记录',
+  };
+}
+
+/**
  * 获取未读消息数量
  * @param {string} userId - 用户ID
  * @returns {Promise<number>} 未读消息数量

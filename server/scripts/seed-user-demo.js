@@ -504,21 +504,31 @@ async function seedNotifications(userId, list) {
 async function seedMessages(targetId, demoUsers, list) {
   const uid = String(targetId);
   const emailMap = new Map(demoUsers.map((u) => [u.email, u]));
+  const items = list || [];
   let n = 0;
-  for (const msg of list || []) {
+  for (let i = 0; i < items.length; i += 1) {
+    const msg = items[i];
     const friend = emailMap.get(msg.friendEmail?.trim().toLowerCase());
     if (!friend) continue;
     const senderId = msg.fromFriend ? String(friend._id) : uid;
     const receiverId = msg.fromFriend ? uid : String(friend._id);
-    const dup = await Message.findOne({ senderId, receiverId, content: msg.content });
+    const dup = await Message.findOne({
+      senderId,
+      receiverId,
+      content: msg.content,
+      isDeletedBySender: false,
+      isDeletedByReceiver: false,
+    });
     if (dup) continue;
+    // 按 JSON 顺序：先发的更早，后发的更新（每条间隔 2 小时）
+    const hoursAgo = (items.length - 1 - i) * 2;
     await Message.create({
       senderId,
       receiverId,
       content: msg.content,
       type: 'text',
       isRead: msg.fromFriend ? false : true,
-      createdAt: daysAgo(n % 3),
+      createdAt: new Date(Date.now() - hoursAgo * 3600000 - i * 60000),
     });
     n += 1;
   }

@@ -19,6 +19,7 @@ import {
   getConversation,
   markMessagesAsRead,
   deleteMessage,
+  deleteConversation,
   getUnreadCount,
   getUnreadCountWithUser,
   searchMessages,
@@ -151,6 +152,25 @@ router.put('/read/:userId', requireAuth, async (req, res) => {
     res.status(400).json({
       success: false,
       message: err.message || '标记消息失败',
+    });
+  }
+});
+
+/**
+ * DELETE /api/v3/messages/conversation/:userId
+ * 清空与某用户的聊天记录（软删除，仅对当前用户隐藏）
+ */
+router.delete('/conversation/:userId', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const partnerId = req.params.userId;
+    const result = await deleteConversation(userId, partnerId);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    console.error('DELETE /api/v3/messages/conversation/:userId error:', err);
+    res.status(400).json({
+      success: false,
+      message: err.message || '清空聊天记录失败',
     });
   }
 });

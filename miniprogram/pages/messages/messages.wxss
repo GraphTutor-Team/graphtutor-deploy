@@ -1,1 +1,9 @@
 @import "../../styles/feature-page.wxss";
+
+.msg-delete-btn {
+  flex-shrink: 0;
+  margin-left: 12rpx;
+  padding: 8rpx 16rpx;
+  font-size: 24rpx;
+  color: #d32f2f;
+}
