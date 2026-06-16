@@ -1,0 +1,33 @@
+# 快速重建：只编译 Node 后端，前端 dist 从已有 graphtutor-server 镜像复用
+# 前置：至少成功 build 过一次完整镜像 (docker compose build)
+# 用法:
+#   DOCKERFILE=Dockerfile.server-fast docker compose build server
+#   docker compose up -d --force-recreate server
+
+FROM graphtutor-server:latest AS cached-frontend
+
+FROM node:20-bullseye-slim AS builder
+
+WORKDIR /app
+
+COPY server/package*.json ./server/
+
+RUN npm config set registry https://registry.npmmirror.com && \
+    cd server && npm ci
+
+COPY server ./server
+
+FROM node:20-bullseye-slim
+
+WORKDIR /app
+
+COPY --from=builder /app/server ./server
+COPY --from=cached-frontend /app/client/dist ./client/dist
+
+WORKDIR /app/server
+
+RUN npm config set registry https://registry.npmmirror.com && npm ci --production
+
+EXPOSE 5000
+
+CMD ["node", "server.js"]

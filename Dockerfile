@@ -16,6 +16,9 @@ RUN npm config set registry https://registry.npmmirror.com && npm ci && \
 # 复制源代码
 COPY . .
 
+# 限制 Node 内存，避免 4G 机器 OOM（构建会慢一些但更稳）
+ENV NODE_OPTIONS=--max-old-space-size=1536
+
 # 构建前端
 WORKDIR /app/client
 RUN npm run build

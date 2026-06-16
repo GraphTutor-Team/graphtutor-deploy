@@ -23,7 +23,9 @@ services:
   server:
     build:
       context: .
-      dockerfile: Dockerfile
+      # 仅改 server/ 且已有镜像时，可改用 Dockerfile.server-fast 跳过前端构建：
+      #   DOCKERFILE=Dockerfile.server-fast docker compose build server
+      dockerfile: ${DOCKERFILE:-Dockerfile}
     image: graphtutor-server
     container_name: graphtutor-server
     restart: unless-stopped

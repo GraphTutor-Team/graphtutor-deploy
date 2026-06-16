@@ -87,13 +87,51 @@ docker compose up -d --force-recreate server
 
 ## 3. 日常更新代码
 
+### 3.1 只改了后端 `server/`（推荐，4G 机器必看）
+
+**不要**每次 `docker compose up -d --build`，会重新跑前端 `npm run build`，CPU/内存打满，SSH 容易断。
+
 ```bash
 cd /root/graphtutor-deploy
-git pull origin main
-docker compose up -d --build
+bash scripts/deploy-server-only.sh
 ```
 
-仅后端改动、加快更新：
+原理：`git pull` 后把 `server/src`、`server/scripts` 拷进运行中的容器并重启，**几十秒完成**。
+
+> 改了 `server/package.json`、Dockerfile、或 `client/` 时，才需要完整 build。
+
+### 3.2 完整构建（改了前端或首次部署）
+
+**务必用 tmux**，防止 SSH 断开导致构建中断：
+
+```bash
+sudo apt-get install -y tmux    # 未安装时
+tmux new -s build
+cd /root/graphtutor-deploy
+git pull origin main
+docker compose up -d --build --force-recreate server
+# 断线后重连: tmux attach -t build
+```
+
+**建议加 2G swap**（只需做一次，显著减少 OOM 卡死）：
+
+```bash
+sudo fallocate -l 2G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+free -h
+```
+
+**已有镜像、只改后端、仍想用 Docker build**（比完整 Dockerfile 快，不编译前端）：
+
+```bash
+DOCKERFILE=Dockerfile.server-fast docker compose build server
+docker compose up -d --force-recreate server
+```
+
+### 3.3 旧写法（小内存机器慎用）
 
 ```bash
 git pull origin main

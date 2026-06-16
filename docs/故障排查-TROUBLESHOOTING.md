@@ -37,18 +37,50 @@
 
 **原因**：旧版后端在错题 `populate`、推荐聚合查询异常时进程报错，网关返回 502。
 
-**处理（服务器）**：
+**处理（服务器）** — 本次只改了 `server/`，**不要用 `--build`**：
 
 ```bash
 cd /root/graphtutor-deploy
+bash scripts/deploy-server-only.sh
+```
+
+若脚本不存在（旧代码），手动：
+
+```bash
 git pull origin main
-docker compose up -d --build --force-recreate server
+docker cp server/src/. graphtutor-server:/app/server/src/
+docker compose restart server
 curl -s http://127.0.0.1:5000/api/health
 ```
 
 **本地小程序**：微信开发者工具点 **编译** 刷新（`api.js` 已对首页接口做失败兜底，不再红屏）。
 
 **可选**：`server/.env` 加 `RATE_LIMIT_API_MAX=500` 减轻真机测试限流。
+
+---
+
+## 5. `docker compose build` 卡住 / SSH 断开
+
+**现象**：停在 `RUN npm run build` 或 `rendering chunks`，CPU 95%+、内存 94%+，久等后 SSH 断开。
+
+**原因**：4G 轻量机全量构建 = 多次 `npm ci` + Vite 打包，内存不够会疯狂换页，不一定真卡死。
+
+**处理**（按优先级）：
+
+| 场景 | 做法 |
+|------|------|
+| 只改了 `server/` | `bash scripts/deploy-server-only.sh`（几十秒，推荐） |
+| 必须完整 build | `tmux new -s build` 里构建；加 2G swap（见 [部署运维 §3.2](./部署运维-DEPLOYMENT.md#32-完整构建改了前端或首次部署)） |
+| 已有镜像、只改后端 | `DOCKERFILE=Dockerfile.server-fast docker compose build server` |
+| SSH 断了 | `tmux attach -t build` 看是否还在跑 |
+
+加 swap（只需一次）：
+
+```bash
+sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile
+sudo mkswap /swapfile && sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+```
 
 ---
 
@@ -81,18 +113,6 @@ process.exit(0);
 **原因**：容器内 **旧前端 dist**，不支持 `coding` 题型。
 
 **处理**：按 [部署运维-DEPLOYMENT.md §4](./部署运维-DEPLOYMENT.md#4-仅更新-web-前端不整镜像-build) 更新 `client/dist`。
-
----
-
-## 5. `docker compose build` 卡在 rendering chunks
-
-**原因**：小内存机器打包前端慢，不一定卡死。
-
-**处理**：
-
-- 等 10～20 分钟，或 `top` 看 CPU
-- 加 swap：`fallocate -l 2G /swapfile && …`
-- 用 **方式 A** 单独 Docker 构建前端，不必全量 rebuild
 
 ---
 
