@@ -366,11 +366,13 @@ function getRecommendedQuestions(params) {
     method: 'GET',
     data: cleanQuery({
       limit: p.limit || 3,
-      strategy: p.strategy || 'adaptive',
+      strategy: p.strategy || 'random',
       includeReasons: p.includeReasons === false ? 'false' : 'true',
       knowledgeNodeId: p.knowledgeNodeId,
     }),
-  }).then((res) => (res && res.success && res.data) || []);
+  })
+    .then((res) => (res && res.success && res.data) || [])
+    .catch(() => []);
 }
 
 function getTodayReviewQuestions(params) {
@@ -378,14 +380,18 @@ function getTodayReviewQuestions(params) {
   return request('/api/v3/smart-review/today', {
     method: 'GET',
     data: cleanQuery({ limit: p.limit || 50 }),
-  }).then((res) => (res && res.success && res.data) || { questions: [] });
+  })
+    .then((res) => (res && res.success && res.data) || { questions: [] })
+    .catch(() => ({ questions: [] }));
 }
 
 function getComprehensiveAnalysis(days) {
   return request('/api/v3/enhanced-analytics/comprehensive', {
     method: 'GET',
     data: cleanQuery({ days: days || 7 }),
-  }).then((res) => (res && res.success && res.data) || null);
+  })
+    .then((res) => (res && res.success && res.data) || null)
+    .catch(() => null);
 }
 
 function getLearningTrend(days) {

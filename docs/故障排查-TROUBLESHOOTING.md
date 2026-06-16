@@ -24,6 +24,31 @@
 | 访问 `:80` 502 | 服务在 **5000**，用 `http://IP:5000` |
 | 容器 Restarting | `docker compose logs server --tail 50` 查语法错误 |
 | 安全组 | 放行 **5000**（及 22 SSH） |
+| 首页 `recommendations` / `smart-review` 502 | 拉最新代码并重建 server（见下 §7） |
+
+---
+
+## 7. 小程序首页 502（推荐题目 / 今日复习）
+
+**现象**：开发者工具 Console 出现：
+
+- `GET .../api/v3/recommendations/questions` 502  
+- `GET .../api/v3/smart-review/today` 502  
+
+**原因**：旧版后端在错题 `populate`、推荐聚合查询异常时进程报错，网关返回 502。
+
+**处理（服务器）**：
+
+```bash
+cd /root/graphtutor-deploy
+git pull origin main
+docker compose up -d --build --force-recreate server
+curl -s http://127.0.0.1:5000/api/health
+```
+
+**本地小程序**：微信开发者工具点 **编译** 刷新（`api.js` 已对首页接口做失败兜底，不再红屏）。
+
+**可选**：`server/.env` 加 `RATE_LIMIT_API_MAX=500` 减轻真机测试限流。
 
 ---
 
