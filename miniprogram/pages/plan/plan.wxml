@@ -40,9 +40,9 @@
       </button>
       <view wx:elif="{{connected && isLoggedIn}}" class="state-text state-text--muted">今日复习已完成 🎉</view>
       <button
-        wx:if="{{activePlanId}}"
+        wx:if="{{isLoggedIn && !loading}}"
         class="review-btn review-btn--secondary"
-        loading="{{checkingIn}}"
+        loading="{{checkingIn || creatingPlan}}"
         bindtap="doCheckIn"
       >
         今日打卡

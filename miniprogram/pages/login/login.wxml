@@ -1,43 +1,76 @@
-<view class="container">
-  <view class="login-header">
-    <view class="login-dot"></view>
-    <view class="login-title">登录 GraphTutor</view>
-    <view class="login-desc">邮箱密码或微信快捷登录，与 Web 端账号同步</view>
+<view class="container container--auth">
+  <view class="auth-hero">
+    <view class="auth-logo">
+      <text class="auth-logo-text">GT</text>
+    </view>
+    <view class="auth-title">登录 GraphTutor</view>
+    <view class="auth-desc">邮箱密码或微信快捷登录，与 Web 端账号同步</view>
   </view>
 
-  <view class="card card--form">
+  <view class="auth-card">
     <view class="form-error" wx:if="{{error}}">{{error}}</view>
 
-    <text class="form-label">邮箱</text>
-    <input
-      class="form-input"
-      type="text"
-      placeholder="your@email.com"
-      value="{{email}}"
-      bindinput="onEmailInput"
-    />
-
-    <text class="form-label">密码</text>
-    <view class="password-wrap">
-      <input
-        class="form-input form-input--pwd"
-        password="{{!showPassword}}"
-        placeholder="至少 6 位"
-        value="{{password}}"
-        bindinput="onPasswordInput"
-      />
-      <text class="pwd-toggle" bindtap="togglePassword">{{passwordToggleText}}</text>
+    <view class="form-field">
+      <text class="form-label">邮箱</text>
+      <view class="input-box">
+        <input
+          class="form-input-inner"
+          type="text"
+          placeholder="your@email.com"
+          value="{{email}}"
+          bindinput="onEmailInput"
+        />
+      </view>
     </view>
 
-    <button class="btn btn--primary btn--block" loading="{{loading}}" disabled="{{loading || mpLoading}}" bindtap="submitPassword">登录</button>
+    <view class="form-field">
+      <text class="form-label">密码</text>
+      <view class="input-box input-box--password">
+        <input
+          wx:if="{{showPassword}}"
+          class="form-input-inner"
+          type="text"
+          placeholder="至少 6 位"
+          value="{{password}}"
+          bindinput="onPasswordInput"
+        />
+        <input
+          wx:else
+          class="form-input-inner"
+          password
+          placeholder="至少 6 位"
+          value="{{password}}"
+          bindinput="onPasswordInput"
+        />
+        <view
+          class="pwd-toggle"
+          catchtap="togglePassword"
+          hover-class="pwd-toggle--active"
+        >{{passwordToggleText}}</view>
+      </view>
+    </view>
+
+    <view class="form-actions">
+      <button
+        class="btn btn--primary btn--block"
+        loading="{{loading}}"
+        disabled="{{loading || mpLoading}}"
+        bindtap="submitPassword"
+      >登录</button>
+    </view>
 
     <view class="split-line"><text>或</text></view>
 
-    <button class="btn-third btn-third--miniapp" loading="{{mpLoading}}" disabled="{{mpLoading || loading}}" bindtap="onMiniProgramLogin">微信快捷登录</button>
+    <button
+      class="btn-third btn-third--miniapp"
+      loading="{{mpLoading}}"
+      disabled="{{mpLoading || loading}}"
+      bindtap="onMiniProgramLogin"
+    >微信快捷登录</button>
 
-    <view class="register-line">
+    <view class="auth-footer">
       <text>还没有账号？</text>
-      <text class="register-link" bindtap="goRegister">去注册</text>
+      <text class="auth-link" bindtap="goRegister">去注册</text>
     </view>
   </view>
 </view>

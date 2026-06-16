@@ -243,23 +243,6 @@
   margin-bottom: 32rpx;
 }
 
-.btn--block {
-  width: 100%;
-}
-
-.btn--primary {
-  background: linear-gradient(135deg, var(--color-primary-light), var(--color-primary));
-  color: #fff;
-  border: none;
-  font-weight: 500;
-  height: 88rpx;
-  line-height: 88rpx;
-}
-
-.btn--primary::after {
-  border: none;
-}
-
 .btn--outline {
   width: 100%;
   height: 88rpx;

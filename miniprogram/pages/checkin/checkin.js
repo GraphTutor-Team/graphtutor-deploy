@@ -1,9 +1,7 @@
 const api = require('../../utils/api.js');
 const apiExt = require('../../utils/api-ext.js');
 const featurePage = require('../../utils/feature-page.js');
-const authHelper = require('../../utils/auth-helper.js');
 const homeApi = require('../../utils/home-api.js');
-
 Page({
   data: {
     isLoggedIn: false,
@@ -12,6 +10,7 @@ Page({
     activePlanId: '',
     activePlanName: '',
     checkingIn: false,
+    creatingPlan: false,
     records: [],
   },
 
@@ -21,7 +20,7 @@ Page({
 
   loadData() {
     this.setData({ loading: true, loadError: '' });
-    Promise.all([
+    return Promise.all([
       api.getStudyPlans({ status: 'active', limit: 5 }),
       apiExt.getAllCheckIns({ limit: 20 }),
     ]).then(([plansRes, checkRes]) => {
@@ -46,10 +45,10 @@ Page({
   },
 
   doCheckIn() {
-    const { activePlanId, checkingIn } = this.data;
-    if (checkingIn) return;
+    const { activePlanId, checkingIn, creatingPlan } = this.data;
+    if (checkingIn || creatingPlan) return;
     if (!activePlanId) {
-      wx.showToast({ title: '请先在 Web 端创建学习计划', icon: 'none' });
+      this.createDefaultPlan().then(() => this.doCheckIn());
       return;
     }
     this.setData({ checkingIn: true });
@@ -66,6 +65,32 @@ Page({
     }).finally(() => {
       this.setData({ checkingIn: false });
     });
+  },
+
+  createDefaultPlan() {
+    if (this.data.creatingPlan) return Promise.resolve();
+    this.setData({ creatingPlan: true });
+    wx.showLoading({ title: '创建计划…', mask: true });
+    return api.createStudyPlan(apiExt.defaultStudyPlanPayload())
+      .then((plan) => {
+        const planId = plan && (plan._id || plan.id);
+        if (planId) {
+          this.setData({
+            activePlanId: planId,
+            activePlanName: (plan && plan.name) || '每日学习',
+          });
+        }
+        wx.showToast({ title: '已创建学习计划', icon: 'success' });
+        return this.loadData();
+      })
+      .catch((err) => {
+        wx.showToast({ title: (err && err.message) || '创建计划失败', icon: 'none' });
+        throw err;
+      })
+      .finally(() => {
+        wx.hideLoading();
+        this.setData({ creatingPlan: false });
+      });
   },
 
   goLogin() { featurePage.goLogin(); },

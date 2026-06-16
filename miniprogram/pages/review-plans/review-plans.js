@@ -19,6 +19,7 @@ Page({
     loadError: '',
     items: [],
     executingId: '',
+    creatingPlan: false,
   },
 
   onShow() {
@@ -53,6 +54,24 @@ Page({
     this.setData({ executingId: id });
     quizLaunch.launchReviewPlan(id)
       .finally(() => this.setData({ executingId: '' }));
+  },
+
+  createDefaultPlan() {
+    if (this.data.creatingPlan) return;
+    this.setData({ creatingPlan: true });
+    wx.showLoading({ title: '创建中…', mask: true });
+    apiExt.createReviewPlan(apiExt.defaultReviewPlanPayload())
+      .then(() => {
+        wx.showToast({ title: '复习计划已创建', icon: 'success' });
+        this.loadData();
+      })
+      .catch((err) => {
+        wx.showToast({ title: (err && err.message) || '创建失败', icon: 'none' });
+      })
+      .finally(() => {
+        wx.hideLoading();
+        this.setData({ creatingPlan: false });
+      });
   },
 
   goLogin() { featurePage.goLogin(); },

@@ -1,33 +1,58 @@
 /**
  * GraphTutor V3.0 - 请求限流中间件
- * 
- * 功能：防止API滥用，限制请求频率
- * 使用内存存储（生产环境建议使用Redis）
+ *
+ * 环境变量（server/.env）：
+ *   RATE_LIMIT_DISABLED=true     关闭限流（仅建议开发/演示服务器）
+ *   RATE_LIMIT_WINDOW_MS=900000  窗口毫秒，默认 15 分钟
+ *   RATE_LIMIT_API_MAX=100       全 API 上限（默认 100/窗口）
+ *   RATE_LIMIT_STRICT_MAX=5      登录等敏感接口上限（默认 5/窗口）
  */
+
+function parsePositiveInt(value, fallback) {
+  const n = parseInt(value, 10);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
+export const RATE_LIMIT_DISABLED = process.env.RATE_LIMIT_DISABLED === 'true';
+
+export const RATE_LIMIT_WINDOW_MS = parsePositiveInt(
+  process.env.RATE_LIMIT_WINDOW_MS,
+  15 * 60 * 1000,
+);
+
+export const RATE_LIMIT_API_MAX = parsePositiveInt(
+  process.env.RATE_LIMIT_API_MAX,
+  100,
+);
+
+export const RATE_LIMIT_STRICT_MAX = parsePositiveInt(
+  process.env.RATE_LIMIT_STRICT_MAX,
+  5,
+);
+
+/** 从 X-Forwarded-For 或 socket 取客户端 IP（Docker/反代后 trust proxy 须开启） */
+export function getClientIp(req) {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (forwarded) {
+    const first = String(forwarded).split(',')[0].trim();
+    if (first) return first;
+  }
+  return req.ip || req.socket?.remoteAddress || 'unknown';
+}
 
 /**
  * 简单的内存限流器
- * @param {Object} options - 配置选项
- * @param {number} options.windowMs - 时间窗口（毫秒）
- * @param {number} options.max - 最大请求数
- * @param {string} options.message - 限流时的错误消息
- * @returns {Function} Express中间件
  */
 export function createRateLimiter(options = {}) {
   const {
-    windowMs = 15 * 60 * 1000, // 默认15分钟
-    max = 100, // 默认最多100次请求
+    windowMs = RATE_LIMIT_WINDOW_MS,
+    max = 100,
     message = '请求过于频繁，请稍后再试',
-    keyGenerator = (req) => {
-      // 默认使用IP地址作为key
-      return req.ip || req.connection.remoteAddress || 'unknown';
-    }
+    keyGenerator = getClientIp,
   } = options;
 
-  // 内存存储（生产环境建议使用Redis）
   const store = new Map();
 
-  // 定期清理过期记录
   setInterval(() => {
     const now = Date.now();
     for (const [key, value] of store.entries()) {
@@ -43,47 +68,54 @@ export function createRateLimiter(options = {}) {
     const record = store.get(key);
 
     if (!record || record.resetTime < now) {
-      // 创建新记录
       store.set(key, {
         count: 1,
-        resetTime: now + windowMs
+        resetTime: now + windowMs,
       });
       return next();
     }
 
     if (record.count >= max) {
-      // 超过限制
       const retryAfter = Math.ceil((record.resetTime - now) / 1000);
       return res.status(429).json({
         error: message,
+        message,
         retryAfter,
-        resetTime: new Date(record.resetTime).toISOString()
+        resetTime: new Date(record.resetTime).toISOString(),
       });
     }
 
-    // 增加计数
     record.count++;
     next();
   };
 }
 
+/** 关闭限流时的空中间件 */
+export function noopRateLimiter(req, res, next) {
+  next();
+}
+
 /**
- * 默认的API限流器（15分钟内最多100次请求）
+ * 默认的 API 限流器
  */
-export const apiRateLimiter = createRateLimiter({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: 'API请求过于频繁，请稍后再试'
-});
+export const apiRateLimiter = RATE_LIMIT_DISABLED
+  ? noopRateLimiter
+  : createRateLimiter({
+    windowMs: RATE_LIMIT_WINDOW_MS,
+    max: RATE_LIMIT_API_MAX,
+    message: 'API请求过于频繁，请稍后再试',
+  });
 
 /**
  * 严格的限流器（用于登录等敏感操作）
  */
-export const strictRateLimiter = createRateLimiter({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
-  message: '操作过于频繁，请15分钟后再试'
-});
+export const strictRateLimiter = RATE_LIMIT_DISABLED
+  ? noopRateLimiter
+  : createRateLimiter({
+    windowMs: RATE_LIMIT_WINDOW_MS,
+    max: RATE_LIMIT_STRICT_MAX,
+    message: '操作过于频繁，请15分钟后再试',
+  });
 
 /**
  * 基于用户的限流器
@@ -91,10 +123,6 @@ export const strictRateLimiter = createRateLimiter({
 export function createUserRateLimiter(options = {}) {
   return createRateLimiter({
     ...options,
-    keyGenerator: (req) => {
-      // 优先使用用户ID，否则使用IP
-      return req.user?.id || req.ip || 'unknown';
-    }
+    keyGenerator: (req) => req.user?.id || getClientIp(req) || 'unknown',
   });
 }
-

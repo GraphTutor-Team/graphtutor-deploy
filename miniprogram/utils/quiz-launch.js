@@ -7,11 +7,14 @@ const authHelper = require('./auth-helper.js');
 function extractQuestionId(item) {
   if (!item) return '';
   if (typeof item === 'string') return item;
-  const nested = item.questionId;
-  if (nested && typeof nested === 'object') {
-    return nested._id || nested.id || '';
+  if (item.questionId != null && item.questionId !== '') {
+    const nested = item.questionId;
+    if (typeof nested === 'object') {
+      return String(nested._id || nested.id || '');
+    }
+    return String(nested);
   }
-  return item.questionId || item._id || item.id || '';
+  return String(item._id || item.id || '');
 }
 
 function launchQuizWithIds(questionIds) {
@@ -163,8 +166,11 @@ function launchReviewPlan(planId) {
   const apiExt = require('./api-ext.js');
   return apiExt.executeReviewPlan(planId)
     .then((data) => {
+      const fromApi = (data && data.questionIds) || [];
       const items = (data && data.questions) || [];
-      const ids = items.map(extractQuestionId).filter(Boolean);
+      const ids = (fromApi.length ? fromApi : items.map(extractQuestionId))
+        .map((id) => String(id))
+        .filter(Boolean);
       if (!ids.length) {
         wx.showToast({ title: '今日暂无复习题目', icon: 'none' });
         return false;

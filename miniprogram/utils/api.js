@@ -194,6 +194,12 @@ function request(url, options = {}, retryOn401 = true) {
           return;
         }
         const msg = (res.data && res.data.message) || (res.data && res.data.error) || ('请求失败 ' + res.statusCode);
+        if (res.statusCode === 429) {
+          const retry = res.data && res.data.retryAfter;
+          const hint = retry ? `请约 ${Math.ceil(retry / 60) || 1} 分钟后再试` : '请稍后再试';
+          reject(new Error(`${msg}（${hint}）`));
+          return;
+        }
         reject(new Error(msg));
       },
       fail(err) {
@@ -420,6 +426,18 @@ function getStudyPlans(params) {
   }).then((res) => (res && res.success && res.data) || { items: [], total: 0 });
 }
 
+function createStudyPlan(data) {
+  return request('/api/v3/study-plans', {
+    method: 'POST',
+    data: data || {},
+  }).then((res) => {
+    if (res && res.success === false) {
+      throw new Error(res.message || '创建学习计划失败');
+    }
+    return (res && res.data) || res;
+  });
+}
+
 function getStudyPlanStats() {
   return request('/api/v3/study-plans/stats', { method: 'GET' })
     .then((res) => (res && res.success && res.data) || null);
@@ -525,6 +543,7 @@ module.exports = {
   getWrongQuestions,
   getWrongQuestionStats,
   getStudyPlans,
+  createStudyPlan,
   getStudyPlanStats,
   getGraphHeatmap,
   getPathRecommendations,

@@ -1,4 +1,4 @@
-<view class="container">
+<view class="container container--auth">
   <view class="login-header">
     <view class="login-dot"></view>
     <view class="login-title">完善账号信息</view>
@@ -20,31 +20,85 @@
 
     <view class="form-error" wx:if="{{error}}">{{error}}</view>
 
-    <text class="form-label">邮箱</text>
-    <input class="form-input" type="text" placeholder="your@email.com" value="{{email}}" bindinput="onEmailInput" />
+    <view class="form-field">
+      <text class="form-label">邮箱</text>
+      <view class="input-box">
+        <input class="form-input-inner" type="text" placeholder="your@email.com" value="{{email}}" bindinput="onEmailInput" />
+      </view>
+    </view>
 
-    <text class="form-label">密码</text>
-    <view class="password-wrap">
-      <input class="form-input form-input--pwd" password="{{!showPassword}}" placeholder="至少 6 位" value="{{password}}" bindinput="onPasswordInput" />
-      <text class="pwd-toggle" bindtap="togglePassword">{{passwordToggleText}}</text>
+    <view class="form-field">
+      <text class="form-label">密码</text>
+      <view class="input-box input-box--password">
+        <input
+          wx:if="{{showPassword}}"
+          class="form-input-inner"
+          type="text"
+          placeholder="至少 6 位"
+          value="{{password}}"
+          bindinput="onPasswordInput"
+        />
+        <input
+          wx:else
+          class="form-input-inner"
+          password
+          placeholder="至少 6 位"
+          value="{{password}}"
+          bindinput="onPasswordInput"
+        />
+        <view class="pwd-toggle" catchtap="togglePassword" hover-class="pwd-toggle--active">{{passwordToggleText}}</view>
+      </view>
     </view>
 
     <block wx:if="{{isRegisterMode}}">
-      <text class="form-label">确认密码</text>
-      <input class="form-input" password placeholder="再次输入密码" value="{{confirmPassword}}" bindinput="onConfirmPasswordInput" />
+      <view class="form-field">
+        <text class="form-label">确认密码</text>
+        <view class="input-box">
+          <input
+            wx:if="{{showPassword}}"
+            class="form-input-inner"
+            type="text"
+            placeholder="再次输入密码"
+            value="{{confirmPassword}}"
+            bindinput="onConfirmPasswordInput"
+          />
+          <input
+            wx:else
+            class="form-input-inner"
+            password
+            placeholder="再次输入密码"
+            value="{{confirmPassword}}"
+            bindinput="onConfirmPasswordInput"
+          />
+        </view>
+      </view>
 
-      <text class="form-label">昵称（选填）</text>
-      <input class="form-input" placeholder="如何称呼你" value="{{name}}" bindinput="onNameInput" />
+      <view class="form-field">
+        <text class="form-label">昵称（选填）</text>
+        <view class="input-box">
+          <input class="form-input-inner" placeholder="如何称呼你" value="{{name}}" bindinput="onNameInput" />
+        </view>
+      </view>
 
-      <text class="form-label">学校（选填）</text>
-      <input class="form-input" placeholder="例如：某某大学" value="{{school}}" bindinput="onSchoolInput" />
+      <view class="form-field">
+        <text class="form-label">学校（选填）</text>
+        <view class="input-box">
+          <input class="form-input-inner" placeholder="例如：某某大学" value="{{school}}" bindinput="onSchoolInput" />
+        </view>
+      </view>
 
-      <text class="form-label">年级（选填）</text>
-      <input class="form-input" placeholder="例如：大二" value="{{grade}}" bindinput="onGradeInput" />
+      <view class="form-field">
+        <text class="form-label">年级（选填）</text>
+        <view class="input-box">
+          <input class="form-input-inner" placeholder="例如：大二" value="{{grade}}" bindinput="onGradeInput" />
+        </view>
+      </view>
     </block>
 
-    <button class="btn btn--primary btn--block" loading="{{loading}}" disabled="{{loading}}" bindtap="submit">
-      {{isLinkMode ? '绑定并同步' : '完成注册'}}
-    </button>
+    <view class="form-actions">
+      <button class="btn btn--primary btn--block" loading="{{loading}}" disabled="{{loading}}" bindtap="submit">
+        {{isLinkMode ? '绑定并同步' : '完成注册'}}
+      </button>
+    </view>
   </view>
 </view>

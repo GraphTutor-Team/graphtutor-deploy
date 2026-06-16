@@ -149,6 +149,36 @@ function executeReviewPlan(planId) {
   }).then(dataOf));
 }
 
+function createReviewPlan(data) {
+  return withAuth(() => api.request('/api/v3/review-plans', {
+    method: 'POST',
+    data: data || {},
+  }).then(dataOf));
+}
+
+function defaultStudyPlanPayload() {
+  const now = new Date();
+  const start = now.toISOString().slice(0, 10);
+  const endDate = new Date(now);
+  endDate.setFullYear(endDate.getFullYear() + 1);
+  return {
+    name: '每日学习',
+    type: 'daily',
+    startDate: start,
+    endDate: endDate.toISOString().slice(0, 10),
+    dailyTarget: 10,
+  };
+}
+
+function defaultReviewPlanPayload() {
+  return {
+    name: '每日错题复习',
+    type: 'daily',
+    strategy: 'due',
+    dailyCount: 10,
+  };
+}
+
 function createNote(data) {
   return withAuth(() => api.request('/api/v3/notes', {
     method: 'POST',
@@ -332,6 +362,9 @@ module.exports = {
   rejectFriendRequest,
   getReviewPlans,
   executeReviewPlan,
+  createReviewPlan,
+  defaultStudyPlanPayload,
+  defaultReviewPlanPayload,
   createNote,
   updateNote,
   getShopItems,

@@ -23,8 +23,8 @@
     <view class="card">
       <view class="section-title">今日打卡</view>
       <view wx:if="{{activePlanId}}" class="item-meta" style="margin-bottom:16rpx;">关联计划：{{activePlanName}}</view>
-      <view wx:else class="item-meta" style="margin-bottom:16rpx;">暂无进行中的计划，请先在 Web 端创建</view>
-      <button class="primary-action" style="margin-top:0;" loading="{{checkingIn}}" bindtap="doCheckIn">立即打卡</button>
+      <view wx:else class="item-meta" style="margin-bottom:16rpx;">暂无计划，打卡时将自动创建默认学习计划</view>
+      <button class="primary-action" style="margin-top:0;" loading="{{checkingIn || creatingPlan}}" bindtap="doCheckIn">立即打卡</button>
     </view>
 
     <view class="card">

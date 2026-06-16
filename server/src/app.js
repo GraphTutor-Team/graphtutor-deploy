@@ -75,6 +75,9 @@ import { csrfTokenMiddleware, csrfProtection, csrfTokenHandler } from "./middlew
 export async function createServer() {
   const app = express();
 
+  // 反代 / Docker 后 req.ip 才可能是真实客户端 IP（限流按 IP 计数）
+  app.set('trust proxy', process.env.TRUST_PROXY !== 'false' ? 1 : false);
+
   // 安全头（最先应用）
   app.use(securityHeaders);
 
@@ -144,7 +147,14 @@ export async function createServer() {
     }
   });
 
-  // API限流（应用到所有API路由）
+  // API限流（应用到所有API路由；可通过 RATE_LIMIT_* 环境变量调整）
+  if (process.env.RATE_LIMIT_DISABLED === 'true') {
+    console.warn('[rate-limit] 已关闭 API 限流（RATE_LIMIT_DISABLED=true）');
+  } else {
+    console.log(
+      `[rate-limit] API ${process.env.RATE_LIMIT_API_MAX || 100}/${Math.round((parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 900000) / 60000)}min, strict ${process.env.RATE_LIMIT_STRICT_MAX || 5}/窗口`,
+    );
+  }
   app.use("/api", apiRateLimiter);
 
   // CSRF保护（应用到所有修改数据的API）

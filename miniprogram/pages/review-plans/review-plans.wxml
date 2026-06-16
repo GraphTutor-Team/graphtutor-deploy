@@ -1,7 +1,7 @@
 <view class="container">
   <view class="feature-header">
     <view class="feature-title">复习计划</view>
-    <view class="feature-desc">查看与执行复习计划（创建/编辑请在 Web 端）</view>
+    <view class="feature-desc">创建并执行错题复习计划，与 Web 端同步</view>
   </view>
 
   <view wx:if="{{!isLoggedIn}}" class="card">
@@ -21,7 +21,10 @@
 
   <block wx:else>
     <view class="card">
-      <view wx:if="{{items.length === 0}}" class="state-text state-text--muted">暂无复习计划，请在 Web 端创建</view>
+      <view wx:if="{{items.length === 0}}" class="state-box">
+        <view class="state-text state-text--muted">暂无复习计划</view>
+        <button class="state-btn" loading="{{creatingPlan}}" bindtap="createDefaultPlan">创建默认复习计划</button>
+      </view>
       <view class="item-card" wx:for="{{items}}" wx:key="id">
         <view class="item-row">
           <view class="item-title">{{item.name}}</view>

@@ -1,1 +1,1 @@
-@import "../login/login.wxss";
+@import "../../styles/auth-form.wxss";
