@@ -4,6 +4,7 @@
  * 功能：基于用户学习数据智能推荐题目
  */
 
+import mongoose from 'mongoose';
 import Question from '../models/Question.js';
 import Record from '../models/Record.js';
 import LearningGoal from '../models/LearningGoal.js';
@@ -28,6 +29,14 @@ export async function getRecommendedQuestions(userId, options = {}) {
     let recommendedQuestions = [];
 
     switch (strategy) {
+      case 'random':
+        recommendedQuestions = await getRandomQuestions({
+          limit,
+          subjectCode,
+          bankId,
+        });
+        break;
+
       case 'weak_points':
         // 薄弱知识点推荐：推荐用户答错过的知识点相关题目
         recommendedQuestions = await recommendByWeakPoints(userId, {
@@ -88,7 +97,13 @@ export async function getRecommendedQuestions(userId, options = {}) {
     return recommendedQuestions.slice(0, limit);
   } catch (error) {
     console.error('getRecommendedQuestions error:', error);
-    throw error;
+    try {
+      const { limit = 10, subjectCode, bankId } = options;
+      return await getRandomQuestions({ limit, subjectCode, bankId });
+    } catch (fallbackErr) {
+      console.error('getRecommendedQuestions fallback error:', fallbackErr);
+      return [];
+    }
   }
 }
 
@@ -106,7 +121,7 @@ async function recommendByWeakPoints(userId, options = {}) {
   });
 
   // 找出正确率低于60%的知识点
-  const weakNodes = mastery.knowledgeNodes
+  const weakNodes = (mastery.knowledgeNodes || [])
     .filter(node => node.accuracy < 60)
     .slice(0, 5)
     .map(node => node.knowledgeNodeId)
@@ -355,7 +370,7 @@ async function getUnmasteredNodes(userId, mastery) {
   });
 
   // 获取已掌握的知识点（正确率>=80%）
-  const masteredNodes = mastery.knowledgeNodes
+  const masteredNodes = (mastery.knowledgeNodes || [])
     .filter(node => node.accuracy >= 80)
     .map(node => node.knowledgeNodeId)
     .filter(Boolean);
@@ -409,7 +424,10 @@ async function getRandomQuestions(options = {}) {
     query.bankId = bankId;
   }
   if (excludeIds.length > 0) {
-    query._id = { $nin: excludeIds };
+    const objectIds = excludeIds.filter((id) => mongoose.Types.ObjectId.isValid(id));
+    if (objectIds.length > 0) {
+      query._id = { $nin: objectIds };
+    }
   }
 
   // 使用聚合管道随机选择
@@ -440,7 +458,7 @@ export async function getRecommendationReason(userId, questionId) {
       minQuestions: 1,
     });
 
-    const nodeMastery = mastery.knowledgeNodes.find(
+    const nodeMastery = (mastery.knowledgeNodes || []).find(
       node => node.knowledgeNodeId === question.knowledgeNodeId
     );
 

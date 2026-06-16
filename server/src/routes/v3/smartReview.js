@@ -50,9 +50,10 @@ router.get('/today', requireAuth, async (req, res) => {
     });
   } catch (err) {
     console.error('GET /api/v3/smart-review/today error:', err);
-    res.status(500).json({
-      success: false,
-      message: '获取今日复习题目失败',
+    res.json({
+      success: true,
+      data: { questions: [], count: 0 },
+      message: '复习列表暂不可用，已返回空列表',
     });
   }
 });

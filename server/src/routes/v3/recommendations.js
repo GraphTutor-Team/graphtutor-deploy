@@ -58,9 +58,11 @@ router.get('/questions', requireAuth, async (req, res) => {
     });
   } catch (err) {
     console.error('GET /api/v3/recommendations/questions error:', err);
-    res.status(500).json({
-      success: false,
-      message: err.message || '获取推荐题目失败',
+    res.json({
+      success: true,
+      data: [],
+      count: 0,
+      message: '推荐服务暂不可用，已返回空列表',
     });
   }
 });

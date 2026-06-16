@@ -24,8 +24,8 @@ function formatTimeAgo(dateString) {
 function fetchDashboard() {
   return api.ensureValidAccessToken().then(() => Promise.allSettled([
     api.getNotifications({ page: 1, limit: 5 }),
-    api.getRecommendedQuestions({ limit: 3, includeReasons: false }),
-    api.getTodayReviewQuestions({ limit: 100 }),
+    api.getRecommendedQuestions({ limit: 3, strategy: 'random', includeReasons: false }),
+    api.getTodayReviewQuestions({ limit: 50 }),
     api.getComprehensiveAnalysis(7),
   ])).then(([notifRes, recRes, reviewRes, analysisRes]) => {
     const notifications = notifRes.status === 'fulfilled'

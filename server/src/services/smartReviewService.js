@@ -66,58 +66,54 @@ class SuperMemo2 {
  * @returns {Promise<Array>} 今日需要复习的题目列表
  */
 export async function getTodayReviewQuestions(userId, options = {}) {
-  const {
-    limit = 50,
-    includeMastered = false,
-  } = options;
+  try {
+    const {
+      limit = 50,
+      includeMastered = false,
+    } = options;
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrow = new Date();
+    tomorrow.setHours(23, 59, 59, 999);
 
-  // 构建查询条件
-  const query = {
-    userId,
-    $or: [
-      // 使用reviewPlan的nextReviewDate
-      { 'reviewPlan.nextReviewDate': { $lte: tomorrow } },
-      // 或使用nextReviewAt（向后兼容）
-      { nextReviewAt: { $lte: tomorrow } },
-      // 或没有复习计划的
-      { $or: [{ 'reviewPlan.nextReviewDate': { $exists: false } }, { nextReviewAt: { $exists: false } }] },
-    ],
-  };
+    const query = {
+      userId: String(userId),
+      $or: [
+        { 'reviewPlan.nextReviewDate': { $lte: tomorrow } },
+        { nextReviewAt: { $lte: tomorrow } },
+        {
+          $and: [
+            { $or: [{ 'reviewPlan.nextReviewDate': { $exists: false } }, { 'reviewPlan.nextReviewDate': null }] },
+            { $or: [{ nextReviewAt: { $exists: false } }, { nextReviewAt: null }] },
+          ],
+        },
+      ],
+    };
 
-  // 如果不包含已掌握的题目
-  if (!includeMastered) {
-    query.isMastered = false;
-    query.masteryStatus = { $ne: 'mastered' };
+    if (!includeMastered) {
+      query.masteryStatus = { $ne: 'mastered' };
+    }
+
+    const wrongQuestions = await WrongQuestion.find(query)
+      .sort({
+        'reviewPlan.nextReviewDate': 1,
+        nextReviewAt: 1,
+        errorCount: -1,
+        mastery: 1,
+      })
+      .limit(Math.min(limit, 100))
+      .lean();
+
+    const questionsWithPriority = wrongQuestions.map((q) => ({
+      ...q,
+      priority: calculatePriority(q),
+    }));
+
+    questionsWithPriority.sort((a, b) => b.priority - a.priority);
+    return questionsWithPriority;
+  } catch (error) {
+    console.error('getTodayReviewQuestions error:', error);
+    return [];
   }
-
-  // 查询题目
-  const wrongQuestions = await WrongQuestion.find(query)
-    .populate('questionId')
-    .sort({
-      // 优先显示过期的
-      'reviewPlan.nextReviewDate': 1,
-      nextReviewAt: 1,
-      // 然后按优先级排序
-      errorCount: -1,
-      mastery: 1,
-    })
-    .limit(limit)
-    .lean();
-
-  // 计算优先级并排序
-  const questionsWithPriority = wrongQuestions.map(q => ({
-    ...q,
-    priority: calculatePriority(q),
-  }));
-
-  questionsWithPriority.sort((a, b) => b.priority - a.priority);
-
-  return questionsWithPriority;
 }
 
 /**
