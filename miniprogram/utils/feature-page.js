@@ -6,7 +6,10 @@ const authHelper = require('./auth-helper.js');
 const config = require('./config.js');
 
 function requireLogin(page, onReady) {
-  if (!authHelper.ensureProfileComplete()) return false;
+  if (!authHelper.ensureProfileComplete()) {
+    page.setData({ isLoggedIn: false, loading: false });
+    return false;
+  }
 
   const token = wx.getStorageSync('token');
   if (!token || config.USE_VIRTUAL_LOGIN || api.isVirtualToken()) {

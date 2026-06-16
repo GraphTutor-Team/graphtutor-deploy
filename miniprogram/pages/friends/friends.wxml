@@ -1,116 +1,109 @@
 <view class="container">
-
   <view class="feature-header">
-
     <view class="feature-title">好友</view>
-
-    <view class="feature-desc">与 Web 端好友列表同步（添加请在 Web 端）</view>
-
+    <view class="feature-desc">搜索邮箱或昵称添加好友，点击好友发消息</view>
   </view>
-
-
 
   <view wx:if="{{!isLoggedIn}}" class="card">
-
     <view class="state-box">
-
       <view class="state-text">登录后查看好友</view>
-
       <button class="state-btn" bindtap="goLogin">去登录</button>
-
     </view>
-
   </view>
-
-
 
   <view wx:elif="{{loading}}" class="state-text">加载中…</view>
-
   <view wx:elif="{{loadError}}" class="card">
-
     <view class="state-box">
-
       <view class="state-text">{{loadError}}</view>
-
       <button class="state-btn" bindtap="reload">重试</button>
-
     </view>
-
   </view>
 
-
-
   <block wx:else>
+    <view class="card">
+      <view class="section-title">搜索添加好友</view>
+      <input
+        class="friend-search"
+        placeholder="输入邮箱或昵称搜索"
+        value="{{keyword}}"
+        bindinput="onSearchInput"
+        confirm-type="search"
+      />
+      <view wx:if="{{searching}}" class="state-text state-text--muted">搜索中…</view>
+      <view wx:elif="{{keyword && searchResults.length === 0}}" class="state-text state-text--muted">未找到用户</view>
+      <view class="item-card" wx:for="{{searchResults}}" wx:key="id">
+        <view class="item-row">
+          <view style="flex:1;">
+            <view class="item-title">{{item.name}}</view>
+            <view wx:if="{{item.email}}" class="item-meta">{{item.email}}</view>
+          </view>
+          <button
+            wx:if="{{item.relationship === 'none'}}"
+            class="friend-action-btn"
+            size="mini"
+            loading="{{processingId === item.id}}"
+            disabled="{{!!processingId}}"
+            data-id="{{item.id}}"
+            data-name="{{item.name}}"
+            bindtap="sendRequest"
+          >加好友</button>
+          <button
+            wx:elif="{{item.relationship === 'friend'}}"
+            class="friend-action-btn friend-action-btn--chat"
+            size="mini"
+            data-id="{{item.id}}"
+            data-name="{{item.name}}"
+            bindtap="openChat"
+          >发消息</button>
+          <text wx:elif="{{item.relationship === 'request_sent'}}" class="item-meta">已发送请求</text>
+          <text wx:elif="{{item.relationship === 'request_received'}}" class="item-meta">对方已请求加你</text>
+        </view>
+      </view>
+    </view>
 
     <view class="card" wx:if="{{requests.length > 0}}">
-
       <view class="section-title">待处理请求</view>
-
       <view class="item-card" wx:for="{{requests}}" wx:key="id">
-
         <view class="item-row">
-
           <view class="item-title">{{item.name}}</view>
-
         </view>
-
         <view class="req-actions">
-
           <button
-
             class="req-btn req-btn--accept"
-
             size="mini"
-
             loading="{{processingId === item.id}}"
-
             disabled="{{!!processingId}}"
-
             data-id="{{item.id}}"
-
             bindtap="acceptRequest"
-
           >接受</button>
-
           <button
-
             class="req-btn req-btn--reject"
-
             size="mini"
-
             disabled="{{!!processingId}}"
-
             data-id="{{item.id}}"
-
             bindtap="rejectRequest"
-
           >拒绝</button>
-
         </view>
-
       </view>
-
     </view>
-
-
 
     <view class="card">
-
       <view class="section-title">我的好友（{{friends.length}}）</view>
-
-      <view wx:if="{{friends.length === 0}}" class="state-text state-text--muted">暂无好友</view>
-
-      <view class="item-card" wx:for="{{friends}}" wx:key="id">
-
-        <view class="item-title">{{item.name}}</view>
-
-        <view wx:if="{{item.email}}" class="item-meta">{{item.email}}</view>
-
+      <view wx:if="{{friends.length === 0}}" class="state-text state-text--muted">暂无好友，可在上方搜索添加</view>
+      <view
+        class="item-card item-row friend-row"
+        wx:for="{{friends}}"
+        wx:key="id"
+        bindtap="openChat"
+        data-id="{{item.id}}"
+        data-name="{{item.name}}"
+      >
+        <view style="flex:1;">
+          <view class="item-title">{{item.name}}</view>
+          <view wx:if="{{item.email}}" class="item-meta">{{item.email}}</view>
+        </view>
+        <text class="friend-chat-hint">发消息 ›</text>
       </view>
-
     </view>
-
   </block>
-
 </view>
-

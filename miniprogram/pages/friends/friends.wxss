@@ -1,5 +1,37 @@
 @import "../../styles/feature-page.wxss";
 
+.friend-search {
+  width: 100%;
+  height: 72rpx;
+  padding: 0 24rpx;
+  margin-bottom: 16rpx;
+  border-radius: 36rpx;
+  background: rgba(21, 101, 192, 0.06);
+  font-size: 28rpx;
+  box-sizing: border-box;
+}
+
+.friend-row:active {
+  opacity: 0.85;
+}
+
+.friend-chat-hint {
+  font-size: 24rpx;
+  color: var(--color-primary);
+}
+
+.friend-action-btn {
+  border-radius: 999rpx !important;
+  background: var(--color-primary) !important;
+  color: #fff !important;
+  font-size: 24rpx !important;
+}
+
+.friend-action-btn--chat {
+  background: rgba(21, 101, 192, 0.1) !important;
+  color: var(--color-primary) !important;
+}
+
 .req-actions {
   display: flex;
   gap: 16rpx;

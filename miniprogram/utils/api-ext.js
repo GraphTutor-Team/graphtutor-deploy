@@ -135,6 +135,21 @@ function rejectFriendRequest(requestId) {
   }).then(dataOf));
 }
 
+function searchUsers(params) {
+  const p = params || {};
+  return withAuth(() => api.request('/api/v3/friends/search', {
+    method: 'GET',
+    data: cleanQuery({ keyword: p.keyword, page: p.page || 1, limit: p.limit || 20 }),
+  }).then(dataOf));
+}
+
+function sendFriendRequest(toUserId, message) {
+  return withAuth(() => api.request('/api/v3/friends/requests', {
+    method: 'POST',
+    data: { toUserId, message: message || '你好，加个好友一起学习吧！' },
+  }).then(dataOf));
+}
+
 function getReviewPlans(params) {
   const p = params || {};
   return withAuth(() => api.request('/api/v3/review-plans', {
@@ -372,6 +387,8 @@ module.exports = {
   getFriendRequests,
   acceptFriendRequest,
   rejectFriendRequest,
+  searchUsers,
+  sendFriendRequest,
   getReviewPlans,
   executeReviewPlan,
   createReviewPlan,
