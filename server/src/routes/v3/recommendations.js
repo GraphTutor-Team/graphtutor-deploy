@@ -19,6 +19,13 @@ const router = express.Router();
  * 获取推荐的题目列表
  */
 router.get('/questions', requireAuth, async (req, res) => {
+  const sendEmpty = (message) => res.json({
+    success: true,
+    data: [],
+    count: 0,
+    message: message || '推荐服务暂不可用，已返回空列表',
+  });
+
   try {
     const userId = req.user.id;
     const {
@@ -32,21 +39,30 @@ router.get('/questions', requireAuth, async (req, res) => {
     } = req.query;
 
     const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 10));
-    const questions = await getRecommendedQuestions(userId, {
-      limit: limitNum,
-      subjectCode,
-      bankId,
-      strategy,
-      questionId,
-      knowledgeNodeId,
-    });
+    const questions = await Promise.race([
+      getRecommendedQuestions(userId, {
+        limit: limitNum,
+        subjectCode,
+        bankId,
+        strategy,
+        questionId,
+        knowledgeNodeId,
+      }),
+      new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('recommendations timeout')), 12000);
+      }),
+    ]);
 
     const needReasons = includeReasons !== 'false' && includeReasons !== '0';
     const questionsWithReasons = needReasons
       ? await Promise.all(
           questions.map(async (q) => {
-            const reason = await getRecommendationReason(userId, q._id?.toString() || q.id);
-            return { ...q, recommendationReason: reason };
+            try {
+              const reason = await getRecommendationReason(userId, q._id?.toString() || q.id);
+              return { ...q, recommendationReason: reason };
+            } catch {
+              return { ...q, recommendationReason: null };
+            }
           })
         )
       : questions.map((q) => ({ ...q, recommendationReason: null }));
@@ -58,12 +74,7 @@ router.get('/questions', requireAuth, async (req, res) => {
     });
   } catch (err) {
     console.error('GET /api/v3/recommendations/questions error:', err);
-    res.json({
-      success: true,
-      data: [],
-      count: 0,
-      message: '推荐服务暂不可用，已返回空列表',
-    });
+    sendEmpty('推荐服务暂不可用，已返回空列表');
   }
 });
 

@@ -242,7 +242,7 @@ async function recommendSimilarQuestions(questionId, options = {}) {
   const { limit = 5, subjectCode, bankId } = options;
 
   // 获取原题目
-  const question = await Question.findById(questionId).lean();
+  let question = await Question.findById(questionId).lean();
   if (!question) {
     question = await Question.findOne({ id: questionId }).lean();
   }
@@ -415,6 +415,7 @@ async function getQuestionsByNodes(nodeIds, options = {}) {
  */
 async function getRandomQuestions(options = {}) {
   const { limit = 10, subjectCode, bankId, excludeIds = [] } = options;
+  const size = Math.max(1, Math.min(50, Number(limit) || 10));
 
   const query = {};
   if (subjectCode) {
@@ -430,13 +431,30 @@ async function getRandomQuestions(options = {}) {
     }
   }
 
-  // 使用聚合管道随机选择
-  const questions = await Question.aggregate([
-    { $match: query },
-    { $sample: { size: limit } },
-  ]);
+  // 大题库上全表 $sample 易超时/OOM → 先限池再抽样
+  const poolSize = Math.min(500, Math.max(size * 30, 60));
+  try {
+    const sampled = await Question.aggregate([
+      { $match: query },
+      { $limit: poolSize },
+      { $sample: { size: Math.min(size, poolSize) } },
+    ]).option({ maxTimeMS: 8000 });
+    if (sampled.length > 0) {
+      return sampled.slice(0, size);
+    }
+  } catch (err) {
+    console.error('getRandomQuestions sample error:', err.message || err);
+  }
 
-  return questions;
+  try {
+    const count = await Question.countDocuments(query).maxTimeMS(5000);
+    if (count === 0) return [];
+    const skip = count <= size ? 0 : Math.floor(Math.random() * Math.max(1, count - size));
+    return Question.find(query).skip(skip).limit(size).lean().maxTimeMS(5000);
+  } catch (err) {
+    console.error('getRandomQuestions fallback error:', err.message || err);
+    return Question.find(query).limit(size).lean().maxTimeMS(3000).catch(() => []);
+  }
 }
 
 /**
