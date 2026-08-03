@@ -63,7 +63,7 @@ export default function NoteDetailPanel({
       {note.tags?.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-4">
           {note.tags.map((tag) => (
-            <span key={tag} className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded">
+            <span key={tag} className="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded">
               {tag}
             </span>
           ))}

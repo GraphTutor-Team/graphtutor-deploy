@@ -5,7 +5,6 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   toggleLikePost,
@@ -18,6 +17,7 @@ import {
 } from '../api/v3/learningPosts';
 import { toast } from '../utils/toast';
 import Icon from './common/Icon';
+import AuthorLink from './AuthorLink';
 
 export default function LearningPostCard({ post, onUpdate }) {
   const { user } = useAuth();
@@ -145,30 +145,30 @@ export default function LearningPostCard({ post, onUpdate }) {
   const authorAvatar = typeof post.authorId === 'object' ? post.authorId?.avatar : null;
 
   return (
-    <div className="card p-6 hover:shadow-lg transition-shadow">
+    <div className="card p-6  transition-shadow">
       {/* 头部 */}
       <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center space-x-3">
+        <AuthorLink author={post.authorId} className="flex items-center space-x-3 min-w-0">
           {authorAvatar ? (
             <img
               src={authorAvatar}
               alt={authorName}
-              className="h-10 w-10 rounded-full"
+              className="h-10 w-10 rounded-full object-cover flex-shrink-0"
             />
           ) : (
-            <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
+            <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold flex-shrink-0">
               {authorName.charAt(0).toUpperCase()}
             </div>
           )}
-          <div>
-            <div className="font-semibold text-slate-900 dark:text-slate-100">
+          <div className="min-w-0">
+            <div className="font-semibold text-slate-900 dark:text-slate-100 truncate">
               {authorName}
             </div>
             <div className="text-xs text-slate-500 dark:text-slate-400">
               {new Date(post.createdAt).toLocaleString('zh-CN')}
             </div>
           </div>
-        </div>
+        </AuthorLink>
         {isAuthor && (
           <button
             onClick={handleDelete}
@@ -289,9 +289,12 @@ export default function LearningPostCard({ post, onUpdate }) {
                   <div key={comment._id} className="flex items-start space-x-3">
                     <div className="flex-1">
                       <div className="flex items-center space-x-2 mb-1">
-                        <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">
+                        <AuthorLink
+                          author={comment.authorId}
+                          className="font-semibold text-sm text-slate-900 dark:text-slate-100"
+                        >
                           {commentAuthorName}
-                        </span>
+                        </AuthorLink>
                         <span className="text-xs text-slate-500">
                           {new Date(comment.createdAt).toLocaleString('zh-CN')}
                         </span>

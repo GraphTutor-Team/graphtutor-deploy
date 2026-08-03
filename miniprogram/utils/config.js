@@ -14,8 +14,11 @@
  */
 const USE_VIRTUAL_LOGIN = false;
 const BASE_URL = 'http://106.55.99.208:5000';
+/** Web 端地址（群组等能力引导） */
+const WEB_URL = 'http://106.55.99.208:5000';
 
 module.exports = {
   USE_VIRTUAL_LOGIN,
   BASE_URL,
+  WEB_URL,
 };

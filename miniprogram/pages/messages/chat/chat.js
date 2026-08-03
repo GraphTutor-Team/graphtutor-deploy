@@ -4,6 +4,8 @@ const authHelper = require('../../../utils/auth-helper.js');
 const quizHelper = require('../../../utils/quiz-helper.js');
 const homeApi = require('../../../utils/home-api.js');
 
+const POLL_MS = 15000;
+
 function sortMessagesAsc(list) {
   return [...list].sort((a, b) => {
     const ta = new Date(a.createdAt || 0).getTime();
@@ -23,7 +25,11 @@ Page({
     draft: '',
     myId: '',
     scrollInto: '',
+    pollHint: '',
   },
+
+  _pollTimer: null,
+  _lastMessageId: '',
 
   onLoad(options) {
     const userId = options && options.userId ? options.userId : '';
@@ -38,13 +44,41 @@ Page({
       return;
     }
     wx.setNavigationBarTitle({ title: userName });
-    this.loadMessages();
+    this.loadMessages({ silent: false });
   },
 
-  loadMessages() {
+  onShow() {
+    if (this.data.userId) this.startPolling();
+  },
+
+  onHide() {
+    this.stopPolling();
+  },
+
+  onUnload() {
+    this.stopPolling();
+  },
+
+  startPolling() {
+    this.stopPolling();
+    this._pollTimer = setInterval(() => {
+      this.loadMessages({ silent: true });
+    }, POLL_MS);
+  },
+
+  stopPolling() {
+    if (this._pollTimer) {
+      clearInterval(this._pollTimer);
+      this._pollTimer = null;
+    }
+  },
+
+  loadMessages(opts) {
+    const silent = !!(opts && opts.silent);
     const { userId, myId } = this.data;
     if (!userId) return;
-    this.setData({ loading: true });
+    if (!silent) this.setData({ loading: true });
+
     api.ensureValidAccessToken()
       .then(() => apiExt.getConversation(userId, { limit: 50 }))
       .then((list) => {
@@ -61,11 +95,38 @@ Page({
             isMine: senderId === String(myId),
           };
         });
+
+        const last = messages.length ? messages[messages.length - 1] : null;
+        const lastId = last ? String(last.id) : '';
+        const prevLastId = this._lastMessageId;
+        const hasIncoming =
+          silent &&
+          lastId &&
+          prevLastId &&
+          lastId !== prevLastId &&
+          last &&
+          !last.isMine;
+
+        if (lastId) this._lastMessageId = lastId;
+
         const scrollInto = messages.length ? messages[messages.length - 1].scrollId : '';
-        this.setData({ loading: false, messages, scrollInto });
+        this.setData({
+          loading: false,
+          messages,
+          scrollInto: hasIncoming || !silent ? scrollInto : this.data.scrollInto,
+          pollHint: hasIncoming ? '收到新消息' : '',
+        });
+
+        if (hasIncoming) {
+          wx.showToast({ title: '收到新消息', icon: 'none' });
+          setTimeout(() => this.setData({ pollHint: '' }), 2000);
+        }
+
         apiExt.markMessagesAsRead(userId).catch(() => {});
       })
-      .catch(() => this.setData({ loading: false, messages: [] }));
+      .catch(() => {
+        if (!silent) this.setData({ loading: false, messages: [] });
+      });
   },
 
   onInput(e) {
@@ -80,7 +141,7 @@ Page({
     apiExt.sendMessage({ receiverId: userId, content, type: 'text' })
       .then(() => {
         this.setData({ draft: '' });
-        this.loadMessages();
+        this.loadMessages({ silent: false });
       })
       .catch((err) => {
         wx.showToast({ title: (err && err.message) || '发送失败', icon: 'none' });
@@ -109,6 +170,7 @@ Page({
       .then(() => {
         wx.showToast({ title: '已清空', icon: 'success' });
         this.setData({ messages: [], scrollInto: '' });
+        this._lastMessageId = '';
         setTimeout(() => wx.navigateBack(), 400);
       })
       .catch((err) => {

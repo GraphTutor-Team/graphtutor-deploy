@@ -7,10 +7,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getDiscussionDetail, addReply, likeDiscussion } from '../api/v3/discussions';
+import { getDiscussionDetail, addReply, likeDiscussion, likeReply, markBestAnswer } from '../api/v3/discussions';
 import { toast } from '../utils/toast';
 import PageHeader from '../components/PageHeader';
 import MarkdownPreview from '../components/MarkdownPreview';
+import AuthorLink from '../components/AuthorLink';
 
 export default function DiscussionDetail() {
   const { id } = useParams();
@@ -21,7 +22,6 @@ export default function DiscussionDetail() {
   const [loading, setLoading] = useState(true);
   const [replyContent, setReplyContent] = useState('');
   const [replyingTo, setReplyingTo] = useState(null);
-  const [likedReplies, setLikedReplies] = useState(new Set());
 
   useEffect(() => {
     if (id) {
@@ -64,10 +64,31 @@ export default function DiscussionDetail() {
 
   const handleLike = async () => {
     try {
-      await likeDiscussion(id);
-      loadDiscussion();
+      const result = await likeDiscussion(id);
+      if (result?.data) {
+        setDiscussion((prev) => ({ ...prev, ...result.data }));
+      } else {
+        loadDiscussion();
+      }
     } catch (err) {
       console.error('点赞失败:', err);
+      toast.error(err.response?.data?.message || '点赞失败');
+    }
+  };
+
+  const handleLikeReply = async (replyId) => {
+    try {
+      const result = await likeReply(id, replyId);
+      if (result?.data) {
+        setReplies((prev) =>
+          prev.map((r) => (r._id === replyId ? { ...r, ...result.data } : r))
+        );
+      } else {
+        loadDiscussion();
+      }
+    } catch (err) {
+      console.error('点赞失败:', err);
+      toast.error(err.response?.data?.message || '点赞失败');
     }
   };
 
@@ -126,8 +147,24 @@ export default function DiscussionDetail() {
               )}
             </div>
             <h1 className="text-2xl font-bold mb-2">{discussion.title}</h1>
-            <div className="text-sm text-slate-600 mb-4">
-              {new Date(discussion.createdAt).toLocaleString('zh-CN')}
+            <div className="flex items-center gap-3 text-sm text-slate-600 mb-4">
+              {discussion.author && (
+                <AuthorLink author={discussion.author} className="flex items-center gap-2">
+                  {discussion.author.avatarUrl ? (
+                    <img
+                      src={discussion.author.avatarUrl}
+                      alt=""
+                      className="h-7 w-7 rounded-full object-cover"
+                    />
+                  ) : (
+                    <span className="h-7 w-7 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center">
+                      {(discussion.author.name || 'U').charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                  <span className="font-medium text-slate-800">{discussion.author.name}</span>
+                </AuthorLink>
+              )}
+              <span>{new Date(discussion.createdAt).toLocaleString('zh-CN')}</span>
             </div>
           </div>
         </div>
@@ -141,7 +178,7 @@ export default function DiscussionDetail() {
             {discussion.tags.map((tag, idx) => (
               <span
                 key={idx}
-                className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded"
+                className="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded"
               >
                 {tag}
               </span>
@@ -152,9 +189,12 @@ export default function DiscussionDetail() {
         <div className="flex items-center gap-4 pt-4 border-t">
           <button
             onClick={handleLike}
-            className="flex items-center gap-2 px-3 py-2 text-sm border rounded-lg hover:bg-slate-50"
+            className={`flex items-center gap-2 px-3 py-2 text-sm border rounded-lg hover:bg-slate-50 ${
+              discussion.likedByMe ? 'border-blue-400 bg-blue-50 text-blue-700' : ''
+            }`}
           >
             👍 {discussion.likeCount || 0}
+            {discussion.likedByMe ? ' · 已赞' : ''}
           </button>
           <span className="text-sm text-slate-600">
             👁️ {discussion.viewCount || 0} | 💬 {discussion.replyCount || 0}
@@ -187,8 +227,26 @@ export default function DiscussionDetail() {
                 }`}
               >
                 <div className="flex items-start justify-between mb-2">
-                  <div className="text-sm text-slate-600">
-                    {new Date(reply.createdAt).toLocaleString('zh-CN')}
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    {reply.author ? (
+                      <AuthorLink
+                        author={reply.author}
+                        className="flex items-center gap-1.5 font-medium text-slate-800"
+                      >
+                        {reply.author.avatarUrl ? (
+                          <img src={reply.author.avatarUrl} alt="" className="h-6 w-6 rounded-full object-cover" />
+                        ) : (
+                          <span className="h-6 w-6 rounded-full bg-slate-400 text-white text-xs flex items-center justify-center">
+                            {(reply.author.name || 'U').charAt(0).toUpperCase()}
+                          </span>
+                        )}
+                        {reply.author.name}
+                      </AuthorLink>
+                    ) : (
+                      <span>用户</span>
+                    )}
+                    <span>·</span>
+                    <span>{new Date(reply.createdAt).toLocaleString('zh-CN')}</span>
                   </div>
                   {reply.isBestAnswer && (
                     <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded">
@@ -207,22 +265,10 @@ export default function DiscussionDetail() {
                     回复
                   </button>
                   <button
-                    onClick={async () => {
-                      if (likedReplies.has(reply._id)) return;
-                      try {
-                        await likeReply(id, reply._id);
-                        setLikedReplies(new Set([...likedReplies, reply._id]));
-                        toast.success('点赞成功');
-                        loadDiscussion();
-                      } catch (err) {
-                        console.error('点赞失败:', err);
-                        toast.error('点赞失败');
-                      }
-                    }}
-                    disabled={likedReplies.has(reply._id)}
-                    className={`text-xs ${likedReplies.has(reply._id) ? 'text-green-600' : 'text-slate-500 hover:text-blue-600'}`}
+                    onClick={() => handleLikeReply(reply._id)}
+                    className={`text-xs ${reply.likedByMe ? 'text-blue-600 font-medium' : 'text-slate-500 hover:text-blue-600'}`}
                   >
-                    👍 {reply.likeCount || 0}
+                    👍 {reply.likeCount || 0}{reply.likedByMe ? ' · 已赞' : ''}
                   </button>
                   {(discussion.userId === user?.id || discussion.userId === user?._id) && !reply.isBestAnswer && (
                     <button
@@ -252,7 +298,7 @@ export default function DiscussionDetail() {
       {user && (
         <div className="bg-white p-6 rounded-lg border">
           <h3 className="text-lg font-bold mb-4">
-            {replyingTo ? `回复 ${replyingTo.userId?.slice(-4) || '用户'}` : '发表回复'}
+            {replyingTo ? `回复 ${replyingTo.author?.name || '用户'}` : '发表回复'}
           </h3>
           {replyingTo && (
             <div className="mb-3 p-2 bg-slate-50 rounded text-sm text-slate-600">

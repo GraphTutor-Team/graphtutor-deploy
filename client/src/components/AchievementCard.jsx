@@ -10,7 +10,7 @@ const ACHIEVEMENT_CATEGORIES = {
   streak: { label: '连续学习', color: 'bg-orange-100 text-orange-700 border-orange-300' },
   questions: { label: '答题量', color: 'bg-blue-100 text-blue-700 border-blue-300' },
   accuracy: { label: '正确率', color: 'bg-green-100 text-green-700 border-green-300' },
-  knowledge: { label: '知识点', color: 'bg-purple-100 text-purple-700 border-purple-300' },
+  knowledge: { label: '知识点', color: 'bg-slate-100 text-slate-700 border-purple-300' },
   goal: { label: '目标达成', color: 'bg-yellow-100 text-yellow-700 border-yellow-300' },
   exam: { label: '考试', color: 'bg-red-100 text-red-700 border-red-300' },
   default: { label: '其他', color: 'bg-slate-100 text-slate-700 border-slate-300' },
@@ -66,8 +66,8 @@ export default function AchievementCard({ achievement, onShare, showAnimation = 
     <div
       className={`relative bg-white dark:bg-slate-800 rounded-lg border-2 dark:border-slate-700 p-6 transition-all duration-300 ${
         isAnimating
-          ? 'animate-pulse scale-105 shadow-2xl border-yellow-400 bg-gradient-to-br from-yellow-50 to-orange-50'
-          : 'border-slate-200 hover:border-blue-300 hover:shadow-lg'
+          ? 'animate-pulse scale-105 shadow-sm border-yellow-400 bg-amber-50'
+          : 'border-slate-200 hover:border-blue-300 '
       } ${isHovered ? 'scale-105' : ''}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}

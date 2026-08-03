@@ -309,7 +309,7 @@ export default function QuestionWizard() {
               <button
                 onClick={handleAIGenerate}
                 disabled={aiGenerating}
-                className="px-3 py-1 text-sm bg-purple-100 text-purple-700 rounded hover:bg-purple-200 disabled:opacity-50"
+                className="px-3 py-1 text-sm bg-slate-100 text-slate-700 rounded hover:bg-slate-200 disabled:opacity-50"
               >
                 {aiGenerating ? '生成中...' : '🤖 AI生成题目'}
               </button>

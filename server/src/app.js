@@ -106,9 +106,9 @@ export async function createServer() {
   // Cookie解析（CSRF保护需要）
   app.use(cookieParser());
   
-  // 请求体解析（限制大小防止DoS）
-  app.use(express.json({ limit: "1mb" }));
-  app.use(express.urlencoded({ extended: true, limit: "1mb" }));
+  // 请求体解析（限制大小防止 DoS；备份导入需更大一点）
+  app.use(express.json({ limit: "20mb" }));
+  app.use(express.urlencoded({ extended: true, limit: "20mb" }));
 
   // 响应时间监控（在morgan之前）
   app.use(defaultResponseTimeLogger);

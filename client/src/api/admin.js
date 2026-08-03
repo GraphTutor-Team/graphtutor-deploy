@@ -35,3 +35,20 @@ export async function getSystemStats() {
   const res = await api.get('/admin/stats');
   return res.data?.data || res.data;
 }
+
+/**
+ * 全量导出内容备份（学科 / 知识点 / 题库题目 / 作答记录）
+ */
+export async function exportFullBackup() {
+  const res = await api.get('/admin/export/all');
+  return res.data;
+}
+
+/**
+ * 全量导入内容备份
+ * @param {Object} payload
+ */
+export async function importFullBackup(payload) {
+  const res = await api.post('/admin/import', payload);
+  return res.data;
+}

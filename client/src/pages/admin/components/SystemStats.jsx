@@ -172,8 +172,8 @@ export default function SystemStats() {
             {stats.users?.total || stats.userCount || 0}
           </div>
         </div>
-        <div className="card bg-purple-50 border-purple-200">
-          <div className="text-sm text-purple-600 mb-1">7天新增用户</div>
+        <div className="card bg-slate-50 border-slate-200">
+          <div className="text-sm text-blue-600 mb-1">7天新增用户</div>
           <div className="text-3xl font-bold text-purple-700">
             {stats.users?.newUsers?.last7Days || 0}
           </div>

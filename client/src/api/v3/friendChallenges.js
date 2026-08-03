@@ -64,6 +64,14 @@ export async function updateChallengeProgress(challengeId) {
 }
 
 /**
+ * 同步当前用户所有进行中挑战的进度（交卷后调用）
+ */
+export async function syncActiveChallengeProgress() {
+  const res = await api.put('/v3/friend-challenges/sync-progress');
+  return res.data;
+}
+
+/**
  * 获取挑战详情
  */
 export async function getChallengeDetail(challengeId) {

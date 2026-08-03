@@ -100,6 +100,13 @@ export class WebSocketService {
     // 加入用户专属房间
     socket.join(`user:${userId}`);
 
+    // 广播上线
+    this.broadcast('presence:update', {
+      userId: String(userId),
+      online: true,
+      timestamp: new Date().toISOString(),
+    });
+
     // 发送连接成功消息
     socket.emit('connected', {
       message: 'WebSocket连接成功',
@@ -115,6 +122,26 @@ export class WebSocketService {
     // 处理心跳
     socket.on('ping', () => {
       socket.emit('pong', { timestamp: Date.now() });
+    });
+
+    // 输入中状态（仅转发给目标好友）
+    socket.on('typing', (payload = {}) => {
+      const toUserId = payload.toUserId || payload.receiverId;
+      if (!toUserId) return;
+      this.sendToUser(String(toUserId), 'typing:update', {
+        fromUserId: String(userId),
+        isTyping: !!payload.isTyping,
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    // 查询对方是否在线
+    socket.on('presence:query', (payload = {}, ack) => {
+      const targetId = payload.userId;
+      const online = targetId ? this.isUserOnline(String(targetId)) : false;
+      const result = { userId: targetId, online };
+      if (typeof ack === 'function') ack(result);
+      socket.emit('presence:update', result);
     });
 
     // 处理订阅事件
@@ -148,6 +175,11 @@ export class WebSocketService {
       this.userSockets.get(userId).delete(socketId);
       if (this.userSockets.get(userId).size === 0) {
         this.userSockets.delete(userId);
+        this.broadcast('presence:update', {
+          userId: String(userId),
+          online: false,
+          timestamp: new Date().toISOString(),
+        });
       }
     }
     this.socketUsers.delete(socketId);

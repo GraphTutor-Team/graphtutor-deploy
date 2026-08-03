@@ -1,7 +1,5 @@
 /**
- * GraphTutor V3.0 - 快速操作面板组件
- * 
- * 功能：提供常用功能的快速访问入口
+ * GraphTutor V3.0 - 快速操作面板（精简版）
  */
 
 import { Link } from 'react-router-dom';
@@ -12,80 +10,47 @@ export default function QuickActionsPanel() {
     {
       icon: 'fileText',
       title: '开始练习',
-      description: '选择题库开始练习',
+      description: '选择题库做题',
       link: '/quiz',
-      color: 'bg-blue-500 hover:bg-blue-600',
     },
     {
       icon: 'book',
       title: '错题复习',
-      description: '复习做错的题目',
+      description: '巩固薄弱点',
       link: '/review',
-      color: 'bg-red-500 hover:bg-red-600',
-    },
-    {
-      icon: 'chartBar',
-      title: '学习分析',
-      description: '查看详细学习数据',
-      link: '/analytics',
-      color: 'bg-green-500 hover:bg-green-600',
-    },
-    {
-      icon: 'target',
-      title: '学习目标',
-      description: '设置和管理目标',
-      link: '/goals',
-      color: 'bg-purple-500 hover:bg-purple-600',
-    },
-    {
-      icon: 'books',
-      title: '题库管理',
-      description: '浏览和管理题库',
-      link: '/banks',
-      color: 'bg-indigo-500 hover:bg-indigo-600',
     },
     {
       icon: 'notes',
       title: '学习笔记',
-      description: '记录学习笔记',
+      description: '记录要点',
       link: '/notes',
-      color: 'bg-yellow-500 hover:bg-yellow-600',
     },
     {
-      icon: 'check',
-      title: '每日打卡',
-      description: '记录学习打卡',
-      link: '/check-in',
-      color: 'bg-teal-500 hover:bg-teal-600',
-    },
-    {
-      icon: 'trophy',
-      title: '学习成就',
-      description: '查看学习成就',
-      link: '/achievements',
-      color: 'bg-orange-500 hover:bg-orange-600',
+      icon: 'chartBar',
+      title: '学习数据',
+      description: '查看分析',
+      link: '/analytics',
     },
   ];
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-lg border dark:border-slate-700 p-6">
-      <h3 className="text-xl font-bold mb-4">快速操作</h3>
+    <section className="surface animate-rise-in-delay">
+      <h3 className="section-title mb-4">快速入口</h3>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {quickActions.map((action, index) => (
+        {quickActions.map((action) => (
           <Link
-            key={index}
+            key={action.link}
             to={action.link}
-            className={`${action.color} text-white p-4 rounded-lg transition-all transform hover:scale-105 hover:shadow-lg flex flex-col items-center justify-center text-center min-h-[100px]`}
+            className="group flex flex-col items-start gap-2 rounded-xl border border-transparent bg-slate-50/80 dark:bg-slate-900/40 px-3.5 py-3.5 hover:border-blue-200 hover:bg-blue-50/60 dark:hover:bg-slate-700/50 dark:hover:border-slate-600 transition-colors"
           >
-            <div className="mb-2">
-              <Icon name={action.icon} size={32} color="white" />
-            </div>
-            <div className="font-semibold text-sm mb-1">{action.title}</div>
-            <div className="text-xs opacity-90">{action.description}</div>
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-600 text-blue-600 dark:text-blue-400">
+              <Icon name={action.icon} className="h-5 w-5" />
+            </span>
+            <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{action.title}</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400">{action.description}</span>
           </Link>
         ))}
       </div>
-    </div>
+    </section>
   );
 }
-

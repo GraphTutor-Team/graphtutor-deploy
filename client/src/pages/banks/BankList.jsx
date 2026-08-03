@@ -125,22 +125,23 @@ export default function BankList() {
   };
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-2">题库管理</h1>
-        <p className="text-slate-600">管理和查看所有题库</p>
-      </div>
+    <div className="page-shell">
+      <header className="animate-fade-in">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50">题库管理</h1>
+        <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">管理和查看题库</p>
+      </header>
 
       {/* 操作栏 */}
-      <div className="mb-4 flex items-center justify-between gap-4">
-        <div className="flex-1 flex items-center gap-4">
+      <div className="surface !p-4">
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+        <div className="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 min-w-0">
           {/* 搜索框 */}
           <input
             type="text"
             placeholder="搜索题库名称..."
             value={filters.search}
             onChange={(e) => handleFilterChange('search', e.target.value)}
-            className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="input flex-1"
           />
 
           {/* 学科筛选（支持树形结构） */}
@@ -148,7 +149,7 @@ export default function BankList() {
             <select
               value={filters.subjectCode}
               onChange={(e) => handleFilterChange('subjectCode', e.target.value)}
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="select"
             >
               <option value="">所有学科</option>
               {(() => {
@@ -166,7 +167,7 @@ export default function BankList() {
                   const indent = '  '.repeat((subject.level || 1) - 1);
                   return (
                     <option key={subject.code} value={subject.code}>
-                      {indent}{subject.icon || '📚'} {subject.name} ({subject.code})
+                        {indent}{subject.name} ({subject.code})
                     </option>
                   );
                 });
@@ -183,7 +184,7 @@ export default function BankList() {
                 e.target.value === '' ? undefined : e.target.value === 'true'
               )
             }
-            className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="select"
           >
             <option value="">全部</option>
             <option value="true">公开</option>
@@ -195,10 +196,10 @@ export default function BankList() {
         <div className="flex items-center gap-2">
           {/* 导出按钮 */}
           <div className="relative group">
-            <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
-              导出 ▼
+            <button type="button" className="btn btn-success">
+              导出 ▾
             </button>
-            <div className="absolute right-0 mt-1 bg-white border rounded-lg shadow-lg z-10 min-w-[120px] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+            <div className="absolute right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl shadow-lg z-10 min-w-[120px] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
               <button
                 onClick={() => {
                   try {
@@ -219,9 +220,9 @@ export default function BankList() {
           {canManageOwn && (
             <button
               onClick={() => navigate('/banks/import')}
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 whitespace-nowrap"
+              className="btn btn-outline"
             >
-              📥 导入
+              导入
             </button>
           )}
           
@@ -229,17 +230,18 @@ export default function BankList() {
           {canManageOwn && (
             <button
               onClick={() => navigate('/banks/create')}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="btn btn-primary"
             >
               + 创建题库
             </button>
           )}
         </div>
+        </div>
       </div>
 
       {/* 错误提示 */}
       {error && (
-        <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg">
+        <div className="rounded-xl border border-red-200 bg-red-50 text-red-600 px-4 py-3 text-sm">
           {error}
         </div>
       )}
@@ -280,7 +282,7 @@ export default function BankList() {
         </div>
       ) : viewMode === 'list' ? (
         <>
-          <div className="bg-white rounded-lg border overflow-hidden">
+          <div className="surface !p-0 overflow-hidden">
             <table className="w-full">
               <thead className="bg-slate-50">
                 <tr>
@@ -385,11 +387,11 @@ export default function BankList() {
           </div>
         </>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {banks.map((bank) => (
             <div
               key={bank._id}
-              className="bg-white rounded-lg border hover:shadow-lg transition-shadow cursor-pointer"
+              className="surface hover:border-blue-200 transition-colors cursor-pointer"
               onClick={() => navigate(`/banks/${bank._id}`)}
             >
               <div className="p-5">

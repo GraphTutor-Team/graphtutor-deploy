@@ -172,14 +172,14 @@ export async function updateChallengeProgress(challengeId, userId) {
     throw new Error('无权更新此挑战');
   }
 
-  // 查询用户在挑战时间范围内的答题记录
+  // 查询用户在挑战时间范围内的答题记录（只计正确题）
   const progress = await Record.countDocuments({
     userId,
     createdAt: {
       $gte: startDate,
       $lte: endDate,
     },
-    correct: true, // 只计算正确的题目
+    isCorrect: true,
   });
 
   // 更新进度
@@ -207,10 +207,42 @@ export async function updateChallengeProgress(challengeId, userId) {
 
   await challenge.save();
 
-  return await challenge.populate('creatorId', 'name email avatar')
+  return await FriendChallenge.findById(challenge._id)
+    .populate('creatorId', 'name email avatar')
     .populate('participantId', 'name email avatar')
     .populate('winner', 'name email')
-    .execPopulate();
+    .lean();
+}
+
+/**
+ * 同步当前用户所有进行中挑战的进度（练习/考试交卷后调用）
+ */
+export async function syncActiveChallengeProgress(userId) {
+  const challenges = await FriendChallenge.find({
+    status: 'active',
+    $or: [{ creatorId: userId }, { participantId: userId }],
+  }).select('_id').lean();
+
+  const updated = [];
+  for (const item of challenges) {
+    try {
+      const challenge = await updateChallengeProgress(item._id, userId);
+      updated.push({
+        id: challenge._id || challenge.id || item._id,
+        status: challenge.status,
+        creatorProgress: challenge.creatorProgress,
+        participantProgress: challenge.participantProgress,
+        target: challenge.target,
+      });
+    } catch (err) {
+      console.warn('[friendChallenge] sync one failed:', item._id, err.message);
+    }
+  }
+
+  return {
+    updatedCount: updated.length,
+    challenges: updated,
+  };
 }
 
 /**

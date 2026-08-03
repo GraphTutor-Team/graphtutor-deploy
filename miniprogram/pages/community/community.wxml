@@ -19,9 +19,11 @@
       <view class="tool-chip {{tab === 'posts' ? 'tool-chip--active' : ''}}" data-tab="posts" bindtap="switchTab">学习动态</view>
     </view>
 
+    <button wx:if="{{tab === 'discussions'}}" class="primary-action" bindtap="goCreate">发布讨论</button>
+
     <view class="card">
       <block wx:if="{{tab === 'discussions'}}">
-        <view wx:if="{{discussions.length === 0}}" class="state-text state-text--muted">暂无讨论</view>
+        <view wx:if="{{discussions.length === 0}}" class="state-text state-text--muted">暂无讨论，发一条吧</view>
         <view class="item-card" wx:for="{{discussions}}" wx:key="id" data-id="{{item.id}}" bindtap="openDiscussion">
           <view class="item-title">{{item.title}}</view>
           <view class="item-meta">{{item.author}} · {{item.replyCount}} 回复 · {{item.timeText}}</view>

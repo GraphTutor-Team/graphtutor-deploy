@@ -150,7 +150,7 @@ export default function UserDetailModal({ userId, onClose }) {
                     </div>
                     <div className="text-sm text-slate-600 mt-1">正确率</div>
                   </div>
-                  <div className="text-center p-4 bg-purple-50 rounded-lg">
+                  <div className="text-center p-4 bg-slate-50 rounded-lg">
                     <div className="text-2xl font-bold text-purple-700">
                       {stats.studyDuration ? `${Math.round(stats.studyDuration / 60)}分钟` : '0分钟'}
                     </div>

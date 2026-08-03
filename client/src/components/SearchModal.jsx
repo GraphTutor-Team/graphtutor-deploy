@@ -100,7 +100,7 @@ export default function SearchModal({ open, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-black/50" onClick={onClose}>
       <div 
-        className="w-full max-w-2xl mx-4 bg-white dark:bg-slate-800 rounded-lg shadow-xl"
+        className="w-full max-w-2xl mx-4 bg-white dark:bg-slate-800 rounded-lg shadow-md"
         onClick={(e) => e.stopPropagation()}
       >
         {/* 搜索框 */}

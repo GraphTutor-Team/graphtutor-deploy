@@ -16,11 +16,12 @@
  */
 
 import { useEffect, useState, useRef } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import PageHeader from "../components/PageHeader";
 import api from "../api/api";
 import { useAuth } from "../context/AuthContext";
 import { useLearningData } from "../context/LearningDataContext";
+import { useAIContext } from "../context/AIContext";
 import { getSubjectTree } from "../api/v3/subjects";
 import { runJavaCode } from "../api/coding";
 
@@ -31,10 +32,10 @@ function OptionItem({ index, text, selected, onSelect, multiple = false }) {
       type="button"
       onClick={onSelect}
       className={
-        "w-full text-left px-4 py-3 rounded-lg border-2 transition-all duration-200 mb-2 font-medium flex items-center gap-3 " +
+        "w-full text-left px-4 py-3 rounded-xl border transition-colors duration-200 mb-2 font-medium flex items-center gap-3 " +
         (selected
-          ? "border-blue-500 bg-blue-50 text-blue-900"
-          : "border-slate-300 bg-white hover:border-slate-500 hover:bg-slate-50 text-slate-900")
+          ? "border-blue-500 bg-blue-50 text-blue-900 dark:bg-blue-950/40 dark:text-blue-100 dark:border-blue-400"
+          : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 text-slate-900 dark:bg-slate-800/60 dark:border-slate-600 dark:hover:bg-slate-800 dark:text-slate-100")
       }
     >
       {multiple ? (
@@ -54,7 +55,7 @@ function OptionItem({ index, text, selected, onSelect, multiple = false }) {
           readOnly
         />
       )}
-      <span className="font-bold text-slate-900">
+      <span className="font-bold text-slate-900 dark:text-slate-100">
         {label}.
       </span>
       <span className="font-medium flex-1">{text}</span>
@@ -66,6 +67,7 @@ export default function Quiz() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAuthenticated } = useAuth() || {};
+  const { setAIContext } = useAIContext();
   const { invalidateLearningData } = useLearningData();
   const [loading, setLoading] = useState(false);
   const [loadingSubmit, setLoadingSubmit] = useState(false);
@@ -83,7 +85,18 @@ export default function Quiz() {
   const [banks, setBanks] = useState([]); // 题库列表
   const [runOutput, setRunOutput] = useState("");
   const [runBusy, setRunBusy] = useState(false);
-  const groupPracticeQuestionIds = location.state?.groupPracticeQuestionIds; // 群组共同练习固定题号
+  const practiceQuestionIds =
+    location.state?.practiceQuestionIds ||
+    location.state?.groupPracticeQuestionIds ||
+    location.state?.questionIds;
+  const practiceSource =
+    location.state?.practiceSource ||
+    (location.state?.groupPracticeQuestionIds
+      ? 'group'
+      : location.state?.questionIds || location.state?.mode === 'review'
+        ? 'review'
+        : null);
+  const groupPracticeQuestionIds = practiceQuestionIds; // 兼容后续固定题号开练逻辑
   const predictionPlan = location.state?.predictionPlan || null; // Phase 2.6 考前预测计划：{ nodes: string[], totalQuestions }
   // Phase 2.3 动态难度：根据近期正确率与作答时间调整下一题难度
   const [adaptiveMode, setAdaptiveMode] = useState(false);
@@ -144,7 +157,15 @@ export default function Quiz() {
         const data = res.data || {};
         const items = data.items || data.data || data || [];
         const list = Array.isArray(items) ? items : [];
-        const ordered = groupPracticeQuestionIds?.length ? list : (() => {
+        const ordered = groupPracticeQuestionIds?.length
+          ? (() => {
+              const byId = new Map(list.map((q) => [String(q._id || q.id), q]));
+              const preferred = groupPracticeQuestionIds
+                .map((id) => byId.get(String(id)))
+                .filter(Boolean);
+              return preferred.length > 0 ? preferred : list;
+            })()
+          : (() => {
           const shuffled = [...list];
           for (let i = shuffled.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -195,6 +216,20 @@ export default function Quiz() {
 
   const current = questions[idx] || null;
   const total = questions.length;
+
+  useEffect(() => {
+    if (!current) {
+      setAIContext({ questionId: null, knowledgeNodeId: null });
+      return undefined;
+    }
+    const qid = current._id || current.id || null;
+    setAIContext({
+      pageType: 'quiz',
+      questionId: qid,
+      knowledgeNodeId: current.knowledgeNodeId ?? current.knowledgeNode ?? null,
+    });
+    return () => setAIContext({ questionId: null, knowledgeNodeId: null });
+  }, [idx, current?._id, current?.id, current?.knowledgeNodeId, current?.knowledgeNode, setAIContext]);
 
   // 每次切题时记录开始时间（用于自适应难度的作答时间）
   useEffect(() => {
@@ -484,6 +519,8 @@ export default function Quiz() {
           const response = await api.post("/records/batch", batchPayload);
           console.log("批量提交成功:", response.data);
           invalidateLearningData();
+          const { syncFriendChallengesAfterPractice } = await import("../utils/syncFriendChallenges");
+          await syncFriendChallengesAfterPractice();
         } catch (eBatch) {
           console.warn("/records/batch 失败，尝试逐条提交:", eBatch);
           console.warn("错误详情:", eBatch.response?.data || eBatch.message);
@@ -530,6 +567,8 @@ export default function Quiz() {
               // 全部成功，不显示错误
               console.log(`成功提交 ${successCount} 条记录`);
               invalidateLearningData();
+              const { syncFriendChallengesAfterPractice } = await import("../utils/syncFriendChallenges");
+              await syncFriendChallengesAfterPractice();
             }
           } catch (eSingle) {
             console.error("逐条提交记录失败:", eSingle);
@@ -548,17 +587,38 @@ export default function Quiz() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="page-shell !space-y-4">
       <PageHeader
-        title={groupPracticeQuestionIds?.length ? "共同练习" : "练习模式"}
-        subtitle={groupPracticeQuestionIds?.length
-          ? "群组共同练习，错题会自动进入错题本。"
-          : "选择题库与题目数量后开始练习；错题会自动进入错题本，便于复习。"}
+        title={
+          practiceSource === 'ai'
+            ? 'AI 推荐练习'
+            : practiceSource === 'review'
+              ? '今日复习'
+              : groupPracticeQuestionIds?.length
+                ? '共同练习'
+                : '练习模式'
+        }
+        subtitle={
+          practiceSource === 'ai'
+            ? '根据错题薄弱点推荐，做完后错题会继续进入错题本。'
+            : practiceSource === 'review'
+              ? '按智能复习计划今日题目练习，错题会继续进入错题本。'
+              : groupPracticeQuestionIds?.length
+                ? '群组共同练习，错题会自动进入错题本。'
+                : '选择题库与题目数量后开始练习；错题会自动进入错题本，便于复习。'
+        }
       />
 
-      <section className="card border-b-0 rounded-b-none pb-3">
+      <section className="surface !pb-3">
         {groupPracticeQuestionIds?.length > 0 && (
-          <p className="text-sm text-blue-600 dark:text-blue-400 mb-3">共同练习（共 {groupPracticeQuestionIds.length} 题）</p>
+          <p className="text-sm mb-3" style={{ color: 'var(--color-primary-deep)' }}>
+            {practiceSource === 'ai'
+              ? 'AI 推荐练习'
+              : practiceSource === 'review'
+                ? '今日复习'
+                : '共同练习'}
+            （共 {groupPracticeQuestionIds.length} 题）
+          </p>
         )}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2 flex-wrap">
@@ -679,10 +739,18 @@ export default function Quiz() {
               当前学科「{subjectCode}」下可能没有导入数据。可试：选「全部学科」、改选题库，或先导入对应题库后再点「重新加载」。
             </p>
           )}
+          <p className="pt-1 flex flex-wrap gap-x-3 gap-y-1">
+            <Link to="/home?guide=1" className="text-blue-600 dark:text-blue-400 hover:underline">
+              查看使用教程
+            </Link>
+            <Link to="/banks" className="text-blue-600 dark:text-blue-400 hover:underline">
+              去题库管理
+            </Link>
+          </p>
         </div>
       ) : (
         <>
-          <section className="card space-y-4">
+          <section className="surface space-y-4">
             <div className="flex justify-between items-center border-b-2 border-slate-200 pb-3">
               <div className="badge badge-primary font-bold">
                 {adaptiveMode ? `第 ${visitedOrder.length + 1} / ${total} 题` : `第 ${idx + 1} / ${total} 题`}
@@ -693,13 +761,13 @@ export default function Quiz() {
               )}
             </div>
             <div className="flex items-center justify-between mb-2">
-              <div className="bg-slate-50 rounded-lg px-4 py-3 whitespace-pre-wrap text-slate-900 border-2 border-slate-200 font-medium flex-1">
+              <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl px-4 py-3 whitespace-pre-wrap text-slate-900 dark:text-slate-100 border border-slate-200/80 dark:border-slate-700 font-medium flex-1">
                 {current.content || "（无题干）"}
               </div>
               {current.type && (
                 <span className={`ml-3 px-2 py-1 rounded text-xs font-medium ${
                   current.type === 'single' ? 'bg-blue-100 text-blue-700' :
-                  current.type === 'multiple' ? 'bg-purple-100 text-purple-700' :
+                  current.type === 'multiple' ? 'bg-slate-100 text-slate-700' :
                   current.type === 'judge' ? 'bg-green-100 text-green-700' :
                   current.type === 'fill' ? 'bg-orange-100 text-orange-700' :
                   current.type === 'coding' ? 'bg-slate-800 text-white' :

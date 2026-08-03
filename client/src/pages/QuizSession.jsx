@@ -4,10 +4,11 @@
  * 功能：支持会话管理的练习模式，可以保存进度、恢复会话
  */
 
-import { useEffect, useMemo, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
 import { useAuth } from '../context/AuthContext';
+import { useAIContext } from '../context/AIContext';
 import { listQuestions } from '../api/questions';
 import { startSession, getSession, submitAnswer, finishSession, listSessions } from '../api/quizzes';
 import { STORAGE_KEYS } from '../constants/index.js';
@@ -18,8 +19,11 @@ import { runJavaCode } from '../api/coding';
 
 export default function QuizSession() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth() || {};
+  const { setAIContext } = useAIContext();
   const userId = user?._id || user?.id || user?.userId || 'demo-user';
+  const autoResumeTried = useRef(false);
 
   const [size, setSize] = useState(10);
   const [difficulty, setDifficulty] = useState('');
@@ -55,6 +59,19 @@ export default function QuizSession() {
   useEffect(() => {
     setRunOutput('');
   }, [idx]);
+
+  useEffect(() => {
+    if (status !== 'ongoing' || !cur) {
+      setAIContext({ questionId: null, knowledgeNodeId: null });
+      return undefined;
+    }
+    setAIContext({
+      pageType: 'quiz',
+      questionId: cur.id || cur._id || null,
+      knowledgeNodeId: cur.knowledgeNodeId ?? cur.knowledgeNode ?? null,
+    });
+    return () => setAIContext({ questionId: null, knowledgeNodeId: null });
+  }, [status, idx, cur?.id, cur?._id, cur?.knowledgeNodeId, cur?.knowledgeNode, setAIContext]);
 
   const loadOptions = async () => {
     try {
@@ -136,10 +153,36 @@ export default function QuizSession() {
     }
   }
 
-  async function resume() {
+  async function applySession(s, id) {
+    setSid(id);
+    try {
+      localStorage.setItem(STORAGE_KEYS.QUIZ_SESSION_ID, id);
+    } catch (e) {
+      console.warn('保存会话ID失败:', e);
+    }
+    setQs(s.questions || []);
+    const map = {};
+    (s.answers || []).forEach((a) => {
+      map[a.questionId] = a.userAnswer ?? a.answerIndex;
+    });
+    setAnswers(map);
+    setStatus('ongoing');
+  }
+
+  async function resume(preferredSessionId) {
     setBusy(true);
     setError('');
     try {
+      if (preferredSessionId && preferredSessionId !== 'local') {
+        const s = await getSession(preferredSessionId);
+        if (s && s.status === 'ongoing') {
+          await applySession(s, preferredSessionId);
+          toast.success('已恢复会话');
+          setBusy(false);
+          return;
+        }
+      }
+
       // 1) 如果本地有 sid，直接拉取
       let local = '';
       try {
@@ -150,15 +193,7 @@ export default function QuizSession() {
       if (local && local !== 'local') {
         const s = await getSession(local);
         if (s && s.status === 'ongoing') {
-          setSid(local);
-          setQs(s.questions || []);
-          // 回填已答
-          const map = {};
-          (s.answers || []).forEach(a => {
-            map[a.questionId] = a.userAnswer ?? a.answerIndex;
-          });
-          setAnswers(map);
-          setStatus('ongoing');
+          await applySession(s, local);
           toast.success('已恢复会话');
           setBusy(false);
           return;
@@ -169,19 +204,7 @@ export default function QuizSession() {
       if (list.length) {
         const id = list[0]._id || list[0].id;
         const s = await getSession(id);
-        setSid(id);
-        try {
-          localStorage.setItem(STORAGE_KEYS.QUIZ_SESSION_ID, id);
-        } catch (e) {
-          console.warn('保存会话ID失败:', e);
-        }
-        setQs(s.questions || []);
-        const map = {};
-        (s.answers || []).forEach(a => {
-          map[a.questionId] = a.userAnswer ?? a.answerIndex;
-        });
-        setAnswers(map);
-        setStatus('ongoing');
+        await applySession(s, id);
         toast.success('已恢复最近会话');
       } else {
         toast.warning('没有未完成的会话');
@@ -194,6 +217,16 @@ export default function QuizSession() {
       setBusy(false);
     }
   }
+
+  useEffect(() => {
+    if (autoResumeTried.current) return;
+    const sessionId = searchParams.get('sessionId');
+    const shouldResume = searchParams.get('resume') === '1' || !!sessionId;
+    if (!shouldResume) return;
+    autoResumeTried.current = true;
+    resume(sessionId || undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, userId]);
 
   async function choose(i) {
     if (!cur) return;
@@ -310,6 +343,10 @@ export default function QuizSession() {
       try {
         const r = await finishSession(sid);
         toast.success(`已提交：${r.correct}/${r.total}（${r.acc}%）`);
+        try {
+          const { syncFriendChallengesAfterPractice } = await import('../utils/syncFriendChallenges');
+          await syncFriendChallengesAfterPractice({ silent: true });
+        } catch (_) {}
       } catch (err) {
         console.error('完成会话失败:', err);
         toast.error('提交失败');
@@ -375,7 +412,7 @@ export default function QuizSession() {
       />
 
       {status === 'idle' && (
-        <div className="bg-white p-6 rounded-lg border shadow-sm space-y-4">
+        <div className="card p-6 space-y-4 dark:bg-slate-800 dark:border-slate-700">
           <h2 className="text-lg font-bold mb-4">会话配置</h2>
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -476,7 +513,7 @@ export default function QuizSession() {
             </button>
             <button
               className="btn btn-outline"
-              onClick={resume}
+              onClick={() => resume()}
               disabled={busy}
             >
               恢复会话
@@ -488,7 +525,7 @@ export default function QuizSession() {
       {status === 'ongoing' && (
         <div className="grid grid-cols-1 lg:grid-cols-[2fr,1fr] gap-4">
           {/* 题目区域 */}
-          <div className="bg-white p-6 rounded-lg border shadow-sm space-y-4">
+          <div className="card p-6 space-y-4 dark:bg-slate-800 dark:border-slate-700">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold">
                 第 {idx + 1} / {qs.length} 题
@@ -514,7 +551,7 @@ export default function QuizSession() {
                   {cur.type && (
                     <span className={`ml-3 px-2 py-1 rounded text-xs font-medium ${
                       cur.type === 'single' ? 'bg-blue-100 text-blue-700' :
-                      cur.type === 'multiple' ? 'bg-purple-100 text-purple-700' :
+                      cur.type === 'multiple' ? 'bg-slate-100 text-slate-700' :
                       cur.type === 'judge' ? 'bg-green-100 text-green-700' :
                       cur.type === 'fill' ? 'bg-orange-100 text-orange-700' :
                       cur.type === 'coding' ? 'bg-slate-800 text-white' :
@@ -694,7 +731,7 @@ export default function QuizSession() {
           </div>
 
           {/* 答题卡 */}
-          <div className="bg-white p-6 rounded-lg border shadow-sm">
+          <div className="card p-6 dark:bg-slate-800 dark:border-slate-700">
             <h3 className="text-lg font-bold mb-4">答题卡</h3>
             {qs.length === 0 ? (
               <div className="text-sm text-slate-500">还没有题目</div>

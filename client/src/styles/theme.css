@@ -1,55 +1,68 @@
 /* client/src/styles/theme.css */
-/* 统一主题样式配置 - 优化颜色方案 */
+/* GraphTutor 视觉基线：暖雾杏底 + 柔和蓝，适合长时间学习 */
 
 :root {
-  /* 主色调 - 使用更柔和的蓝色系 */
-  --color-primary: #3b82f6;        /* blue-500 - 主按钮、链接 */
-  --color-primary-hover: #2563eb;  /* blue-600 */
-  --color-primary-light: #dbeafe;  /* blue-100 - 背景高亮 */
-  
-  /* 辅助色 - 绿色系（成功、正确） */
-  --color-success: #10b981;       /* emerald-500 */
-  --color-success-light: #d1fae5;  /* emerald-100 */
-  
-  /* 警告色 - 橙色系 */
-  --color-warning: #f59e0b;        /* amber-500 */
-  --color-warning-light: #fef3c7;  /* amber-100 */
-  
-  /* 错误色 - 红色系 */
-  --color-error: #ef4444;          /* red-500 */
-  --color-error-light: #fee2e2;    /* red-100 */
-  
-  /* 中性色 - 灰色系 */
-  --color-text-primary: #1e293b;    /* slate-800 */
-  --color-text-secondary: #64748b;  /* slate-500 */
-  --color-text-tertiary: #94a3b8;   /* slate-400 */
-  
-  /* 背景色 */
-  --color-bg-primary: #ffffff;
-  --color-bg-secondary: #f8fafc;    /* slate-50 */
-  --color-bg-tertiary: #f1f5f9;     /* slate-100 */
-  
-  /* 边框色 */
-  --color-border: #e2e8f0;          /* slate-200 */
-  --color-border-hover: #cbd5e1;    /* slate-300 */
-  
-  /* 阴影 */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  --font-sans: 'DM Sans', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+
+  /* 主色略降饱和，减少刺眼感 */
+  --color-primary: #4a7cc9;
+  --color-primary-hover: #5b8ad4;
+  --color-primary-deep: #3d6eb5;
+  --color-primary-light: #e9eef6;
+  --color-accent: #4f8f84;
+
+  --color-success: #2f9e7a;
+  --color-success-light: #e6f5ef;
+  --color-warning: #c48a2a;
+  --color-warning-light: #f8efd9;
+  --color-error: #d45555;
+  --color-error-light: #f8eaea;
+
+  /* 正文用深灰蓝，避免近黑 */
+  --color-text-primary: #2a3444;
+  --color-text-secondary: #5f6b7a;
+  --color-text-tertiary: #8e97a3;
+
+  /* 暖杏雾底（参考吉祥物配色，克制不刺眼） */
+  --color-bg-primary: #fffbf7;
+  --color-bg-secondary: #f3ebe3;
+  --color-bg-tertiary: #e8dfd5;
+  --color-bg-page: #f3e9df;
+  --color-cta: #3a4658;
+
+  --color-border: #e5dbd1;
+  --color-border-hover: #d4c8bb;
+
+  --radius-card: 0.875rem;
+  --shadow-soft: 0 1px 2px rgb(58 52 45 / 0.05);
 }
 
 .dark {
-  /* 深色模式 */
-  --color-text-primary: #f1f5f9;    /* slate-100 */
-  --color-text-secondary: #cbd5e1;  /* slate-300 */
-  --color-text-tertiary: #94a3b8;   /* slate-400 */
-  
-  --color-bg-primary: #0f172a;     /* slate-900 */
-  --color-bg-secondary: #1e293b;    /* slate-800 */
-  --color-bg-tertiary: #334155;     /* slate-700 */
-  
-  --color-border: #334155;          /* slate-700 */
-  --color-border-hover: #475569;    /* slate-600 */
-}
+  --color-primary: #7ba3e0;
+  --color-primary-hover: #97b8e8;
+  --color-primary-deep: #5b8ad4;
+  --color-primary-light: #243044;
+  --color-accent: #5aabb8;
 
+  --color-success: #4db896;
+  --color-success-light: #1a2e28;
+  --color-warning: #d4a84b;
+  --color-warning-light: #2e2818;
+  --color-error: #e07a7a;
+  --color-error-light: #2e1e1e;
+
+  --color-text-primary: #e8e4df;
+  --color-text-secondary: #b0a9a0;
+  --color-text-tertiary: #857e76;
+
+  --color-bg-primary: #1c2228;
+  --color-bg-secondary: #262d34;
+  --color-bg-tertiary: #323a43;
+  --color-bg-page: #151a1f;
+  --color-cta: #2a3444;
+
+  --color-border: #323a43;
+  --color-border-hover: #424a54;
+
+  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.28);
+}

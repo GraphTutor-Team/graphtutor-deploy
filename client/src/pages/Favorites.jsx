@@ -22,6 +22,7 @@ import { addGroupSharedQuestion } from '../api/v3/groups';
 import { toast } from '../utils/toast';
 import Icon from '../components/common/Icon';
 import EmptyState from '../components/common/EmptyState';
+import LoginPrompt from '../components/common/LoginPrompt';
 
 export default function Favorites() {
   const navigate = useNavigate();
@@ -219,9 +220,10 @@ export default function Favorites() {
 
   if (!user) {
     return (
-      <div className="p-6 text-center">
-        <div className="text-slate-500">请先登录</div>
-      </div>
+      <LoginPrompt
+        title="登录后管理收藏"
+        description="登录后可收藏题目与文件夹。也可先看教程，或去做题发现内容。"
+      />
     );
   }
 
@@ -440,7 +442,7 @@ export default function Favorites() {
                                   {favorite.tags.map((tag, idx) => (
                                     <span
                                       key={idx}
-                                      className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded"
+                                      className="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded"
                                     >
                                       {tag}
                                     </span>

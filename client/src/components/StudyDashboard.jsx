@@ -43,25 +43,25 @@ export default function StudyDashboard({ data }) {
 
       {/* 关键指标卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="card p-6 bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+        <div className="card p-6 bg-blue-600 text-white">
           <div className="text-sm opacity-90 mb-2">总题数</div>
           <div className="text-3xl font-bold mb-1">{dashboard.totalQuestions}</div>
           <div className="text-sm opacity-75">累计完成</div>
         </div>
 
-        <div className="card p-6 bg-gradient-to-br from-green-500 to-green-600 text-white">
+        <div className="card p-6 bg-emerald-600 text-white">
           <div className="text-sm opacity-90 mb-2">正确率</div>
           <div className="text-3xl font-bold mb-1">{dashboard.accuracy}%</div>
           <div className="text-sm opacity-75">平均正确率</div>
         </div>
 
-        <div className="card p-6 bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+        <div className="card p-6 bg-slate-800 text-white">
           <div className="text-sm opacity-90 mb-2">学习天数</div>
           <div className="text-3xl font-bold mb-1">{dashboard.studyDays}</div>
           <div className="text-sm opacity-75">累计学习</div>
         </div>
 
-        <div className="card p-6 bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+        <div className="card p-6 bg-amber-600 text-white">
           <div className="text-sm opacity-90 mb-2">连续打卡</div>
           <div className="text-3xl font-bold mb-1">{dashboard.checkInStreak}</div>
           <div className="text-sm opacity-75">天</div>
@@ -70,7 +70,7 @@ export default function StudyDashboard({ data }) {
 
       {/* 本周概览 */}
       <div className="card p-6 bg-white dark:bg-slate-800 border dark:border-slate-700">
-        <h3 className="text-lg font-bold mb-4">📅 本周概览</h3>
+        <h3 className="text-lg font-bold mb-4">本周概览</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <div className="text-sm text-slate-600 dark:text-slate-400 mb-1">本周题数</div>
@@ -95,34 +95,30 @@ export default function StudyDashboard({ data }) {
 
       {/* 快速操作 */}
       <div className="card p-6 bg-white dark:bg-slate-800 border dark:border-slate-700">
-        <h3 className="text-lg font-bold mb-4">⚡ 快速操作</h3>
+        <h3 className="text-lg font-bold mb-4">快速操作</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Link
             to="/quiz"
-            className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-center"
+            className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-center border border-slate-200 dark:border-slate-700"
           >
-            <div className="text-2xl mb-2">📝</div>
             <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">开始练习</div>
           </Link>
           <Link
             to="/review"
-            className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-center"
+            className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-center border border-slate-200 dark:border-slate-700"
           >
-            <div className="text-2xl mb-2">❌</div>
             <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">错题复习</div>
           </Link>
           <Link
             to="/check-in"
-            className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors text-center"
+            className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-center border border-slate-200 dark:border-slate-700"
           >
-            <div className="text-2xl mb-2">✅</div>
             <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">每日打卡</div>
           </Link>
           <Link
             to="/analytics"
-            className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors text-center"
+            className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-center border border-slate-200 dark:border-slate-700"
           >
-            <div className="text-2xl mb-2">📊</div>
             <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">学习分析</div>
           </Link>
         </div>
@@ -130,7 +126,7 @@ export default function StudyDashboard({ data }) {
 
       {/* 学习进度 */}
       <div className="card p-6 bg-white dark:bg-slate-800 border dark:border-slate-700">
-        <h3 className="text-lg font-bold mb-4">🎯 学习进度</h3>
+          <h3 className="text-lg font-bold mb-4">学习进度</h3>
         <div className="space-y-4">
           {dashboard.goals.map((goal, index) => (
             <div key={index}>
@@ -159,14 +155,13 @@ export default function StudyDashboard({ data }) {
       {/* 最近成就 */}
       {dashboard.recentAchievements.length > 0 && (
         <div className="card p-6 bg-white dark:bg-slate-800 border dark:border-slate-700">
-          <h3 className="text-lg font-bold mb-4">🏆 最近成就</h3>
+          <h3 className="text-lg font-bold mb-4">最近成就</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {dashboard.recentAchievements.map((achievement, index) => (
               <div
                 key={index}
-                className="p-4 bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-900/10 rounded-lg border border-yellow-200 dark:border-yellow-800"
+                className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800"
               >
-                <div className="text-2xl mb-2">{achievement.icon || '🏆'}</div>
                 <div className="font-semibold text-slate-900 dark:text-slate-100 mb-1">
                   {achievement.name}
                 </div>

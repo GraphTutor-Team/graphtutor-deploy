@@ -16,7 +16,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
 import ThemeToggle from '../components/ThemeToggle';
 import HelpTip from '../components/HelpTip';
@@ -29,10 +29,10 @@ import {
   saveReminderSettings,
   initStudyReminder,
 } from '../utils/studyReminder';
-import { smartReminder, initSmartReminder } from '../utils/studyReminderEnhanced';
 
 export default function Settings() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [{ theme, contrast }, setState] = useState({ theme: 'auto', contrast: 'off' });
   
   const [settings, setSettings] = useState({
@@ -539,19 +539,18 @@ export default function Settings() {
         </div>
       )}
 
-      {/* 数据备份与恢复 */}
+      {/* 数据导出说明（原备份页路由不存在，改为可到达入口） */}
       <div className="card">
-        <div className="font-semibold mb-4">数据备份与恢复</div>
-        <div className="py-2">
-          <div>
-            <div className="font-medium text-sm">数据管理</div>
-            <div className="text-xs text-slate-500">备份和恢复你的学习数据</div>
-          </div>
+        <div className="font-semibold mb-4">数据与报告</div>
+        <div className="py-2 space-y-2">
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            学习报告可在「学习数据」页导出（含月度白皮书等）。完整题库备份由管理员在后台处理。
+          </p>
           <Link
-            to="/settings/backup"
-            className="mt-2 inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+            to="/analytics"
+            className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
           >
-            打开数据备份
+            前往学习数据
           </Link>
         </div>
       </div>
@@ -562,30 +561,16 @@ export default function Settings() {
         <div className="space-y-4">
           <div>
             <div className="text-sm text-slate-600 dark:text-slate-400 mb-2">
-              基于你的学习习惯，自动生成最佳学习提醒时间
+              根据你在「学习数据」中的练习时段分布，设置更合理的复习提醒。
             </div>
             <button
-              onClick={async () => {
-                try {
-                  // 获取学习习惯数据（可以从API获取）
-                  const studyHabits = {
-                    bestStudyTime: '14:00-15:00', // 示例数据
-                    timePreference: {
-                      distribution: {
-                        evening: '40',
-                        afternoon: '30',
-                      },
-                    },
-                  };
-                  initSmartReminder(studyHabits);
-                  toast.success('智能提醒已启用');
-                } catch (err) {
-                  toast.error('启用智能提醒失败');
-                }
+              onClick={() => {
+                navigate('/analytics');
+                toast.success('请在学习数据页查看时段分布，并在通知设置中开启提醒');
               }}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
             >
-              启用智能提醒
+              查看学习习惯
             </button>
           </div>
         </div>

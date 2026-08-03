@@ -198,7 +198,7 @@ export default function LearningGoals() {
           </div>
           <div className="bg-white p-6 rounded-lg border">
             <div className="text-sm text-slate-600 mb-1">已完成</div>
-            <div className="text-3xl font-bold text-purple-600">{stats.completed || 0}</div>
+            <div className="text-3xl font-bold text-blue-600">{stats.completed || 0}</div>
           </div>
           <div className="bg-white p-6 rounded-lg border">
             <div className="text-sm text-slate-600 mb-1">平均进度</div>
@@ -264,29 +264,31 @@ export default function LearningGoals() {
                   'border-slate-200'
                 }`}
               >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-bold mb-1">{goal.title}</h3>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-4 min-w-0">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-lg font-bold mb-1 break-words">{goal.title}</h3>
                     {goal.description && (
-                      <p className="text-sm text-slate-600 mb-2">{goal.description}</p>
+                      <p className="text-sm text-slate-600 mb-2 line-clamp-2">{goal.description}</p>
                     )}
-                    <div className="flex items-center gap-4 text-sm text-slate-600">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-600">
                       <span>目标：{getTargetTypeLabel(goal.targetType)} {goal.targetValue}</span>
                       <span>当前：{goal.currentValue}</span>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                     {goal.status === 'active' && (
                       <button
+                        type="button"
                         onClick={() => handleComplete(goal._id)}
-                        className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
+                        className="flex-1 sm:flex-none px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
                       >
                         完成
                       </button>
                     )}
                     <button
+                      type="button"
                       onClick={() => handleDelete(goal._id)}
-                      className="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700"
+                      className="flex-1 sm:flex-none px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700"
                     >
                       删除
                     </button>
@@ -512,7 +514,7 @@ export default function LearningGoals() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* 每日目标模板 */}
               <div
-                className="border-2 border-slate-200 rounded-lg p-4 hover:border-blue-400 cursor-pointer transition-all"
+                className="border border-slate-200 rounded-lg p-4 hover:border-blue-400 cursor-pointer transition-all"
                 onClick={() => {
                   const today = new Date();
                   const tomorrow = new Date(today);
@@ -550,7 +552,7 @@ export default function LearningGoals() {
 
               {/* 每周目标模板 */}
               <div
-                className="border-2 border-slate-200 rounded-lg p-4 hover:border-blue-400 cursor-pointer transition-all"
+                className="border border-slate-200 rounded-lg p-4 hover:border-blue-400 cursor-pointer transition-all"
                 onClick={() => {
                   const today = new Date();
                   const nextWeek = new Date(today);
@@ -588,7 +590,7 @@ export default function LearningGoals() {
 
               {/* 每月目标模板 */}
               <div
-                className="border-2 border-slate-200 rounded-lg p-4 hover:border-blue-400 cursor-pointer transition-all"
+                className="border border-slate-200 rounded-lg p-4 hover:border-blue-400 cursor-pointer transition-all"
                 onClick={() => {
                   const today = new Date();
                   const nextMonth = new Date(today);
@@ -626,7 +628,7 @@ export default function LearningGoals() {
 
               {/* 正确率目标模板 */}
               <div
-                className="border-2 border-slate-200 rounded-lg p-4 hover:border-blue-400 cursor-pointer transition-all"
+                className="border border-slate-200 rounded-lg p-4 hover:border-blue-400 cursor-pointer transition-all"
                 onClick={() => {
                   const today = new Date();
                   const nextWeek = new Date(today);
@@ -664,7 +666,7 @@ export default function LearningGoals() {
 
               {/* 知识点掌握目标模板 */}
               <div
-                className="border-2 border-slate-200 rounded-lg p-4 hover:border-blue-400 cursor-pointer transition-all"
+                className="border border-slate-200 rounded-lg p-4 hover:border-blue-400 cursor-pointer transition-all"
                 onClick={() => {
                   const today = new Date();
                   const nextMonth = new Date(today);
@@ -702,7 +704,7 @@ export default function LearningGoals() {
 
               {/* 学习时长目标模板 */}
               <div
-                className="border-2 border-slate-200 rounded-lg p-4 hover:border-blue-400 cursor-pointer transition-all"
+                className="border border-slate-200 rounded-lg p-4 hover:border-blue-400 cursor-pointer transition-all"
                 onClick={() => {
                   const today = new Date();
                   const nextWeek = new Date(today);

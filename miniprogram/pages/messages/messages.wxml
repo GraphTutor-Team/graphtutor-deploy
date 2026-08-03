@@ -13,28 +13,33 @@
 
   <view wx:elif="{{loading}}" class="state-text">加载中…</view>
 
-  <view wx:else class="card">
-    <view wx:if="{{items.length === 0}}" class="state-text state-text--muted">暂无消息会话</view>
-    <view
-      class="item-card item-row"
-      wx:for="{{items}}"
-      wx:key="id"
-      bindtap="openChat"
-      data-id="{{item.id}}"
-      data-name="{{item.name}}"
-    >
-      <view style="flex:1;">
-        <view class="item-title">{{item.name}}</view>
-        <view class="item-meta">{{item.preview || '暂无消息'}}</view>
-        <view class="item-meta">{{item.timeText}}</view>
-      </view>
-      <view wx:if="{{item.unread > 0}}" class="item-action">{{item.unread}} 未读</view>
+  <block wx:else>
+    <view wx:if="{{newMsgTip}}" class="card" style="padding:20rpx 24rpx;margin-bottom:16rpx;">
+      <view class="item-meta" style="color:#1565c0;">{{newMsgTip}}</view>
+    </view>
+    <view class="card">
+      <view wx:if="{{items.length === 0}}" class="state-text state-text--muted">暂无消息会话</view>
       <view
-        class="msg-delete-btn"
-        catchtap="confirmDelete"
+        class="item-card item-row"
+        wx:for="{{items}}"
+        wx:key="id"
+        bindtap="openChat"
         data-id="{{item.id}}"
         data-name="{{item.name}}"
-      >删除</view>
+      >
+        <view style="flex:1;">
+          <view class="item-title">{{item.name}}</view>
+          <view class="item-meta">{{item.preview || '暂无消息'}}</view>
+          <view class="item-meta">{{item.timeText}}</view>
+        </view>
+        <view wx:if="{{item.unread > 0}}" class="item-action">{{item.unread}} 未读</view>
+        <view
+          class="msg-delete-btn"
+          catchtap="confirmDelete"
+          data-id="{{item.id}}"
+          data-name="{{item.name}}"
+        >删除</view>
+      </view>
     </view>
-  </view>
+  </block>
 </view>

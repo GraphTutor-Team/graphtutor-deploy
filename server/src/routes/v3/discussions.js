@@ -12,6 +12,7 @@ import DiscussionReply from '../../models/DiscussionReply.js';
 import User from '../../models/User.js';
 import { createReplyNotification } from '../../services/notificationService.js';
 import { validateInt } from '../../middleware/validation.js';
+import { attachAuthors, withLikedByMe } from '../../utils/discussionHelpers.js';
 
 const router = express.Router();
 
@@ -64,7 +65,7 @@ router.get('/', requireAuth, async (req, res) => {
     // 置顶优先
     const finalSort = { isPinned: -1, ...sort };
 
-    const [items, total] = await Promise.all([
+    const [rawItems, total] = await Promise.all([
       Discussion.find(query)
         .sort(finalSort)
         .skip(skip)
@@ -72,6 +73,9 @@ router.get('/', requireAuth, async (req, res) => {
         .lean(),
       Discussion.countDocuments(query),
     ]);
+
+    const withAuthors = await attachAuthors(rawItems);
+    const items = withAuthors.map((item) => withLikedByMe(item, req.user.id));
 
     res.json({
       success: true,
@@ -173,15 +177,19 @@ router.get('/:id', requireAuth, async (req, res) => {
     await Discussion.findByIdAndUpdate(id, { $inc: { viewCount: 1 } });
 
     // 获取回复
-    const replies = await DiscussionReply.find({ discussionId: id })
+    const rawReplies = await DiscussionReply.find({ discussionId: id })
       .sort({ createdAt: 1 })
       .lean();
+
+    const [discussionWithAuthor] = await attachAuthors([discussion]);
+    const repliesWithAuthors = await attachAuthors(rawReplies);
+    const currentUserId = req.user.id;
 
     res.json({
       success: true,
       data: {
-        ...discussion,
-        replies,
+        ...withLikedByMe(discussionWithAuthor, currentUserId),
+        replies: repliesWithAuthors.map((r) => withLikedByMe(r, currentUserId)),
       },
     });
   } catch (err) {
@@ -245,9 +253,11 @@ router.post('/:id/replies', requireAuth, async (req, res) => {
       }
     }
 
+    const [replyWithAuthor] = await attachAuthors([reply.toObject()]);
+
     res.json({
       success: true,
-      data: reply,
+      data: withLikedByMe(replyWithAuthor, userId),
     });
   } catch (err) {
     console.error('POST /api/v3/discussions/:id/replies error:', err);
@@ -260,18 +270,14 @@ router.post('/:id/replies', requireAuth, async (req, res) => {
 
 /**
  * PUT /api/v3/discussions/:id/like
- * 点赞讨论
+ * 点赞 / 取消点赞讨论（同一用户不可重复加赞）
  */
 router.put('/:id/like', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = String(req.user.id);
 
-    const discussion = await Discussion.findByIdAndUpdate(
-      id,
-      { $inc: { likeCount: 1 } },
-      { new: true }
-    ).lean();
-
+    const discussion = await Discussion.findById(id);
     if (!discussion) {
       return res.status(404).json({
         success: false,
@@ -279,9 +285,34 @@ router.put('/:id/like', requireAuth, async (req, res) => {
       });
     }
 
+    const likedBy = (discussion.likedBy || []).map(String);
+    const alreadyLiked = likedBy.includes(userId);
+
+    let updated;
+    if (alreadyLiked) {
+      updated = await Discussion.findByIdAndUpdate(
+        id,
+        { $pull: { likedBy: userId }, $inc: { likeCount: -1 } },
+        { new: true }
+      ).lean();
+      if (updated && updated.likeCount < 0) {
+        updated.likeCount = 0;
+        await Discussion.findByIdAndUpdate(id, { $set: { likeCount: 0 } });
+      }
+    } else {
+      updated = await Discussion.findByIdAndUpdate(
+        id,
+        { $addToSet: { likedBy: userId }, $inc: { likeCount: 1 } },
+        { new: true }
+      ).lean();
+    }
+
+    const [withAuthor] = await attachAuthors([updated]);
+
     res.json({
       success: true,
-      data: discussion,
+      data: withLikedByMe(withAuthor, userId),
+      message: alreadyLiked ? '已取消点赞' : '点赞成功',
     });
   } catch (err) {
     console.error('PUT /api/v3/discussions/:id/like error:', err);

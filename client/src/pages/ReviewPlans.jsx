@@ -366,7 +366,7 @@ export default function ReviewPlans() {
                       {plan.type === 'daily' ? '每日' :
                        plan.type === 'weekly' ? '每周' : '自定义'}
                     </span>
-                    <span className="px-2 py-1 rounded bg-purple-100 text-purple-700">
+                    <span className="px-2 py-1 rounded bg-slate-100 text-slate-700">
                       {plan.strategy === 'due' ? '到期复习' :
                        plan.strategy === 'unmastered' ? '未掌握优先' :
                        plan.strategy === 'all' ? '全部错题' :

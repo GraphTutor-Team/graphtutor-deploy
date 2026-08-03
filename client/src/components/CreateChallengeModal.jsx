@@ -4,17 +4,17 @@
  * 功能：创建新的好友挑战
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { createFriendChallenge } from '../api/v3/friendChallenges';
 import { toast } from '../utils/toast';
 import Icon from './common/Icon';
 
-export default function CreateChallengeModal({ friends, onClose, onSuccess }) {
+export default function CreateChallengeModal({ friends, onClose, onSuccess, initialFriendId = '' }) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    participantId: '',
+    participantId: initialFriendId || '',
     title: '',
     description: '',
     target: 10,
@@ -23,6 +23,12 @@ export default function CreateChallengeModal({ friends, onClose, onSuccess }) {
     difficulty: 'medium',
     reward: '',
   });
+
+  useEffect(() => {
+    if (initialFriendId) {
+      setFormData((prev) => ({ ...prev, participantId: initialFriendId }));
+    }
+  }, [initialFriendId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -122,7 +128,7 @@ export default function CreateChallengeModal({ friends, onClose, onSuccess }) {
         />
 
         {/* 模态框 */}
-        <div className="inline-block align-bottom bg-white dark:bg-slate-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+        <div className="inline-block align-bottom bg-white dark:bg-slate-800 rounded-lg text-left overflow-hidden shadow-md transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
           <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
             <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
               发起好友挑战

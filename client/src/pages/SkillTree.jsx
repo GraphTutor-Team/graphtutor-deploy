@@ -10,6 +10,7 @@ import { getSubjectTree } from '../api/v3/subjects';
 import { getSkillTree } from '../api/v3/enhancedAnalytics';
 import { toast } from '../utils/toast';
 import PageHeader from '../components/PageHeader';
+import LoginPrompt from '../components/common/LoginPrompt';
 
 function flattenSubjects(subjects, result = []) {
   subjects.forEach((s) => {
@@ -57,7 +58,10 @@ export default function SkillTree() {
 
   if (!user) {
     return (
-      <div className="p-6 text-center text-slate-500">请先登录</div>
+      <LoginPrompt
+        title="登录后查看技能树"
+        description="登录后可查看学科知识点点亮进度。也可先看教程，或去做题点亮节点。"
+      />
     );
   }
 

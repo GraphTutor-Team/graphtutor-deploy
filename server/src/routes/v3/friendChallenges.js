@@ -14,11 +14,33 @@ import {
   getUserChallenges,
   getChallengesBetweenUsers,
   updateChallengeProgress,
+  syncActiveChallengeProgress,
   getChallengeStats,
 } from '../../services/friendChallengeService.js';
 import { validateInt } from '../../middleware/validation.js';
 
 const router = express.Router();
+
+/**
+ * PUT /api/v3/friend-challenges/sync-progress
+ * 同步当前用户所有进行中挑战的进度
+ */
+router.put('/sync-progress', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const result = await syncActiveChallengeProgress(userId);
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (err) {
+    console.error('PUT /api/v3/friend-challenges/sync-progress error:', err);
+    res.status(500).json({
+      success: false,
+      message: err.message || '同步挑战进度失败',
+    });
+  }
+});
 
 /**
  * POST /api/v3/friend-challenges

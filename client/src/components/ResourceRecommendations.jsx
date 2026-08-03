@@ -59,7 +59,7 @@ export default function ResourceRecommendations({ data }) {
       knowledge: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800',
       wrong_question: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800',
       goal: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800',
-      progress: 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800',
+      progress: 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700',
     };
     return colors[type] || 'bg-slate-50 dark:bg-slate-700 border-slate-200 dark:border-slate-600';
   };

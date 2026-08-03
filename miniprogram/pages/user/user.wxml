@@ -66,7 +66,7 @@
   <view class="card" wx:if="{{isLoggedIn}}">
     <view class="section-title">社交与社区</view>
     <view class="menu-list">
-      <view class="menu-row" wx:for="{{socialTools}}" wx:key="title" data-url="{{item.url}}" bindtap="onToolTap">
+      <view class="menu-row" wx:for="{{socialTools}}" wx:key="title" data-url="{{item.url}}" data-action="{{item.action}}" bindtap="onToolTap">
         <image class="menu-icon" src="{{icons[item.iconKey]}}" mode="aspectFit" />
         <view class="menu-body">
           <view class="menu-title">{{item.title}}</view>

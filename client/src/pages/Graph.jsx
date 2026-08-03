@@ -309,7 +309,7 @@ export default function Graph() {
         <SectionCard
           title="导出节点"
           desc="导出所有节点数据为 JSON 文件"
-          className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20"
+          className="bg-emerald-50 dark:bg-emerald-950/30"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">

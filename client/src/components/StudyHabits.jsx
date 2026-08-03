@@ -86,8 +86,8 @@ export default function StudyHabits({ data }) {
             </div>
             <div className="text-sm text-slate-600 dark:text-slate-400">本周频率</div>
           </div>
-          <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+          <div className="text-center p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
+            <div className="text-2xl font-bold text-blue-600 dark:text-purple-400">
               {habits.frequency.monthly}
             </div>
             <div className="text-sm text-slate-600 dark:text-slate-400">本月频率</div>
@@ -119,7 +119,7 @@ export default function StudyHabits({ data }) {
             </div>
             <div className="text-sm text-slate-600 dark:text-slate-400">平均每日时长</div>
           </div>
-          <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+          <div className="text-center p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
             <div className="text-sm font-semibold capitalize mb-1">
               {habits.duration.level}
             </div>
@@ -140,8 +140,8 @@ export default function StudyHabits({ data }) {
             </div>
             <div className="text-sm text-slate-600 dark:text-slate-400">本周一致性</div>
           </div>
-          <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-            <div className="text-xl font-bold text-purple-600 dark:text-purple-400">
+          <div className="text-center p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
+            <div className="text-xl font-bold text-blue-600 dark:text-purple-400">
               {habits.consistency.consecutiveDays}
             </div>
             <div className="text-sm text-slate-600 dark:text-slate-400">连续学习天数</div>
@@ -192,8 +192,8 @@ export default function StudyHabits({ data }) {
               </div>
               <div className="text-xs text-slate-600 dark:text-slate-400">晚上</div>
             </div>
-            <div className="text-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-              <div className="text-lg font-bold text-purple-600 dark:text-purple-400">
+            <div className="text-center p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+              <div className="text-lg font-bold text-blue-600 dark:text-purple-400">
                 {habits.timePreference.distribution.night}%
               </div>
               <div className="text-xs text-slate-600 dark:text-slate-400">夜间</div>
@@ -241,7 +241,7 @@ export default function StudyHabits({ data }) {
               </div>
               <div className="text-sm text-slate-600 dark:text-slate-400">连续打卡天数</div>
             </div>
-            <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+            <div className="text-center p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
               <div className="text-sm font-semibold capitalize mb-1">
                 {habits.checkInHabits.level}
               </div>

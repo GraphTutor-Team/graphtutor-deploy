@@ -54,5 +54,9 @@ Page({
     wx.navigateTo({ url: `/pages/community/detail/detail?id=${e.currentTarget.dataset.id}` });
   },
 
+  goCreate() {
+    wx.navigateTo({ url: '/pages/community/create/create' });
+  },
+
   goLogin() { featurePage.goLogin(); },
 });

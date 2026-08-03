@@ -1,0 +1,35 @@
+<view class="container">
+  <view wx:if="{{!isLoggedIn}}" class="card">
+    <view class="state-box">
+      <view class="state-text">登录后才能发帖</view>
+      <button class="state-btn" bindtap="goLogin">去登录</button>
+    </view>
+  </view>
+
+  <block wx:else>
+    <view class="card">
+      <view class="field">
+        <view class="field-label">标题</view>
+        <input
+          class="field-input"
+          placeholder="讨论标题"
+          value="{{title}}"
+          maxlength="80"
+          bindinput="onTitleInput"
+        />
+      </view>
+      <view class="field">
+        <view class="field-label">内容</view>
+        <textarea
+          class="field-textarea"
+          placeholder="分享你的问题或想法…"
+          value="{{content}}"
+          bindinput="onContentInput"
+          maxlength="2000"
+          auto-height
+        />
+      </view>
+    </view>
+    <button class="save-btn" loading="{{submitting}}" bindtap="submit">发布讨论</button>
+  </block>
+</view>

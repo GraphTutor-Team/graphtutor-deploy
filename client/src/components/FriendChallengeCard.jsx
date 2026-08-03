@@ -27,8 +27,8 @@ export default function FriendChallengeCard({ challenge, onUpdate }) {
     ? challenge.participantId
     : challenge.participantId?._id || challenge.participantId;
   
-  const isCreator = creatorId?.toString() === user?.id;
-  const isParticipant = participantId?.toString() === user?.id;
+  const isCreator = String(creatorId) === String(user?.id || user?._id);
+  const isParticipant = String(participantId) === String(user?.id || user?._id);
   const canAccept = !isCreator && challenge.status === 'pending';
   const canCancel = (isCreator || isParticipant) && challenge.status !== 'completed' && challenge.status !== 'failed';
 
@@ -90,7 +90,7 @@ export default function FriendChallengeCard({ challenge, onUpdate }) {
     : '未知用户';
 
   return (
-    <div className="card p-6 hover:shadow-lg transition-shadow">
+    <div className="card p-6  transition-shadow">
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
           <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">
@@ -108,7 +108,7 @@ export default function FriendChallengeCard({ challenge, onUpdate }) {
           </div>
         </div>
         <div className="ml-4">
-          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+          <span className={`px-2.5 py-1 rounded-md text-xs font-medium ${
             challenge.status === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
             challenge.status === 'completed' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
             challenge.status === 'pending' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' :
@@ -125,6 +125,9 @@ export default function FriendChallengeCard({ challenge, onUpdate }) {
       {/* 进度显示 */}
       {challenge.status === 'active' && (
         <div className="space-y-3 mb-4">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            练习或考试交卷后会自动同步进度，也可手动更新。
+          </p>
           <div>
             <div className="flex justify-between text-sm mb-1">
               <span className="text-slate-600 dark:text-slate-400">
@@ -157,12 +160,12 @@ export default function FriendChallengeCard({ challenge, onUpdate }) {
       )}
 
       {/* 操作按钮 */}
-      <div className="flex items-center space-x-2 mt-4">
+      <div className="flex flex-wrap gap-2 mt-4">
         {canAccept && (
           <button
             onClick={handleAccept}
             disabled={loading}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center space-x-2"
+            className="flex-1 min-w-[7rem] px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 inline-flex items-center justify-center gap-2"
           >
             <Icon name="check" className="h-4 w-4" />
             <span>接受挑战</span>
@@ -172,7 +175,7 @@ export default function FriendChallengeCard({ challenge, onUpdate }) {
           <button
             onClick={handleUpdateProgress}
             disabled={loading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center space-x-2"
+            className="flex-1 min-w-[7rem] px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 inline-flex items-center justify-center gap-2"
           >
             <Icon name="refresh-cw" className="h-4 w-4" />
             <span>更新进度</span>
@@ -182,7 +185,7 @@ export default function FriendChallengeCard({ challenge, onUpdate }) {
           <button
             onClick={handleCancel}
             disabled={loading}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center space-x-2"
+            className="flex-1 min-w-[7rem] px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 inline-flex items-center justify-center gap-2"
           >
             <Icon name="x" className="h-4 w-4" />
             <span>取消</span>
@@ -190,7 +193,7 @@ export default function FriendChallengeCard({ challenge, onUpdate }) {
         )}
         <Link
           to={`/friends/${isCreator ? participantId : creatorId}`}
-          className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 flex items-center space-x-2"
+          className="flex-1 min-w-[7rem] px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 inline-flex items-center justify-center gap-2"
         >
           <Icon name="user" className="h-4 w-4" />
           <span>查看好友</span>

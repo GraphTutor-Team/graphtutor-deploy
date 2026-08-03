@@ -16,7 +16,7 @@ export default function Modal({ open, title, onClose, children, footer }){
       <div className="absolute inset-0 bg-black/30" onClick={onClose} aria-hidden="true" />
       <div 
         ref={modalRef}
-        className="relative z-10 w-full max-w-2xl rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-4"
+        className="relative z-10 w-full max-w-2xl rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-4"
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"

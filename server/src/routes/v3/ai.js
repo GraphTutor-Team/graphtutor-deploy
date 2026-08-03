@@ -370,7 +370,58 @@ router.get('/tasks', requireAuth, async (req, res) => {
  * POST /api/v3/ai/chat
  * 统一 AI 对话（学习伴侣智能问答）
  * body: { messages: [{ role, content }], context?: { pageType, questionId, knowledgeNodeId, wrongQuestionIds } }
+ * 返回: { content, recommendedQuestionIds? } —— 推荐练习时附带可开练的题目 ID
  */
+function isPracticeRecommendIntent(text = '') {
+  return /推荐|练习题|练几道|根据.{0,8}错题|错题.{0,12}(练|复习|巩固)/.test(String(text));
+}
+
+/**
+ * 根据错题选出可练习的题目：优先同知识点新题，不足时回退到错题本身
+ */
+async function resolveRecommendedQuestionIds(wrongIds, count = 5) {
+  const ids = [...new Set((wrongIds || []).map(String).filter(Boolean))].slice(0, 20);
+  if (ids.length === 0) return [];
+
+  try {
+    const Question = (await import('../../models/Question.js')).default;
+    const wrongQs = await Question.find({ _id: { $in: ids } })
+      .select('_id knowledgeNodeId')
+      .lean();
+    const nodeIds = [
+      ...new Set(
+        wrongQs
+          .map((q) => q.knowledgeNodeId)
+          .filter(Boolean)
+          .map(String)
+      ),
+    ];
+
+    const picked = [];
+    if (nodeIds.length > 0) {
+      const related = await Question.find({
+        knowledgeNodeId: { $in: nodeIds },
+        _id: { $nin: ids },
+      })
+        .select('_id')
+        .limit(count * 3)
+        .lean();
+      for (const q of related) {
+        if (picked.length >= count) break;
+        picked.push(String(q._id));
+      }
+    }
+    for (const id of ids) {
+      if (picked.length >= count) break;
+      if (!picked.includes(id)) picked.push(id);
+    }
+    return picked.slice(0, count);
+  } catch (err) {
+    console.warn('[ai/chat] resolveRecommendedQuestionIds failed:', err.message);
+    return ids.slice(0, count);
+  }
+}
+
 router.post('/chat', requireAuth, async (req, res) => {
   try {
     const { messages = [], context } = req.body || {};
@@ -383,28 +434,62 @@ router.post('/chat', requireAuth, async (req, res) => {
       });
     }
 
+    const lastUser = [...messages].reverse().find((m) => m?.role === 'user');
+    const wantRecommend = isPracticeRecommendIntent(lastUser?.content);
+    const wrongIds = Array.isArray(context?.wrongQuestionIds)
+      ? context.wrongQuestionIds.map(String).filter(Boolean)
+      : [];
+
+    let recommendedQuestionIds = [];
+    if (wantRecommend) {
+      recommendedQuestionIds = await resolveRecommendedQuestionIds(wrongIds, 5);
+    }
+
     const systemParts = [
       '你是 GraphTutor 的学习助手。根据用户当前学习上下文（如有）回答问题，回答要简洁、准确、有帮助。',
+      '不要输出原始题目 ID 或数据库字段；需要练习时引导用户点击界面上的「开始练习」按钮即可。',
     ];
     if (context && typeof context === 'object') {
       if (context.pageType) systemParts.push(`当前页面类型：${context.pageType}`);
       if (context.questionId) systemParts.push(`当前题目ID：${context.questionId}`);
       if (context.knowledgeNodeId) systemParts.push(`当前知识点ID：${context.knowledgeNodeId}`);
-      if (Array.isArray(context.wrongQuestionIds) && context.wrongQuestionIds.length > 0) {
-        systemParts.push(`用户近期错题ID（可据此推荐练习）：${context.wrongQuestionIds.slice(0, 20).join(', ')}`);
+      if (wrongIds.length > 0) {
+        systemParts.push(`用户近期错题数量：${wrongIds.length}（可用于薄弱点分析）`);
       }
     }
+    if (wantRecommend && recommendedQuestionIds.length > 0) {
+      systemParts.push(
+        `系统已为用户准备好 ${recommendedQuestionIds.length} 道巩固练习题（优先同知识点新题，必要时含错题重练）。请简要说明推荐理由与复习建议（2–5 句），并提示可点击「开始练习这 ${recommendedQuestionIds.length} 题」。`
+      );
+    } else if (wantRecommend && recommendedQuestionIds.length === 0) {
+      systemParts.push(
+        '用户想根据错题推荐练习，但当前没有可用错题数据。请温和提示先去做几道题，做错后即可推荐。'
+      );
+    }
+
     const systemMessage = {
       role: 'system',
       content: systemParts.join('\n'),
     };
     const fullMessages = [systemMessage, ...messages];
 
-    const content = await chatCompletion(fullMessages, { temperature: 0.6 }, userId);
+    let content;
+    try {
+      content = await chatCompletion(fullMessages, { temperature: 0.6 }, userId);
+    } catch (llmErr) {
+      if (wantRecommend && recommendedQuestionIds.length > 0) {
+        content = `已根据你的错题薄弱点，准备了 ${recommendedQuestionIds.length} 道巩固练习。点击下方「开始练习」即可开练。`;
+      } else {
+        throw llmErr;
+      }
+    }
 
     res.json({
       success: true,
-      data: { content },
+      data: {
+        content,
+        ...(recommendedQuestionIds.length > 0 ? { recommendedQuestionIds } : {}),
+      },
     });
   } catch (err) {
     console.error('POST /api/v3/ai/chat error:', err);

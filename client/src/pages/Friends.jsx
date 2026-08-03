@@ -149,13 +149,44 @@ export default function Friends() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+    <div className="page-shell">
       <PageHeader
-        title="好友管理"
-        description="管理你的好友和好友请求"
+        title="好友"
+        subtitle="管理好友与请求；发现好友、挑战见下方入口"
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="space-y-6">
+        <div className="flex flex-wrap gap-2 text-sm">
+          <button
+            type="button"
+            onClick={() => navigate('/friends/discover')}
+            className="btn btn-outline"
+          >
+            发现好友
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/friend-challenges')}
+            className="btn btn-outline"
+          >
+            好友挑战
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/learning-posts')}
+            className="btn btn-outline"
+          >
+            学习动态
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/community')}
+            className="btn btn-outline"
+          >
+            学习社区
+          </button>
+        </div>
+
         {/* 标签页 */}
         <div className="mb-6">
           <div className="border-b border-slate-200 dark:border-slate-700">
@@ -207,21 +238,23 @@ export default function Friends() {
               <EmptyState
                 icon="users"
                 title="还没有好友"
-                description="添加好友后可以一起练习、比拼和讨论。下一步：去发现页添加好友。"
+                description="添加好友后可以一起练习、比拼和讨论。也可以先看使用教程，或去做几道题。"
                 actionLink="/friends/discover"
                 actionLabel="去发现好友"
+                secondaryLink="/home?guide=1"
+                secondaryLabel="使用教程"
               />
             ) : (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
                   {friends.map((friend) => (
                     <div
                       key={friend._id}
-                      className="bg-white dark:bg-slate-800 rounded-lg border dark:border-slate-700 p-6 hover:shadow-md transition-shadow"
+                      className="surface !p-4 hover:border-blue-200 dark:hover:border-slate-600 transition-colors flex flex-col gap-3 min-w-0"
                     >
-                      <div className="flex items-start justify-between">
-                        <div 
-                          className="flex items-center space-x-4 flex-1 cursor-pointer"
+                      <div className="flex items-start gap-3 min-w-0">
+                        <div
+                          className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
                           onClick={() => navigate(`/friends/${friend._id}`)}
                         >
                           <div className="flex-shrink-0">
@@ -229,7 +262,7 @@ export default function Friends() {
                               <img
                                 src={friend.avatarUrl}
                                 alt={friend.name}
-                                className="h-12 w-12 rounded-full"
+                                className="h-12 w-12 rounded-full object-cover"
                               />
                             ) : (
                               <div className="h-12 w-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
@@ -238,7 +271,7 @@ export default function Friends() {
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">
+                            <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 truncate">
                               {friend.name || friend.email}
                             </h3>
                             {friend.school && (
@@ -247,54 +280,70 @@ export default function Friends() {
                               </p>
                             )}
                             {friend.major && (
-                              <p className="text-xs text-slate-400 dark:text-slate-500">
+                              <p className="text-xs text-slate-400 dark:text-slate-500 truncate">
                                 {friend.major}
                               </p>
                             )}
                           </div>
                         </div>
-                        <div className="flex-shrink-0 flex items-center space-x-2">
+                        <div className="relative flex-shrink-0">
                           <button
-                            onClick={() => navigate(`/friends/${friend._id}`)}
-                            className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
+                            type="button"
+                            onClick={() => {
+                              const menu = document.getElementById(`menu-${friend._id}`);
+                              menu?.classList.toggle('hidden');
+                            }}
+                            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                            aria-label="更多操作"
                           >
-                            查看详情
+                            <Icon name="dots-vertical" className="h-5 w-5" />
                           </button>
-                          <div className="relative">
+                          <div
+                            id={`menu-${friend._id}`}
+                            className="hidden absolute right-0 mt-1 w-40 bg-white dark:bg-slate-700 rounded-md shadow-lg z-10 border border-slate-200 dark:border-slate-600"
+                          >
                             <button
+                              type="button"
                               onClick={() => {
-                                const menu = document.getElementById(`menu-${friend._id}`);
-                                menu?.classList.toggle('hidden');
+                                document.getElementById(`menu-${friend._id}`)?.classList.add('hidden');
+                                handleDeleteFriend(friend._id);
                               }}
-                              className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                              className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-slate-100 dark:hover:bg-slate-600"
                             >
-                              <Icon name="dots-vertical" className="h-5 w-5" />
+                              删除好友
                             </button>
-                            <div
-                              id={`menu-${friend._id}`}
-                              className="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-slate-700 rounded-md shadow-lg z-10"
+                            <button
+                              type="button"
+                              onClick={() => {
+                                document.getElementById(`menu-${friend._id}`)?.classList.add('hidden');
+                                handleBlockFriend(friend._id);
+                              }}
+                              className="block w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600"
                             >
-                              <button
-                                onClick={() => {
-                                  document.getElementById(`menu-${friend._id}`)?.classList.add('hidden');
-                                  handleDeleteFriend(friend._id);
-                                }}
-                                className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-slate-100 dark:hover:bg-slate-600"
-                              >
-                                删除好友
-                              </button>
-                              <button
-                                onClick={() => {
-                                  document.getElementById(`menu-${friend._id}`)?.classList.add('hidden');
-                                  handleBlockFriend(friend._id);
-                                }}
-                                className="block w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600"
-                              >
-                                屏蔽好友
-                              </button>
-                            </div>
+                              屏蔽好友
+                            </button>
                           </div>
                         </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/messages?userId=${friend._id}`);
+                          }}
+                          className="flex-1 min-w-[6.5rem] px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+                        >
+                          发消息
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/friends/${friend._id}`)}
+                          className="flex-1 min-w-[6.5rem] px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+                        >
+                          查看详情
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -350,26 +399,26 @@ export default function Friends() {
                   {friendRequests.map((request) => (
                     <div
                       key={request._id}
-                      className="bg-white dark:bg-slate-800 rounded-lg border dark:border-slate-700 p-4 flex items-center justify-between"
+                      className="surface !p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between min-w-0"
                     >
-                      <div className="flex items-center space-x-4 flex-1">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
                         {request.fromUserId?.avatarUrl ? (
                           <img
                             src={request.fromUserId.avatarUrl}
                             alt={request.fromUserId.name}
-                            className="h-10 w-10 rounded-full"
+                            className="h-10 w-10 rounded-full object-cover flex-shrink-0"
                           />
                         ) : (
-                          <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
+                          <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold flex-shrink-0">
                             {request.fromUserId?.name?.charAt(0)?.toUpperCase() || 'U'}
                           </div>
                         )}
-                        <div className="flex-1">
-                          <h4 className="font-medium text-slate-900 dark:text-slate-100">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-slate-900 dark:text-slate-100 truncate">
                             {request.fromUserId?.name || request.fromUserId?.email}
                           </h4>
                           {request.message && (
-                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
                               {request.message}
                             </p>
                           )}
@@ -378,16 +427,18 @@ export default function Friends() {
                           </p>
                         </div>
                       </div>
-                      <div className="flex space-x-2">
+                      <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                         <button
+                          type="button"
                           onClick={() => handleAcceptRequest(request._id)}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
+                          className="flex-1 sm:flex-none px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
                         >
                           接受
                         </button>
                         <button
+                          type="button"
                           onClick={() => handleRejectRequest(request._id)}
-                          className="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-md hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium"
+                          className="flex-1 sm:flex-none px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium"
                         >
                           拒绝
                         </button>
@@ -412,26 +463,26 @@ export default function Friends() {
                   {sentRequests.map((request) => (
                     <div
                       key={request._id}
-                      className="bg-white dark:bg-slate-800 rounded-lg border dark:border-slate-700 p-4 flex items-center justify-between"
+                      className="surface !p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between min-w-0"
                     >
-                      <div className="flex items-center space-x-4 flex-1">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
                         {request.toUserId?.avatarUrl ? (
                           <img
                             src={request.toUserId.avatarUrl}
                             alt={request.toUserId.name}
-                            className="h-10 w-10 rounded-full"
+                            className="h-10 w-10 rounded-full object-cover flex-shrink-0"
                           />
                         ) : (
-                          <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
+                          <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold flex-shrink-0">
                             {request.toUserId?.name?.charAt(0)?.toUpperCase() || 'U'}
                           </div>
                         )}
-                        <div className="flex-1">
-                          <h4 className="font-medium text-slate-900 dark:text-slate-100">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-slate-900 dark:text-slate-100 truncate">
                             {request.toUserId?.name || request.toUserId?.email}
                           </h4>
                           {request.message && (
-                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
                               {request.message}
                             </p>
                           )}
@@ -440,24 +491,27 @@ export default function Friends() {
                           </p>
                         </div>
                       </div>
-                      {request.status === 'pending' && (
-                        <button
-                          onClick={() => handleCancelRequest(request._id)}
-                          className="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-md hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium"
-                        >
-                          取消
-                        </button>
-                      )}
-                      {request.status === 'accepted' && (
-                        <span className="px-4 py-2 text-sm text-green-600 dark:text-green-400">
-                          已接受
-                        </span>
-                      )}
-                      {request.status === 'rejected' && (
-                        <span className="px-4 py-2 text-sm text-red-600 dark:text-red-400">
-                          已拒绝
-                        </span>
-                      )}
+                      <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                        {request.status === 'pending' && (
+                          <button
+                            type="button"
+                            onClick={() => handleCancelRequest(request._id)}
+                            className="flex-1 sm:flex-none px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium"
+                          >
+                            取消
+                          </button>
+                        )}
+                        {request.status === 'accepted' && (
+                          <span className="px-4 py-2 text-sm text-green-600 dark:text-green-400">
+                            已接受
+                          </span>
+                        )}
+                        {request.status === 'rejected' && (
+                          <span className="px-4 py-2 text-sm text-red-600 dark:text-red-400">
+                            已拒绝
+                          </span>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>

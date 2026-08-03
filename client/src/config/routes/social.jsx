@@ -12,6 +12,7 @@ import {
   LazyFriends,
   LazyFriendsDiscover,
   LazyFriendDetail,
+  LazyUserProfile,
   LazyFriendChallenges,
   LazyLearningPosts,
   LazyCommunity,
@@ -52,6 +53,17 @@ export const socialRoutes = [
       <ProtectedRoute>
         <Suspense fallback={<SuspenseFallback text="加载好友详情..." />}>
           <LazyFriendDetail />
+        </Suspense>
+      </ProtectedRoute>
+    }
+  />,
+  <Route
+    key="user-profile"
+    path="/users/:id"
+    element={
+      <ProtectedRoute>
+        <Suspense fallback={<SuspenseFallback text="加载用户资料..." />}>
+          <LazyUserProfile />
         </Suspense>
       </ProtectedRoute>
     }

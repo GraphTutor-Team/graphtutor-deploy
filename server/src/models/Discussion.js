@@ -66,6 +66,12 @@ const DiscussionSchema = new mongoose.Schema(
       min: 0,
     },
 
+    // 点赞用户 ID 列表（去重）
+    likedBy: {
+      type: [String],
+      default: [],
+    },
+
     // 回复数
     replyCount: {
       type: Number,

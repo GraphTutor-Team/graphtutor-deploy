@@ -316,6 +316,13 @@ function addDiscussionReply(discussionId, content) {
   }).then(dataOf));
 }
 
+function createDiscussion(data) {
+  return withAuth(() => api.request('/api/v3/discussions', {
+    method: 'POST',
+    data: data || {},
+  }).then(dataOf));
+}
+
 function getLearningPosts(params) {
   const p = params || {};
   return withAuth(() => api.request('/api/v3/learning-posts', {
@@ -412,6 +419,7 @@ module.exports = {
   getDiscussions,
   getDiscussionDetail,
   addDiscussionReply,
+  createDiscussion,
   getLearningPosts,
   getConversations,
   getForgettingCurve,

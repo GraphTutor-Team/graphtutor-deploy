@@ -81,9 +81,9 @@ export default function UserStatsCard({ userId }) {
           <div className="text-2xl font-bold text-green-600">{stats.studyDays}天</div>
         </div>
         
-        <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
+        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
           <div className="text-sm text-slate-600 dark:text-slate-400 mb-1">正确率</div>
-          <div className="text-2xl font-bold text-purple-600">
+          <div className="text-2xl font-bold text-blue-600">
             {stats.accuracy !== null ? `${stats.accuracy}%` : '—'}
           </div>
         </div>

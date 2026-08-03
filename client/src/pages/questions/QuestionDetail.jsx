@@ -786,7 +786,7 @@ export default function QuestionDetail() {
               {similarQuestions.map((q, index) => (
                 <div
                   key={q._id || q.id || index}
-                  className="bg-white p-6 rounded-lg border hover:border-blue-300 hover:shadow-lg transition-all"
+                  className="bg-white p-6 rounded-lg border hover:border-blue-300  transition-all"
                 >
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
@@ -878,7 +878,7 @@ export default function QuestionDetail() {
               {relatedNotes.map((note) => (
                 <div
                   key={note._id}
-                  className="bg-white p-6 rounded-lg border hover:border-blue-300 hover:shadow-lg transition-all"
+                  className="bg-white p-6 rounded-lg border hover:border-blue-300  transition-all"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
@@ -944,7 +944,7 @@ export default function QuestionDetail() {
                     {questionNote.tags.map((tag, idx) => (
                       <span
                         key={idx}
-                        className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded"
+                        className="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded"
                       >
                         {tag}
                       </span>

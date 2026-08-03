@@ -251,7 +251,7 @@ export default function BankDetail() {
               </button>
               <button
                 onClick={() => navigate(`/quiz?bankId=${id}`)}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
                 ✏️ 去练习
               </button>
@@ -267,7 +267,7 @@ export default function BankDetail() {
                   </button>
                   <button
                     onClick={() => navigate(`/ai?bankId=${id}`)}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                   >
                     🤖 AI生成题目
                   </button>
@@ -386,7 +386,7 @@ export default function BankDetail() {
                   { key: 'single', label: '单选题', color: 'bg-blue-600' },
                   { key: 'multiple', label: '多选题', color: 'bg-green-600' },
                   { key: 'judge', label: '判断题', color: 'bg-yellow-600' },
-                  { key: 'fill', label: '填空题', color: 'bg-purple-600' },
+                  { key: 'fill', label: '填空题', color: 'bg-blue-600' },
                   { key: 'short', label: '简答题', color: 'bg-pink-600' },
                 ].map(({ key, label, color }) => {
                   const count = stats.typeDistribution[key] || 0;

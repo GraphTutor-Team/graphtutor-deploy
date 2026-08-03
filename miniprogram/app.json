@@ -21,6 +21,7 @@
     "pages/notes/detail/detail",
     "pages/community/community",
     "pages/community/detail/detail",
+    "pages/community/create/create",
     "pages/messages/messages",
     "pages/messages/chat/chat",
     "pages/result/result",

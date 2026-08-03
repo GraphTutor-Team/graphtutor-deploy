@@ -78,7 +78,7 @@ export default function NoteStatsPanel({ stats, notes = [] }) {
           </div>
         </div>
         <div className="text-center">
-          <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+          <div className="text-2xl font-bold text-blue-600 dark:text-purple-400">
             {stats?.byType?.knowledge || 0}
           </div>
           <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">

@@ -11,6 +11,7 @@ import { getStudyPlans } from '../api/v3/studyPlans';
 import { getEquipment } from '../api/v3/equipment';
 import { toast } from '../utils/toast';
 import PageHeader from '../components/PageHeader';
+import LoginPrompt from '../components/common/LoginPrompt';
 
 const MOOD_OPTIONS = [
   { value: 'great', label: '很好', emoji: '😊', color: 'bg-green-100 text-green-700' },
@@ -225,9 +226,10 @@ export default function CheckIn() {
 
   if (!user) {
     return (
-      <div className="p-6 text-center">
-        <div className="text-slate-500">请先登录</div>
-      </div>
+      <LoginPrompt
+        title="登录后打卡"
+        description="登录后可记录每日学习打卡。也可先看教程，或直接开始练习。"
+      />
     );
   }
 
@@ -281,7 +283,7 @@ export default function CheckIn() {
         </div>
         <div className="bg-white rounded-lg border p-4">
           <div className="text-sm text-slate-600 mb-1">总打卡天数</div>
-          <div className="text-2xl font-bold text-purple-600">{stats.totalDays} 天</div>
+          <div className="text-2xl font-bold text-blue-600">{stats.totalDays} 天</div>
         </div>
         <div className="bg-white rounded-lg border p-4">
           <div className="text-sm text-slate-600 mb-1">总学习时长</div>

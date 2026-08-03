@@ -85,7 +85,7 @@ export default function Recommendations() {
   const getTypeColor = (type) => {
     const colors = {
       single: 'bg-blue-100 text-blue-800',
-      multiple: 'bg-purple-100 text-purple-800',
+      multiple: 'bg-slate-100 text-slate-800',
       judge: 'bg-green-100 text-green-800',
       fill: 'bg-yellow-100 text-yellow-800',
       short: 'bg-orange-100 text-orange-800',
@@ -211,7 +211,7 @@ export default function Recommendations() {
           {questions.map((question, index) => (
             <div
               key={question._id || question.id || index}
-              className="bg-white p-6 rounded-lg border hover:border-blue-300 hover:shadow-lg transition-all"
+              className="bg-white p-6 rounded-lg border hover:border-blue-300  transition-all"
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
@@ -303,7 +303,7 @@ export default function Recommendations() {
             </button>
             <button
               onClick={() => navigate('/exam')}
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
               开始考试
             </button>

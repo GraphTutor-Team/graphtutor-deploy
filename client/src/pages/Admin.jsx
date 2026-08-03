@@ -1,89 +1,94 @@
 /**
  * GraphTutor V3.0 - 管理后台首页
- * 
- * 作用：管理员后台入口页面，提供系统统计、数据导出和各个管理功能的导航链接
- * 关联页面：
- *   - components/SystemStats.jsx (系统统计组件)
- *   - pages/admin/UserManagement.jsx (用户管理)
- *   - pages/admin/OperationLogs.jsx (操作日志)
- *   - pages/admin/Reports.jsx (统计报表)
- *   - pages/admin/RoleApplicationManagement.jsx (角色申请管理)
- * 技术栈：
- *   - React组件
- *   - React Router (Link导航)
- *   - 数据导出功能
- *   - 卡片布局
+ *
+ * 作用：管理员后台入口，系统统计、全量备份导入导出、管理功能导航
  */
 
 import BackBar from '../components/BackBar';
 import HelpHint from '../components/HelpHint.jsx';
-import Skeleton from '../components/Skeleton.jsx';
-import Empty from '../components/Empty.jsx';
 import Toolbar from '../components/Toolbar.jsx';
-import { Link } from "react-router-dom";
+import { Link } from 'react-router-dom';
 import { downloadFile, toast, jsonReq, API_BASE } from '../utils/download';
 import SystemStats from './admin/components/SystemStats';
 
-async function tryJson(url){ try{ return await jsonReq(url); }catch{ return null; } }
-
-export default function Admin(){
-  async function onExport(){
-    try{
-      // 使用 jsonReq 以自动添加认证头
-      const token = localStorage.getItem('gt_token') || localStorage.getItem('token') || localStorage.getItem('authToken');
-      const headers = {};
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-      const r = await fetch(`${API_BASE}/admin/export/all`, { headers });
-      if(!r.ok) throw new Error('导出失败');
-      const text = await r.text();
-      downloadFile('graphtutor-export-all.json', text);
-      toast('导出完成');
-    }catch(e){ toast('导出失败：' + e.message); }
+async function tryJson(url) {
+  try {
+    return await jsonReq(url);
+  } catch {
+    return null;
   }
-  async function onImport(){
-    const i = document.createElement('input'); i.type='file'; i.accept='.json,application/json';
-    i.onchange = async ()=>{
-      const text = await i.files[0].text();
-      try{
-        // 优先 /api/admin/import
-        try{
-          await jsonReq(`${API_BASE}/admin/import`, { method:'POST', headers:{'Content-Type':'application/json'}, body:text });
-        }catch{
-          // 回退拆分导入
-          let ok = false;
-          try{ await jsonReq(`${API_BASE}/graph/import`, { method:'POST', headers:{'Content-Type':'application/json'}, body:text }); ok = true; }catch{}
-          try{ await jsonReq(`${API_BASE}/questions/import`, { method:'POST', headers:{'Content-Type':'application/json'}, body:text }); ok = true; }catch{}
-          if(!ok) throw new Error('后端未实现导入接口');
+}
+
+export default function Admin() {
+  async function onExportAll() {
+    try {
+      toast('正在导出全量备份…');
+      const backup = await jsonReq(`${API_BASE}/admin/export/all`);
+      const date = new Date().toISOString().slice(0, 10);
+      downloadFile(`graphtutor_backup_${date}.json`, JSON.stringify(backup, null, 2));
+      const meta = backup?.meta || {};
+      const trunc = meta.recordsTruncated ? '（作答已截断）' : '';
+      toast(
+        `已导出：学科 ${meta.subjectCount || 0} / 知识点 ${meta.nodeCount || 0} / 题库 ${meta.bankCount || 0} / 题目 ${meta.questionCount || 0} / 作答 ${meta.recordCount || 0}${trunc}`
+      );
+    } catch (e) {
+      toast('导出失败：' + (e.message || '未知错误'));
+    }
+  }
+
+  async function onImport() {
+    const i = document.createElement('input');
+    i.type = 'file';
+    i.accept = '.json,application/json';
+    i.onchange = async () => {
+      try {
+        const text = await i.files[0].text();
+        let payload;
+        try {
+          payload = JSON.parse(text);
+        } catch {
+          throw new Error('JSON 格式无效');
         }
-        toast('导入完成');
-      }catch(e){ toast('导入失败：' + e.message); }
+        toast('正在导入…');
+        const res = await jsonReq(`${API_BASE}/admin/import`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = res?.data || res || {};
+        const s = data.subjects || {};
+        const n = data.knowledgeNodes || {};
+        const b = data.banks || {};
+        const q = data.questions || {};
+        const r = data.records || {};
+        toast(
+          `导入完成：学科 +${s.created || 0}/改${s.updated || 0}，知识点 ${n.upserted || 0}，题库 +${b.created || 0}/改${b.updated || 0}，题目 +${q.created || 0}/改${q.updated || 0}，作答 +${r.created || 0}/跳过${r.skipped || 0}`
+        );
+      } catch (e) {
+        toast('导入失败：' + (e.message || '未知错误'));
+      }
     };
     i.click();
   }
-  async function onWipe(){
-    if(!confirm('危险：清空全部数据（题库/知识点/会话/记录）？')) return;
-    try{ await jsonReq(`${API_BASE}/admin/wipe`, { method:'POST' }); toast('已请求清空'); }
-    catch(e){ toast('后端未实现 /api/admin/wipe'); }
-  }
-  async function onReindex(){
-    try{ await jsonReq(`${API_BASE}/admin/reindex`, { method:'POST' }); toast('已请求重建索引'); }
-    catch{ toast('后端未实现 /api/admin/reindex'); }
-  }
-  async function onStats(){
-    // 优先服务端统计
+
+  async function onStats() {
     const s = await tryJson(`${API_BASE}/admin/stats`);
-    if (s){ downloadFile('stats.json', JSON.stringify(s, null, 2)); toast('已下载 stats.json'); return; }
-    // 客户端近似统计
+    if (s) {
+      downloadFile('stats.json', JSON.stringify(s, null, 2));
+      toast('已下载 stats.json');
+      return;
+    }
     const [graph, qs, recs] = await Promise.all([
-      tryJson(`${API_BASE}/graph/nodes`).then(x=>Array.isArray(x)?x:(x?.nodes||[])),
+      tryJson(`${API_BASE}/graph/nodes`).then((x) => (Array.isArray(x) ? x : x?.nodes || [])),
       tryJson(`${API_BASE}/questions?limit=1&skip=0&count=1`),
       tryJson(`${API_BASE}/records?limit=2000`),
     ]);
     const approx = {
       nodes: graph.length,
-      questions: typeof qs==='object' && typeof qs.total==='number' ? qs.total : (qs?.items?.length||0),
+      questions:
+        typeof qs === 'object' && typeof qs.total === 'number'
+          ? qs.total
+          : qs?.items?.length || 0,
       records: Array.isArray(recs) ? recs.length : 0,
       generatedAt: new Date().toISOString(),
     };
@@ -96,69 +101,59 @@ export default function Admin(){
       <BackBar title="管理后台" />
 
       <div className="space-y-4">
-        {/* 系统统计仪表板 */}
         <SystemStats />
 
         <div className="grid md:grid-cols-2 gap-4">
-        {/* 数据备份 */}
-        <div className="card space-y-3">
-          <div className="font-semibold">数据备份</div>
-          <Toolbar>
-            <button className="btn btn-primary" onClick={onExport}>导出全部数据</button>
-            <button className="btn" onClick={onStats}>统计汇总</button>
-          </Toolbar>
-          <HelpHint>
-            下载一份包含题库、知识点、会话与作答记录的完整 JSON 存档；
-            统计可走服务端或客户端近似。
-          </HelpHint>
-        </div>
+          <div className="card space-y-3">
+            <div className="font-semibold">数据备份</div>
+            <Toolbar>
+              <button type="button" className="btn btn-primary" onClick={onExportAll}>
+                全量导出
+              </button>
+              <button type="button" className="btn" onClick={onStats}>
+                统计汇总
+              </button>
+            </Toolbar>
+            <HelpHint>
+              全量导出包含：学科、知识点、题库及题目、作答记录（按用户邮箱 + 题目 qid 映射；不含密码）。单次最多约 10 万条作答。统计汇总仅下载计数。
+            </HelpHint>
+          </div>
 
-        {/* 数据恢复 */}
-        <div className="card space-y-3">
-          <div className="font-semibold">数据恢复</div>
-          <Toolbar>
-            <button className="btn" onClick={onImport}>导入备份（JSON）</button>
-            <button className="btn" onClick={onReindex}>重建索引</button>
-          </Toolbar>
-          <HelpHint>
-            优先 <code>/api/admin/import</code>；
-            否则回退到 <code>/graph/import</code> 与 <code>/questions/import</code>。
-          </HelpHint>
-        </div>
+          <div className="card space-y-3">
+            <div className="font-semibold">数据恢复</div>
+            <Toolbar>
+              <button type="button" className="btn" onClick={onImport}>
+                导入备份（JSON）
+              </button>
+            </Toolbar>
+            <HelpHint>
+              选择全量备份 JSON，按学科 → 知识点 → 题库/题目 → 作答记录顺序合并导入。内容按 code / key / qid 更新；作答依赖目标库已有同邮箱用户，按用户+题目+时间去重。
+            </HelpHint>
+          </div>
 
-        {/* 用户与权限管理（新加） */}
-        <div className="card space-y-3 md:col-span-2">
-          <div className="font-semibold">用户与权限</div>
-          <Toolbar>
-            <Link className="btn" to="/admin/users">
-              用户管理（角色分配）
-            </Link>
-            <Link className="btn" to="/admin/operation-logs">
-              操作日志
-            </Link>
-            <Link className="btn" to="/admin/reports">
-              统计报表
-            </Link>
-            <Link className="btn" to="/admin/role-applications">
-              角色申请审核
-            </Link>
-            <Link className="btn" to="/profile">
-              查看个人信息
-            </Link>
-          </Toolbar>
-          <HelpHint>
-            用户管理：直接修改用户角色；角色申请审核：审核用户提交的角色申请。
-          </HelpHint>
-        </div>
-
-        {/* 危险操作 */}
-        <div className="card space-y-3 md:col-span-2">
-          <div className="font-semibold text-red-600">危险操作</div>
-          <button className="btn btn-danger" onClick={onWipe}>清空全部数据</button>
-          <HelpHint>
-            需要后端实现 <code>POST /api/admin/wipe</code>；未实现则提示，不会误删。
-          </HelpHint>
-        </div>
+          <div className="card space-y-3 md:col-span-2">
+            <div className="font-semibold">用户与权限</div>
+            <Toolbar>
+              <Link className="btn" to="/admin/users">
+                用户管理（角色分配）
+              </Link>
+              <Link className="btn" to="/admin/operation-logs">
+                操作日志
+              </Link>
+              <Link className="btn" to="/admin/reports">
+                统计报表
+              </Link>
+              <Link className="btn" to="/admin/role-applications">
+                角色申请审核
+              </Link>
+              <Link className="btn" to="/profile">
+                查看个人信息
+              </Link>
+            </Toolbar>
+            <HelpHint>
+              用户管理：直接修改用户角色；角色申请审核：审核用户提交的角色申请。
+            </HelpHint>
+          </div>
         </div>
       </div>
     </div>

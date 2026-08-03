@@ -206,7 +206,7 @@ export default function LearningPath() {
 
       {/* 推荐下一步学习（Phase 2.5） */}
       {recommendedNext.length > 0 && (
-        <div className="bg-gradient-to-r from-emerald-50 to-blue-50 dark:from-emerald-900/20 dark:to-blue-900/20 p-5 rounded-lg border">
+        <div className="bg-slate-50 dark:bg-slate-800 p-5 rounded-lg border">
           <div className="flex items-center justify-between mb-3">
             <div>
               <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">

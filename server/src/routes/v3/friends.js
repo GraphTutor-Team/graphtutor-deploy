@@ -32,6 +32,7 @@ import {
   compareLearningData,
   getCommonLearningContent,
   getFriendsLeaderboard,
+  getPublicUserProfile,
 } from '../../services/friendService.js';
 import { validateInt } from '../../middleware/validation.js';
 
@@ -308,6 +309,24 @@ router.get('/check/:userId', requireAuth, async (req, res) => {
     res.status(500).json({
       success: false,
       message: err.message || '检查好友关系失败',
+    });
+  }
+});
+
+/**
+ * GET /api/v3/friends/profile/:userId
+ * 获取用户公开资料
+ */
+router.get('/profile/:userId', requireAuth, async (req, res) => {
+  try {
+    const profile = await getPublicUserProfile(req.user.id, req.params.userId);
+    res.json({ success: true, data: profile });
+  } catch (err) {
+    console.error('GET /api/v3/friends/profile/:userId error:', err);
+    const status = err.status || 500;
+    res.status(status).json({
+      success: false,
+      message: err.message || '获取用户资料失败',
     });
   }
 });

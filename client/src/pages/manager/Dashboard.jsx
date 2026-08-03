@@ -183,12 +183,12 @@ export default function ManagerDashboard() {
 
         <div className="bg-white p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow">
           <div className="text-sm text-slate-600 mb-1">学科总数</div>
-          <div className="text-3xl font-bold text-purple-600">
+          <div className="text-3xl font-bold text-blue-600">
             {stats.totalSubjects}
           </div>
           <button
             onClick={() => navigate('/subjects')}
-            className="mt-2 text-sm text-purple-600 hover:underline"
+            className="mt-2 text-sm text-blue-600 hover:underline"
           >
             学科管理 →
           </button>
@@ -279,14 +279,14 @@ export default function ManagerDashboard() {
           </button>
           <button
             onClick={() => navigate('/ai')}
-            className="p-4 border rounded-lg hover:bg-purple-50 hover:border-purple-300 text-left transition-colors"
+            className="p-4 border rounded-lg hover:bg-slate-50 hover:border-slate-300 text-left transition-colors"
           >
             <div className="text-sm font-semibold text-slate-700 mb-1">AI生成</div>
             <div className="text-xs text-slate-500">使用AI生成题目</div>
           </button>
           <button
             onClick={() => navigate('/subjects')}
-            className="p-4 border rounded-lg hover:bg-indigo-50 hover:border-indigo-300 text-left transition-colors"
+            className="p-4 border rounded-lg hover:bg-slate-50 hover:border-slate-300 text-left transition-colors"
           >
             <div className="text-sm font-semibold text-slate-700 mb-1">学科管理</div>
             <div className="text-xs text-slate-500">管理学科分类</div>
@@ -440,9 +440,9 @@ export default function ManagerDashboard() {
                 ${(aiStats.total?.totalCost || 0).toFixed(2)}
               </div>
             </div>
-            <div className="p-4 bg-purple-50 rounded-lg">
+            <div className="p-4 bg-slate-50 rounded-lg">
               <div className="text-sm text-slate-600 mb-1">平均响应时间</div>
-              <div className="text-2xl font-bold text-purple-600">
+              <div className="text-2xl font-bold text-blue-600">
                 {Math.round(aiStats.total?.avgDuration || 0)}ms
               </div>
             </div>

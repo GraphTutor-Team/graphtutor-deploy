@@ -124,6 +124,15 @@ export async function checkFriendship(userId) {
 }
 
 /**
+ * 获取用户公开资料
+ * @param {string} userId
+ */
+export async function getPublicUserProfile(userId) {
+  const res = await api.get(`/v3/friends/profile/${userId}`);
+  return res.data.data;
+}
+
+/**
  * 搜索用户
  * @param {Object} params - 查询参数
  * @param {string} params.keyword - 搜索关键词

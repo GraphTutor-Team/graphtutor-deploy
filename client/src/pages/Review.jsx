@@ -8,6 +8,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
 import { useAuth } from '../context/AuthContext';
+import { useAIContext } from '../context/AIContext';
 import api from '../api/api';
 import { toast } from '../utils/toast';
 import { exportToJSON, exportToCSV } from '../utils/export';
@@ -31,8 +32,11 @@ import {
   exportWrongQuestions,
 } from '../api/v3/wrongQuestions';
 import SimilarQuestions from '../components/SimilarQuestions';
-import { generateReviewPlan, exportReviewPlanAsText } from '../utils/reviewPlanGenerator';
-import { SpacedRepetition, getTodayReviewQuestions } from '../utils/smartReview';
+import { exportReviewPlanAsText } from '../utils/reviewPlanGenerator';
+import {
+  getTodayReviewQuestions as getTodayReviewQuestionsApi,
+  generateReviewPlan as generateReviewPlanApi,
+} from '../api/v3/smartReview';
 import { exportLearningReportToPDF } from '../utils/pdfExport';
 import SmartReviewPanel from '../components/SmartReviewPanel';
 import { getForgettingCurve } from '../api/v3/enhancedAnalytics';
@@ -44,14 +48,30 @@ export default function Review() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth() || {};
+  const { setAIContext } = useAIContext();
   const currentUserId = user?._id || user?.id || user?.userId || '';
   const fromGroup = location.state?.fromGroup;
   const groupName = location.state?.groupName;
+  const [focusedQuestionId, setFocusedQuestionId] = useState(null);
   
   // 数据状态
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState(null);
+
+  useEffect(() => {
+    if (!focusedQuestionId) {
+      setAIContext({ questionId: null, knowledgeNodeId: null });
+      return undefined;
+    }
+    const row = rows.find((r) => String(r.questionId || r.question?._id) === String(focusedQuestionId));
+    setAIContext({
+      pageType: 'review',
+      questionId: focusedQuestionId,
+      knowledgeNodeId: row?.question?.knowledgeNodeId ?? row?.knowledgeNodeId ?? null,
+    });
+    return () => setAIContext({ questionId: null, knowledgeNodeId: null });
+  }, [focusedQuestionId, rows, setAIContext]);
   
   // 筛选状态
   const [filter, setFilter] = useState('all'); // all, recent, mastered, unmastered, learning
@@ -391,7 +411,7 @@ export default function Review() {
   };
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="page-shell !space-y-4">
       <PageHeader
         title="错题复习"
         subtitle="查看和复习你做错的题目，巩固薄弱知识点"
@@ -402,14 +422,14 @@ export default function Review() {
 
       {/* 遗忘曲线：今日建议复习的知识点（与首页同源） */}
       {forgettingCurveList.length > 0 && (
-        <div className="rounded-lg border border-rose-200 dark:border-rose-800 bg-rose-50/50 dark:bg-slate-800/50 p-4">
-          <div className="text-sm font-medium text-slate-800 dark:text-slate-100 mb-2">📉 建议优先复习这些知识点（7 天后遗忘概率较高）</div>
+        <div className="surface border-rose-100 dark:border-rose-900/40 bg-rose-50/60 dark:bg-rose-950/20">
+          <div className="text-sm font-medium text-slate-800 dark:text-slate-100 mb-2">建议优先复习这些知识点（7 天后遗忘概率较高）</div>
           <div className="flex flex-wrap gap-2">
             {forgettingCurveList.map((item) => (
               <Link
                 key={item.knowledgeNodeId}
                 to={`/quiz?knowledgeNodeId=${encodeURIComponent(item.knowledgeNodeId)}`}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-700 border border-rose-200 dark:border-rose-700 text-sm text-rose-700 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-900/30"
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-rose-200/80 dark:border-rose-800 text-sm text-rose-700 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors"
               >
                 <span className="truncate max-w-[120px]">{item.knowledgeNodeId}</span>
                 <span className="text-rose-500 text-xs">约 {item.forgetProbability7d}%</span>
@@ -420,26 +440,26 @@ export default function Review() {
       )}
 
       {/* 统计卡片 */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <div className="bg-white p-6 rounded-lg border shadow-sm">
-          <div className="text-sm text-slate-600 mb-1">错题总数</div>
-          <div className="text-3xl font-bold text-slate-900">{stats?.total || 0}</div>
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="surface !p-4">
+          <div className="text-sm text-slate-500 mb-1">错题总数</div>
+          <div className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 tabular-nums">{stats?.total || 0}</div>
         </div>
-        <div className="bg-white p-6 rounded-lg border shadow-sm">
-          <div className="text-sm text-slate-600 mb-1">已掌握</div>
-          <div className="text-3xl font-bold text-green-600">{stats?.mastered || 0}</div>
+        <div className="surface !p-4">
+          <div className="text-sm text-slate-500 mb-1">已掌握</div>
+          <div className="text-2xl font-bold tracking-tight text-emerald-600 tabular-nums">{stats?.mastered || 0}</div>
         </div>
-        <div className="bg-white p-6 rounded-lg border shadow-sm">
-          <div className="text-sm text-slate-600 mb-1">学习中</div>
-          <div className="text-3xl font-bold text-blue-600">{stats?.learning || 0}</div>
+        <div className="surface !p-4">
+          <div className="text-sm text-slate-500 mb-1">学习中</div>
+          <div className="text-2xl font-bold tracking-tight text-blue-600 tabular-nums">{stats?.learning || 0}</div>
         </div>
-        <div className="bg-white p-6 rounded-lg border shadow-sm">
-          <div className="text-sm text-slate-600 mb-1">未掌握</div>
-          <div className="text-3xl font-bold text-orange-600">{stats?.unmastered || 0}</div>
+        <div className="surface !p-4">
+          <div className="text-sm text-slate-500 mb-1">未掌握</div>
+          <div className="text-2xl font-bold tracking-tight text-amber-600 tabular-nums">{stats?.unmastered || 0}</div>
         </div>
-        <div className="bg-white p-6 rounded-lg border shadow-sm">
-          <div className="text-sm text-slate-600 mb-1">平均掌握度</div>
-          <div className="text-3xl font-bold text-purple-600">
+        <div className="surface !p-4 col-span-2 md:col-span-1">
+          <div className="text-sm text-slate-500 mb-1">平均掌握度</div>
+          <div className="text-2xl font-bold tracking-tight text-slate-800 dark:text-slate-100 tabular-nums">
             {stats?.avgMastery ? Math.round(stats.avgMastery) : 0}%
           </div>
         </div>
@@ -490,7 +510,7 @@ export default function Review() {
       )}
 
       {/* 筛选和搜索 */}
-      <div className="bg-white p-6 rounded-lg border shadow-sm space-y-4">
+      <div className="surface space-y-4">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex-1 w-full md:w-auto">
             <input
@@ -509,33 +529,67 @@ export default function Review() {
               {showBatchActions ? '取消选择' : '批量操作'}
             </button>
             <button
-              onClick={() => {
-                // 使用智能复习算法生成计划
-                const plan = SpacedRepetition.generateReviewPlan(rows, { days: 7, questionsPerDay: 10 });
-                setReviewPlan(plan);
-                setShowReviewPlanModal(true);
+              onClick={async () => {
+                try {
+                  const result = await generateReviewPlanApi({ days: 7, questionsPerDay: 10 });
+                  const raw = result?.data || result || {};
+                  const plan = {
+                    plan: raw.plan || [],
+                    summary: {
+                      totalDays: (raw.plan || []).length || 7,
+                      totalQuestions: raw.totalQuestions ?? 0,
+                      questionsPerDay: 10,
+                      startDate: raw.startDate,
+                      endDate: raw.endDate,
+                    },
+                  };
+                  if (!plan.plan.length) {
+                    toast.warning('暂无可生成的复习计划，请先积累错题');
+                    return;
+                  }
+                  setReviewPlan(plan);
+                  setShowReviewPlanModal(true);
+                  toast.success('复习计划已生成');
+                } catch (err) {
+                  console.error(err);
+                  toast.error(err.message || '生成复习计划失败');
+                }
               }}
               className="btn btn-sm btn-success"
             >
-              📅 生成智能复习计划
+              生成智能复习计划
             </button>
             <button
-              onClick={() => {
-                const todayQuestions = getTodayReviewQuestions(rows);
-                if (todayQuestions.length === 0) {
-                  toast.success('今日没有需要复习的题目');
-                  return;
+              onClick={async () => {
+                try {
+                  const result = await getTodayReviewQuestionsApi({ limit: 50 });
+                  const questions = result?.data?.questions || result?.questions || [];
+                  const ids = questions
+                    .map((q) => {
+                      const qid = q.questionId;
+                      if (qid && typeof qid === 'object') return qid._id || qid.id;
+                      return qid || q._id;
+                    })
+                    .filter(Boolean)
+                    .map(String);
+                  if (ids.length === 0) {
+                    toast.success('今日没有需要复习的题目');
+                    return;
+                  }
+                  navigate('/quiz', {
+                    state: {
+                      practiceQuestionIds: ids,
+                      practiceSource: 'review',
+                    },
+                  });
+                } catch (err) {
+                  console.error(err);
+                  toast.error(err.message || '加载今日复习失败');
                 }
-                navigate('/quiz', {
-                  state: {
-                    questionIds: todayQuestions.map(q => q.questionId || q._id),
-                    mode: 'review',
-                  },
-                });
               }}
               className="btn btn-sm btn-primary"
             >
-              🎯 今日复习
+              今日复习
             </button>
             <div className="dropdown">
               <button className="btn btn-sm btn-outline">
@@ -692,7 +746,7 @@ export default function Review() {
             <div className="text-slate-500">正在加载错题...</div>
           </div>
         ) : rows.length === 0 ? (
-          <div className="bg-white dark:bg-slate-800 p-12 rounded-lg border dark:border-slate-700 shadow-sm text-center space-y-4">
+          <div className="surface !py-12 text-center space-y-4">
             <div className="text-4xl mb-4">📚</div>
             <div className="text-lg font-semibold text-slate-900 dark:text-slate-100">暂无错题</div>
             <div className="text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto">
@@ -718,7 +772,8 @@ export default function Review() {
             return (
               <div
                 key={wrongQuestion._id || wrongQuestion.questionId || i}
-                className={`bg-white p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow ${
+                onMouseEnter={() => setFocusedQuestionId(wrongQuestion.questionId || question._id || null)}
+                className={`surface hover:border-blue-200 dark:hover:border-slate-600 transition-colors ${
                   selectedIds.has(wrongQuestion.questionId) ? 'ring-2 ring-blue-500' : ''
                 }`}
               >
@@ -760,7 +815,7 @@ export default function Review() {
                       )}
                       {/* 分类标签 */}
                       {wrongQuestion.category && (
-                        <span className="px-2 py-0.5 text-xs rounded bg-purple-100 text-purple-700">
+                        <span className="px-2 py-0.5 text-xs rounded bg-slate-100 text-slate-700">
                           📁 {wrongQuestion.category}
                         </span>
                       )}
@@ -839,7 +894,7 @@ export default function Review() {
                     {wrongQuestion.tags.map((tag, idx) => (
                       <span
                         key={idx}
-                        className="px-2 py-1 text-xs rounded bg-indigo-100 text-indigo-700"
+                        className="px-2 py-1 text-xs rounded bg-sky-50 text-sky-800"
                       >
                         #{tag}
                       </span>
@@ -1039,7 +1094,7 @@ export default function Review() {
       {showReviewPlanModal && reviewPlan && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">📅 复习计划</h2>
+            <h2 className="text-xl font-bold mb-4">复习计划</h2>
             
             <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
               <h3 className="font-semibold mb-2">计划概览</h3>
@@ -1090,7 +1145,7 @@ export default function Review() {
                 }}
                 className="px-4 py-2 border rounded-lg hover:bg-slate-50"
               >
-                📋 复制计划
+                复制计划
               </button>
               <button
                 onClick={() => {

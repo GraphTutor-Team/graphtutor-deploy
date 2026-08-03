@@ -45,6 +45,12 @@ const DiscussionReplySchema = new mongoose.Schema(
       min: 0,
     },
 
+    // 点赞用户 ID 列表（去重）
+    likedBy: {
+      type: [String],
+      default: [],
+    },
+
     // 是否是最佳答案（用于题目讨论）
     isBestAnswer: {
       type: Boolean,

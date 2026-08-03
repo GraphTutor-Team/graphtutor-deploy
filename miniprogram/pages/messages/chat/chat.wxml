@@ -1,6 +1,7 @@
 <view class="chat-page">
   <view wx:if="{{!loading && userId}}" class="chat-toolbar">
     <view class="chat-toolbar-btn" bindtap="confirmClearChat">清空聊天记录</view>
+    <view wx:if="{{pollHint}}" class="chat-toolbar-btn" style="color:#1565c0;">{{pollHint}}</view>
   </view>
 
   <view wx:if="{{loading}}" class="state-text">加载消息…</view>

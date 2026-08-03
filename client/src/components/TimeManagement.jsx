@@ -93,8 +93,8 @@ export default function TimeManagement({ records = [], questions = [] }) {
           </div>
           <div className="text-sm text-slate-600 dark:text-slate-400">今日</div>
         </div>
-        <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-          <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+        <div className="text-center p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
+          <div className="text-2xl font-bold text-blue-600 dark:text-purple-400">
             {formatTime(stats.thisWeek)}
           </div>
           <div className="text-sm text-slate-600 dark:text-slate-400">本周</div>

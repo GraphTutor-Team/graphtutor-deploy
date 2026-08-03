@@ -1,6 +1,6 @@
 /**
  * GraphTutor V3.0 - 空状态组件
- * 
+ *
  * 功能：统一显示空状态（无数据、无结果等）
  */
 
@@ -15,6 +15,8 @@ export default function EmptyState({
   action,
   actionLabel,
   actionLink,
+  secondaryLabel,
+  secondaryLink,
   className = '',
   // 兼容旧用法
   message,
@@ -22,7 +24,6 @@ export default function EmptyState({
 }) {
   const resolvedTitle = title ?? message ?? '暂无数据';
   const resolvedAction = action ?? onAction;
-  // 图标映射（向后兼容emoji）
   const emojiMap = {
     '📭': 'inbox',
     '📋': 'fileText',
@@ -37,20 +38,17 @@ export default function EmptyState({
 
   const renderIcon = () => {
     if (iconType === 'element' && typeof icon !== 'string') {
-      // 如果传入的是React元素，直接渲染
       return icon;
     }
-    
+
     if (iconType === 'emoji' || (typeof icon === 'string' && icon.length <= 2)) {
-      // emoji模式（向后兼容）
       return <div className="text-6xl mb-4">{icon}</div>;
     }
-    
-    // 图标名称模式
+
     const iconName = emojiMap[icon] || icon;
     return (
       <div className="mb-4 flex justify-center">
-        <Icon name={iconName} size={64} color="#6366f1" />
+        <Icon name={iconName} size={64} color="#2563eb" />
       </div>
     );
   };
@@ -66,23 +64,37 @@ export default function EmptyState({
           {description}
         </p>
       )}
-      {resolvedAction && (
-        <button
-          onClick={resolvedAction}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-        >
-          <Icon name="plus" size={18} color="white" />
-          {actionLabel || '立即开始'}
-        </button>
-      )}
-      {actionLink && (
-        <Link
-          to={actionLink}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-        >
-          <Icon name="plus" size={18} color="white" />
-          {actionLabel || '立即开始'}
-        </Link>
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        {resolvedAction && (
+          <button
+            type="button"
+            onClick={resolvedAction}
+            className="btn btn-primary"
+          >
+            {actionLabel || '立即开始'}
+          </button>
+        )}
+        {actionLink && (
+          <Link to={actionLink} className="btn btn-primary">
+            {actionLabel || '立即开始'}
+          </Link>
+        )}
+        {secondaryLink && (
+          <Link to={secondaryLink} className="btn btn-outline">
+            {secondaryLabel || '了解用法'}
+          </Link>
+        )}
+      </div>
+      {!secondaryLink && (
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm text-slate-500">
+          <Link to="/home?guide=1" className="text-blue-600 dark:text-blue-400 hover:underline">
+            使用教程
+          </Link>
+          <span className="text-slate-300 dark:text-slate-600">·</span>
+          <Link to="/quiz" className="text-blue-600 dark:text-blue-400 hover:underline">
+            开始练习
+          </Link>
+        </div>
       )}
     </div>
   );

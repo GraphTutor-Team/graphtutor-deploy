@@ -206,9 +206,9 @@ export default function Reports() {
                 <div className="text-2xl font-bold text-green-700">{report.summary?.totalQuestions || 0}</div>
                 <div className="text-sm text-green-600 mt-1">总题目数</div>
               </div>
-              <div className="p-4 bg-purple-50 rounded-lg">
+              <div className="p-4 bg-slate-50 rounded-lg">
                 <div className="text-2xl font-bold text-purple-700">{report.summary?.totalBanks || 0}</div>
-                <div className="text-sm text-purple-600 mt-1">总题库数</div>
+                <div className="text-sm text-blue-600 mt-1">总题库数</div>
               </div>
             </div>
           </div>

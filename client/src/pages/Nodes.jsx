@@ -325,7 +325,7 @@ export default function Nodes(){
                                                 {note.tags.map((tag, idx) => (
                                                   <span
                                                     key={idx}
-                                                    className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded"
+                                                    className="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded"
                                                   >
                                                     {tag}
                                                   </span>

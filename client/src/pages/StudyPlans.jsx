@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import StudyPlanGenerator from '../components/StudyPlanGenerator';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import LoginPrompt from '../components/common/LoginPrompt';
 import {
   getStudyPlans,
   getStudyPlanDetail,
@@ -339,9 +340,10 @@ export default function StudyPlans() {
 
   if (!user) {
     return (
-      <div className="p-6 text-center">
-        <div className="text-slate-500">请先登录</div>
-      </div>
+      <LoginPrompt
+        title="登录后管理学习计划"
+        description="登录后可创建学习计划与打卡。也可先看教程，或先去练习。"
+      />
     );
   }
 

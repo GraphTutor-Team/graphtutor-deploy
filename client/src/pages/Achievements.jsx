@@ -138,9 +138,8 @@ export default function Achievements() {
 
       {/* 新成就通知 */}
       {newAchievements.length > 0 && (
-        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-400 rounded-lg p-4 mb-6">
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
           <div className="flex items-center gap-3">
-            <div className="text-4xl animate-bounce">🎉</div>
             <div className="flex-1">
               <h3 className="font-bold text-lg mb-1">恭喜！获得新成就</h3>
               <div className="text-sm text-slate-700">
@@ -181,7 +180,7 @@ export default function Achievements() {
           </div>
           <div className="bg-white p-6 rounded-lg border">
             <div className="text-sm text-slate-600 mb-1">本周获得</div>
-            <div className="text-3xl font-bold text-purple-600">
+            <div className="text-3xl font-bold text-blue-600">
               {stats.thisWeek || 0}
             </div>
           </div>

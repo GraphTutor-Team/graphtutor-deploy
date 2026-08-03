@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getLearningPosts } from '../api/v3/learningPosts';
 import { toast } from '../utils/toast';
@@ -12,6 +13,7 @@ import PageHeader from '../components/PageHeader';
 import LearningPostCard from '../components/LearningPostCard';
 import CreatePostModal from '../components/CreatePostModal';
 import Icon from '../components/common/Icon';
+import LoginPrompt from '../components/common/LoginPrompt';
 
 export default function LearningPosts() {
   const { user } = useAuth();
@@ -65,25 +67,48 @@ export default function LearningPosts() {
 
   if (!user) {
     return (
-      <div className="p-6 text-center">
-        <div className="text-slate-500">请先登录</div>
-      </div>
+      <LoginPrompt
+        title="登录后查看学习动态"
+        description="登录后可浏览与发布学习动态。也可先看教程，或直接开始练习。"
+      />
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+    <div className="page-shell">
       <PageHeader
         title="学习动态"
         description="分享你的学习成果，与好友一起进步"
       />
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* 创建动态按钮 */}
-        <div className="mb-6 flex justify-end">
+      <div className="space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-slate-500 dark:text-slate-400">
+            <Link
+              to="/community"
+              className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+            >
+              学习社区
+            </Link>
+            <span className="text-slate-300 dark:text-slate-600">·</span>
+            <Link
+              to="/friends"
+              className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+            >
+              好友
+            </Link>
+            <span className="text-slate-300 dark:text-slate-600">·</span>
+            <Link
+              to="/friend-challenges"
+              className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+            >
+              好友挑战
+            </Link>
+          </div>
           <button
+            type="button"
             onClick={() => setShowCreateModal(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2"
+            className="btn btn-primary"
           >
             <Icon name="plus" className="h-5 w-5" />
             <span>发布动态</span>
@@ -91,8 +116,8 @@ export default function LearningPosts() {
         </div>
 
         {/* 标签页 */}
-        <div className="mb-6">
-          <div className="border-b border-slate-200 dark:border-slate-700">
+        <div>
+          <div className="border-b border-slate-200/80 dark:border-slate-700">
             <nav className="-mb-px flex space-x-8">
               {[
                 { key: 'all', label: '全部' },
@@ -103,7 +128,7 @@ export default function LearningPosts() {
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
                     activeTab === tab.key
                       ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                       : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-300'
@@ -123,15 +148,23 @@ export default function LearningPosts() {
             <p className="mt-4 text-slate-600 dark:text-slate-400">加载中...</p>
           </div>
         ) : posts.length === 0 ? (
-          <div className="text-center py-12">
-            <Icon name="activity" className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+          <div className="surface text-center !py-12">
             <p className="text-slate-600 dark:text-slate-400 mb-4">暂无动态</p>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="text-blue-600 hover:text-blue-700 dark:text-blue-400"
-            >
-              发布第一条动态
-            </button>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowCreateModal(true)}
+                className="btn btn-primary"
+              >
+                发布第一条动态
+              </button>
+              <Link to="/home?guide=1" className="btn btn-outline">
+                使用教程
+              </Link>
+              <Link to="/quiz" className="btn btn-outline">
+                去练习
+              </Link>
+            </div>
           </div>
         ) : (
           <>

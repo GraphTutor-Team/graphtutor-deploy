@@ -8,7 +8,7 @@ export default function HelpTip({ title='说明', children }){
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/50" onClick={()=>setOpen(false)} />
-          <div className="relative z-10 max-w-xl w-[92vw] rounded-2xl p-4 bg-white dark:bg-slate-900 shadow-xl">
+          <div className="relative z-10 max-w-xl w-[92vw] rounded-xl p-4 bg-white dark:bg-slate-900 shadow-md">
             <div className="text-lg font-semibold mb-2">{title}</div>
             <div className="prose prose-sm dark:prose-invert">
               {children}

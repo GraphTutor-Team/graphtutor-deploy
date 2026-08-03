@@ -1,24 +1,24 @@
 import { Link } from 'react-router-dom';
+import logo from '../assets/logo.png';
 
-export default function AuthLayout({ title='欢迎回来', subtitle='继续你的学习之旅', image='/images/auth-hero.svg', children }){
+export default function AuthLayout({ title='欢迎回来', subtitle='继续你的学习之旅', image, children }){
+  const hero = image || logo;
   return (
-    <div className="min-h-screen grid md:grid-cols-2">
-      <aside className="order-1 md:order-2 relative bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-900">
+    <div className="min-h-screen grid md:grid-cols-2" style={{ backgroundColor: 'var(--color-bg-page)' }}>
+      <aside className="order-1 md:order-2 relative" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
         <div className="absolute top-4 left-4">
           <Link to="/home" className="btn btn-ghost">← 返回首页</Link>
         </div>
         <div className="h-full w-full flex flex-col items-center justify-center text-center px-8 gap-3">
-          <Link to="/home" className="text-2xl font-extrabold tracking-wide">GraphTutor</Link>
-          <h1 className="text-3xl font-bold">{title}</h1>
-          <p className="text-slate-600 dark:text-slate-300">{subtitle}</p>
-          <div className="w-72 h-72 md:w-80 md:h-80 rounded-3xl border border-slate-200 dark:border-slate-700 bg-white/40 dark:bg-white/5 backdrop-blur grid place-items-center overflow-hidden">
-            <img src={image} alt="" className="w-3/4 h-3/4 object-contain" onError={(e)=>{ e.currentTarget.style.display='none' }} />
-            <div className="text-6xl select-none">🧭</div>
+          <Link to="/home" className="text-2xl font-bold tracking-tight" style={{ color: 'var(--color-text-primary)' }}>GraphTutor</Link>
+          <h1 className="text-2xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>{title}</h1>
+          <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{subtitle}</p>
+          <div className="w-72 h-72 md:w-80 md:h-80 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-primary)] grid place-items-center overflow-hidden">
+            <img src={hero} alt="" className="w-full h-full object-cover" onError={(e)=>{ e.currentTarget.style.display='none' }} />
           </div>
-          <div className="text-xs opacity-70">（预留插图/动画位）</div>
         </div>
       </aside>
-      <section className="order-2 md:order-1 px-6 py-8 flex items-center justify-center">
+      <section className="order-2 md:order-1 px-6 py-8 flex items-center justify-center" style={{ backgroundColor: 'var(--color-bg-primary)' }}>
         <div className="w-full max-w-md">{children}</div>
       </section>
     </div>

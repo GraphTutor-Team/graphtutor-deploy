@@ -8,8 +8,10 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
+import AuthorLink from '../components/AuthorLink';
 import { toast } from '../utils/toast';
 import { getDiscussions, createDiscussion } from '../api/v3/discussions';
+import LoginPrompt from '../components/common/LoginPrompt';
 
 export default function Community() {
   const { user } = useAuth();
@@ -83,28 +85,44 @@ export default function Community() {
 
   if (!user) {
     return (
-      <div className="p-6 text-center">
-        <div className="text-slate-500">请先登录</div>
-      </div>
+      <LoginPrompt
+        title="登录后参与社区"
+        description="登录后可浏览讨论、发帖求助，也可以先看使用教程或去练习。"
+      />
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="page-shell">
       <PageHeader title="学习社区" subtitle="题目讨论、心得分享、问答互助" />
 
+      <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-slate-500 dark:text-slate-400">
+        <Link to="/learning-posts" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+          学习动态
+        </Link>
+        <span className="text-slate-300 dark:text-slate-600">·</span>
+        <Link to="/friends" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+          好友
+        </Link>
+        <span className="text-slate-300 dark:text-slate-600">·</span>
+        <Link to="/leaderboard" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+          排行榜
+        </Link>
+      </div>
+
       {/* 筛选和搜索 */}
-      <div className="bg-white p-4 rounded-lg border">
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex gap-2">
+      <div className="surface !p-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap gap-2">
             {['all', 'question', 'knowledge', 'general'].map((type) => (
               <button
                 key={type}
+                type="button"
                 onClick={() => setSelectedType(type)}
-                className={`px-4 py-2 rounded-lg text-sm ${
+                className={`px-3.5 py-2 rounded-xl text-sm font-medium transition-colors ${
                   selectedType === type
                     ? 'bg-blue-600 text-white'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600'
                 }`}
               >
                 {type === 'all' ? '全部' :
@@ -118,20 +136,22 @@ export default function Community() {
             placeholder="搜索讨论..."
             value={searchKeyword}
             onChange={(e) => setSearchKeyword(e.target.value)}
-            className="flex-1 min-w-[200px] px-3 py-2 border rounded-lg"
+            className="input flex-1 min-w-[200px]"
           />
           <button
+            type="button"
             onClick={() => setBountyOnly(!bountyOnly)}
-            className={`px-3 py-2 rounded-lg text-sm ${bountyOnly ? 'bg-amber-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+            className={`px-3 py-2 rounded-xl text-sm font-medium transition-colors ${bountyOnly ? 'bg-amber-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200'}`}
           >
             悬赏
           </button>
           {user?.points != null && (
-            <span className="text-sm text-slate-600">我的积分：{user.points}</span>
+            <span className="text-sm text-slate-600 dark:text-slate-400">我的积分：{user.points}</span>
           )}
           <button
+            type="button"
             onClick={() => setShowCreateModal(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="btn btn-primary"
           >
             + 发布讨论
           </button>
@@ -142,27 +162,54 @@ export default function Community() {
       {loading ? (
         <div className="text-center py-12 text-slate-500">加载中...</div>
       ) : discussions.length === 0 ? (
-        <div className="bg-white p-12 rounded-lg border text-center">
-          <div className="text-4xl mb-4">💬</div>
-          <div className="text-lg font-semibold text-slate-900 mb-2">暂无讨论</div>
-          <div className="text-sm text-slate-600 mb-4">成为第一个发布讨论的人吧！</div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            发布讨论
-          </button>
+        <div className="surface text-center !py-12">
+          <div className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">暂无讨论</div>
+          <div className="text-sm text-slate-500 mb-4">成为第一个发布讨论的人吧</div>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowCreateModal(true)}
+              className="btn btn-primary"
+            >
+              发布讨论
+            </button>
+            <Link to="/home?guide=1" className="btn btn-outline">
+              使用教程
+            </Link>
+            <Link to="/quiz" className="btn btn-outline">
+              去练习
+            </Link>
+          </div>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {discussions.map((discussion) => (
             <div
               key={discussion._id}
-              className="bg-white p-6 rounded-lg border hover:shadow-md transition-shadow"
+              className="surface hover:border-blue-200 dark:hover:border-slate-600 transition-colors"
             >
               <div className="flex items-start gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
+                    {discussion.author && (
+                      <AuthorLink
+                        author={discussion.author}
+                        className="flex items-center gap-1.5 text-sm text-slate-700"
+                      >
+                        {discussion.author.avatarUrl ? (
+                          <img
+                            src={discussion.author.avatarUrl}
+                            alt=""
+                            className="h-6 w-6 rounded-full object-cover"
+                          />
+                        ) : (
+                          <span className="h-6 w-6 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center">
+                            {(discussion.author.name || 'U').charAt(0).toUpperCase()}
+                          </span>
+                        )}
+                        <span className="font-medium">{discussion.author.name}</span>
+                      </AuthorLink>
+                    )}
                     <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
                       {discussion.type === 'question' ? '题目讨论' :
                        discussion.type === 'knowledge' ? '知识点讨论' : '一般讨论'}
@@ -202,7 +249,7 @@ export default function Community() {
                       {discussion.tags.map((tag, idx) => (
                         <span
                           key={idx}
-                          className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded"
+                          className="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded"
                         >
                           {tag}
                         </span>

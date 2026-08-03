@@ -345,7 +345,7 @@ export default function Result() {
                 {q.type && (
                   <span className={`ml-3 px-2 py-1 rounded text-xs font-medium ${
                     q.type === 'single' ? 'bg-blue-100 text-blue-700' :
-                    q.type === 'multiple' ? 'bg-purple-100 text-purple-700' :
+                    q.type === 'multiple' ? 'bg-slate-100 text-slate-700' :
                     q.type === 'judge' ? 'bg-green-100 text-green-700' :
                     q.type === 'fill' ? 'bg-orange-100 text-orange-700' :
                     'bg-red-100 text-red-700'

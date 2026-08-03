@@ -21,9 +21,11 @@ import {
   getCommonLearningContent,
   getFriends,
   getFriendsLeaderboard,
+  checkFriendship,
 } from '../api/v3/friends';
 import { toast } from '../utils/toast';
 import PageHeader from '../components/PageHeader';
+import LoginPrompt from '../components/common/LoginPrompt';
 import Icon from '../components/common/Icon';
 import FriendStatsSection from '../components/friends/FriendStatsSection';
 import FriendComparisonSection from '../components/friends/FriendComparisonSection';
@@ -64,10 +66,20 @@ export default function FriendDetail() {
   const loadFriendInfo = async () => {
     try {
       const data = await getFriends({ page: 1, limit: 100 });
-      const found = data.items.find(f => f._id === friendId);
+      const found = (data.items || []).find(
+        (f) => String(f._id) === String(friendId)
+      );
       if (found) {
         setFriend(found);
+        return;
       }
+      // 非好友：转到公开资料页，避免空白详情
+      const isFriend = await checkFriendship(friendId).catch(() => false);
+      if (!isFriend) {
+        navigate(`/users/${friendId}`, { replace: true });
+        return;
+      }
+      toast.error('未找到该好友信息');
     } catch (err) {
       console.error('加载好友信息失败:', err);
       toast.error('加载好友信息失败');
@@ -80,20 +92,38 @@ export default function FriendDetail() {
       setPrivacyRestricted(false);
       const [statsData, comparisonData, commonData] = await Promise.all([
         getFriendLearningStats(friendId, { days }).catch(err => {
-          if (err.response?.status === 403 || err.response?.data?.message?.includes('隐私')) {
+          const msg = err.response?.data?.message || '';
+          if (
+            err.response?.status === 403 ||
+            err.response?.status === 400 ||
+            msg.includes('隐私') ||
+            msg.includes('不是好友')
+          ) {
             setPrivacyRestricted(true);
             return null;
           }
           throw err;
         }),
         compareLearningData(friendId, { days }).catch(err => {
-          if (err.response?.status === 403 || err.response?.data?.message?.includes('隐私')) {
+          const msg = err.response?.data?.message || '';
+          if (
+            err.response?.status === 403 ||
+            err.response?.status === 400 ||
+            msg.includes('隐私') ||
+            msg.includes('不是好友')
+          ) {
             return null;
           }
           throw err;
         }),
         getCommonLearningContent(friendId, { limit: 20 }).catch(err => {
-          if (err.response?.status === 403 || err.response?.data?.message?.includes('隐私')) {
+          const msg = err.response?.data?.message || '';
+          if (
+            err.response?.status === 403 ||
+            err.response?.status === 400 ||
+            msg.includes('隐私') ||
+            msg.includes('不是好友')
+          ) {
             return null;
           }
           throw err;
@@ -131,9 +161,10 @@ export default function FriendDetail() {
 
   if (!user) {
     return (
-      <div className="p-6 text-center">
-        <div className="text-slate-500">请先登录</div>
-      </div>
+      <LoginPrompt
+        title="登录后查看好友详情"
+        description="登录后可查看好友学习数据。也可先看教程，或去做题。"
+      />
     );
   }
 
@@ -167,49 +198,51 @@ export default function FriendDetail() {
 
         {/* 好友基本信息卡片 */}
         {friend && (
-          <div className="bg-white dark:bg-slate-800 rounded-lg border dark:border-slate-700 p-6 mb-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4 flex-1">
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 mb-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-4 min-w-0">
                 {friend.avatarUrl ? (
                   <img
                     src={friend.avatarUrl}
                     alt={friend.name}
-                    className="h-20 w-20 rounded-full"
+                    className="h-16 w-16 sm:h-20 sm:w-20 rounded-full object-cover flex-shrink-0"
                   />
                 ) : (
-                  <div className="h-20 w-20 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold text-2xl">
+                  <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold text-2xl flex-shrink-0">
                     {friend.name?.charAt(0)?.toUpperCase() || 'U'}
                   </div>
                 )}
-                <div className="flex-1">
-                  <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                <div className="min-w-0">
+                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 truncate">
                     {friend.name || friend.email}
                   </h2>
                   {friend.email && friend.name && (
-                    <p className="text-slate-500 dark:text-slate-400 mt-1">{friend.email}</p>
+                    <p className="text-slate-500 dark:text-slate-400 mt-1 truncate">{friend.email}</p>
                   )}
                   {friend.school && (
-                    <p className="text-slate-600 dark:text-slate-300 mt-2">
+                    <p className="text-slate-600 dark:text-slate-300 mt-2 truncate">
                       <Icon name="school" className="inline h-4 w-4 mr-1" />
                       {friend.school}
                     </p>
                   )}
                   {friend.major && (
-                    <p className="text-slate-500 dark:text-slate-400">{friend.major}</p>
+                    <p className="text-slate-500 dark:text-slate-400 truncate">{friend.major}</p>
                   )}
                 </div>
               </div>
-              <div className="flex items-center space-x-2 ml-4">
+              <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                 <button
+                  type="button"
                   onClick={() => navigate(`/messages?userId=${friendId}`)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                  className="flex-1 sm:flex-none px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center justify-center gap-2"
                 >
                   <Icon name="message-circle" className="h-4 w-4" />
                   <span>发消息</span>
                 </button>
                 <button
+                  type="button"
                   onClick={() => navigate(`/friend-challenges?friendId=${friendId}`)}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+                  className="flex-1 sm:flex-none px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors inline-flex items-center justify-center gap-2"
                 >
                   <Icon name="trophy" className="h-4 w-4" />
                   <span>发起挑战</span>

@@ -25,9 +25,9 @@ const TYPE_COLORS = {
   reply: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
   like: 'bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300',
   reminder: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
-  goal: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
+  goal: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
   system: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
-  discussion: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300',
+  discussion: 'bg-sky-50 text-sky-800 dark:bg-slate-800 dark:text-slate-300',
 };
 
 export default function NotificationCenter() {
@@ -162,7 +162,7 @@ export default function NotificationCenter() {
       </button>
 
       {showDropdown && (
-        <div className="absolute right-0 top-full mt-2 w-96 bg-white dark:bg-slate-800 rounded-lg shadow-xl border dark:border-slate-700 z-50 max-h-[600px] flex flex-col">
+        <div className="absolute right-0 top-full mt-2 w-96 bg-white dark:bg-slate-800 rounded-lg shadow-md border dark:border-slate-700 z-50 max-h-[600px] flex flex-col">
           {/* 头部 */}
           <div className="p-4 border-b dark:border-slate-700 flex items-center justify-between">
             <h3 className="font-semibold text-slate-900 dark:text-slate-100">通知中心</h3>

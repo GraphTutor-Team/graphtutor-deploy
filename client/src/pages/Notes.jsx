@@ -44,7 +44,9 @@ import MarkdownImporter from '../components/MarkdownImporter';
 import NoteDetailPanel from '../components/NoteDetailPanel';
 import NoteTagEditor from '../components/NoteTagEditor';
 import Icon from '../components/common/Icon';
+import PageHeader from '../components/PageHeader';
 import EmptyState from '../components/common/EmptyState';
+import LoginPrompt from '../components/common/LoginPrompt';
 
 const NOTE_TYPE_LABELS = {
   question: '题目笔记',
@@ -440,78 +442,30 @@ export default function Notes() {
 
   if (!user) {
     return (
-      <div className="p-6 text-center">
-        <div className="text-slate-500">请先登录</div>
-      </div>
+      <LoginPrompt
+        title="登录后管理笔记"
+        description="登录后可创建与整理学习笔记。也可先看使用教程，或去做题积累素材。"
+      />
     );
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      {/* 头部 */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-2">
-          <h1 className="text-2xl font-bold">
-            {activeTab === 'my' ? '我的笔记' : '收藏的笔记'}
-          </h1>
-          <div className="flex gap-2">
-            <button
-              onClick={() => navigate('/notes/public')}
-              className="px-4 py-2 border rounded-lg hover:bg-slate-50"
-            >
-              公开笔记广场
-            </button>
-            <button
-              onClick={() => navigate('/notes?tab=favorites')}
-              className="px-4 py-2 border rounded-lg hover:bg-slate-50"
-            >
-              我的收藏
-            </button>
-            <button
-              onClick={() => setShowImportModal(true)}
-              className="px-4 py-2 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"
-            >
-              <Icon name="upload" size={18} />
-              导入Markdown
-            </button>
-            <button
-              onClick={() => setShowTemplateManager(true)}
-              className="px-4 py-2 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"
-            >
-              <Icon name="fileText" size={18} />
-              模板管理
-            </button>
-            <button
-              onClick={handleBatchExport}
-              className="px-4 py-2 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700"
-            >
-              导出笔记
-            </button>
-            <button
-              onClick={handleCreateNote}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
-            >
-              <Icon name="plus" size={18} color="white" />
-              新建笔记
-            </button>
-          </div>
-        </div>
-        {stats && (
-          <div className="flex gap-4 text-sm text-slate-600">
-            <span>总计：{stats.total || 0} 篇</span>
-            {stats.byType && (
-              <>
-                <span>题目笔记：{stats.byType.question || 0} 篇</span>
-                <span>知识点笔记：{stats.byType.knowledge || 0} 篇</span>
-                <span>通用笔记：{stats.byType.general || 0} 篇</span>
-              </>
-            )}
-          </div>
-        )}
-      </div>
+    <div className="page-shell !space-y-4">
+      <PageHeader
+        title={activeTab === 'my' ? '我的笔记' : '收藏的笔记'}
+        subtitle={stats ? `共 ${stats.total || 0} 篇` : '创建、整理与导出学习笔记'}
+        actions={[
+          { label: '公开广场', onClick: () => navigate('/notes/public'), variant: 'btn-outline' },
+          { label: '我的收藏', onClick: () => navigate('/notes?tab=favorites'), variant: 'btn-outline' },
+          { label: '导入', onClick: () => setShowImportModal(true), variant: 'btn-outline' },
+          { label: '模板', onClick: () => setShowTemplateManager(true), variant: 'btn-outline' },
+          { label: '导出', onClick: handleBatchExport, variant: 'btn-outline' },
+          { label: '新建笔记', onClick: handleCreateNote, variant: 'btn-primary' },
+        ]}
+      />
 
       {(filterKnowledgeNodeId || filterQuestionId) && activeTab === 'my' && (
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-100 bg-blue-50/80 px-4 py-3 text-sm text-blue-900 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-100">
           <span>
             当前筛选：
             {filterKnowledgeNodeId && `知识点「${filterKnowledgeNodeId}」`}
@@ -544,16 +498,16 @@ export default function Notes() {
       )}
 
       {/* 标签页 */}
-      <div className="flex gap-2 mb-4 border-b">
+      <div className="flex gap-2 border-b border-slate-200/80 dark:border-slate-700">
         <button
           onClick={() => {
             setActiveTab('my');
             setPage(1);
           }}
-          className={`px-4 py-2 font-medium ${
+          className={`px-4 py-2.5 font-medium text-sm transition-colors ${
             activeTab === 'my'
               ? 'border-b-2 border-blue-600 text-blue-600'
-              : 'text-slate-600 hover:text-slate-900'
+              : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
           }`}
         >
           我的笔记
@@ -563,10 +517,10 @@ export default function Notes() {
             setActiveTab('favorites');
             setPage(1);
           }}
-          className={`px-4 py-2 font-medium ${
+          className={`px-4 py-2.5 font-medium text-sm transition-colors ${
             activeTab === 'favorites'
               ? 'border-b-2 border-blue-600 text-blue-600'
-              : 'text-slate-600 hover:text-slate-900'
+              : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
           }`}
         >
           收藏的笔记
@@ -575,7 +529,7 @@ export default function Notes() {
 
       {/* 搜索和筛选 */}
       {activeTab === 'my' && (
-      <div className="bg-white rounded-lg border p-4 mb-4">
+      <div className="surface !p-4">
         <div className="flex flex-wrap items-center gap-4">
           <input
             type="text"
@@ -634,7 +588,7 @@ export default function Notes() {
       {loading ? (
         <div className="text-center py-12 text-slate-500">加载中...</div>
       ) : (activeTab === 'my' ? notes : favoriteNotes).length === 0 ? (
-        <div className="bg-white dark:bg-slate-800 rounded-lg border dark:border-slate-700 p-12">
+        <div className="surface !py-12">
           <EmptyState
             icon="notes"
             title={searchKeyword || selectedType || selectedTags.length > 0 ? '未找到相关笔记' : '暂无笔记'}
@@ -661,7 +615,7 @@ export default function Notes() {
               return (
                 <div
                   key={note._id}
-                  className={`bg-white rounded-lg border p-4 hover:shadow-md transition-shadow cursor-pointer ${
+                  className={`surface !p-4 hover:border-blue-200 dark:hover:border-slate-600 transition-colors cursor-pointer ${
                     viewingNote?._id === note._id ? 'ring-2 ring-blue-400 border-blue-300' : ''
                   }`}
                   onClick={() => activeTab === 'my' && setViewingNote(note)}
@@ -706,7 +660,7 @@ export default function Notes() {
                           {note.tags.map((tag, idx) => (
                             <span
                               key={idx}
-                              className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded"
+                              className="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded"
                             >
                               {tag}
                             </span>

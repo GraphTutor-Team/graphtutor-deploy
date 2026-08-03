@@ -26,11 +26,15 @@ import NotificationCenter from "../components/NotificationCenter.jsx";
 import SearchModal from "../components/SearchModal.jsx";
 import AIAssistantFab from "../components/ai/AIAssistantFab.jsx";
 import { AIContextProvider } from "../context/AIContext.jsx";
+import { getUnreadCount } from "../api/v3/messages.js";
+import { getWebSocketClient, initWebSocket } from "../utils/websocket.js";
 
 export default function AppLayout() {
   const [expand, setExpand] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
-  const [expandedGroups, setExpandedGroups] = useState(() => new Set(['学习中心', '社交与社区']));
+  const [expandedGroups, setExpandedGroups] = useState(() => new Set(['学习', '社交']));
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, logout, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -39,6 +43,67 @@ export default function AppLayout() {
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [location.pathname]);
+
+  // 全局未读消息角标
+  useEffect(() => {
+    if (!user) {
+      setUnreadMessages(0);
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    const refreshUnread = async () => {
+      try {
+        const count = await getUnreadCount();
+        if (!cancelled) setUnreadMessages(Number(count) || 0);
+      } catch {
+        // 静默失败，避免打扰主流程
+      }
+    };
+
+    refreshUnread();
+    const timer = setInterval(refreshUnread, 30000);
+
+    let removeWsListeners = null;
+
+    (async () => {
+      try {
+        const ws = await initWebSocket();
+        if (cancelled) return;
+        const onNew = (data) => {
+          const msg = data?.message;
+          if (msg && String(msg.receiverId) === String(user.id || user._id)) {
+            setUnreadMessages((n) => n + 1);
+          }
+        };
+        const onRead = () => refreshUnread();
+        ws.on('message:new', onNew);
+        ws.on('message:read', onRead);
+        removeWsListeners = () => {
+          ws.off('message:new', onNew);
+          ws.off('message:read', onRead);
+        };
+      } catch {
+        // WebSocket 不可用时仍保留轮询
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+      if (typeof removeWsListeners === 'function') removeWsListeners();
+    };
+  }, [user]);
+
+  // 进入消息页后刷新未读
+  useEffect(() => {
+    if (location.pathname.startsWith('/messages') && user) {
+      getUnreadCount()
+        .then((count) => setUnreadMessages(Number(count) || 0))
+        .catch(() => {});
+    }
+  }, [location.pathname, user]);
 
   // 注册快捷键
   useEffect(() => {
@@ -63,83 +128,69 @@ export default function AppLayout() {
     });
   }, [navigate]);
 
-  // 根据角色获取菜单项（二级目录结构）
+  // 精简信息架构：常驻约 12–15 项，次要入口收入「更多」
   const getMenuItems = () => {
     const role = user?.role || 'student';
     const items = [];
 
-    // 1. 学习中心：首页 → 练/测/考 → 图谱与统计 → 结果
     items.push({
       type: 'group',
-      label: '学习中心',
+      label: '学习',
       roles: ['student', 'question_manager', 'admin'],
       children: [
         { to: '/home', title: '首页' },
-        { to: '/quiz', title: '练习模式' },
-        { to: '/quiz2', title: '测验会话' },
-        { to: '/exam', title: '考试模式' },
-        { to: '/graph', title: '知识图谱' },
-        { to: '/statistics', title: '学习统计' },
-        { to: '/result', title: '学习结果' },
-      ],
-    });
-
-    // 2. 复习与错题
-    items.push({
-      type: 'group',
-      label: '复习与错题',
-      roles: ['student', 'question_manager', 'admin'],
-      children: [
+        { to: '/quiz', title: '练习' },
+        { to: '/exam', title: '考试' },
         { to: '/review', title: '错题复习' },
-        { to: '/review-plans', title: '复习计划' },
+        { to: '/graph', title: '知识图谱' },
+        { to: '/analytics', title: '学习数据' },
       ],
     });
 
-    // 3. 学习工具：收藏、笔记、计划、打卡
     items.push({
       type: 'group',
-      label: '学习工具',
+      label: '工具',
       roles: ['student', 'question_manager', 'admin'],
       children: [
-        { to: '/favorites', title: '我的收藏' },
         { to: '/notes', title: '学习笔记' },
+        { to: '/favorites', title: '我的收藏' },
         { to: '/study-plans', title: '学习计划' },
         { to: '/check-in', title: '每日打卡' },
       ],
     });
 
-    // 4. 学习分析
     items.push({
       type: 'group',
-      label: '学习分析',
+      label: '社交',
       roles: ['student', 'question_manager', 'admin'],
       children: [
-        { to: '/analytics', title: '学习分析' },
+        { to: '/messages', title: '消息', badge: unreadMessages },
+        { to: '/friends', title: '好友' },
+        { to: '/groups', title: '群组' },
+        { to: '/community', title: '社区' },
+        { to: '/learning-posts', title: '学习动态' },
+        { to: '/friends/discover', title: '发现好友' },
+        { to: '/friend-challenges', title: '好友挑战' },
+      ],
+    });
+
+    items.push({
+      type: 'group',
+      label: '更多',
+      roles: ['student', 'question_manager', 'admin'],
+      children: [
+        { to: '/quiz2', title: '测验会话' },
+        { to: '/review-plans', title: '复习计划' },
+        { to: '/leaderboard', title: '排行榜' },
+        { to: '/mentor', title: '师徒' },
+        { to: '/learning-path', title: '学习路径' },
+        { to: '/skill-tree', title: '技能树' },
         { to: '/goals', title: '学习目标' },
         { to: '/achievements', title: '学习成就' },
         { to: '/recommendations', title: '智能推荐' },
       ],
     });
 
-    // 5. 社交与社区
-    items.push({
-      type: 'group',
-      label: '社交与社区',
-      roles: ['student', 'question_manager', 'admin'],
-      children: [
-        { to: '/messages', title: '消息' },
-        { to: '/friends', title: '好友管理' },
-        { to: '/friends/discover', title: '发现好友' },
-        { to: '/groups', title: '群组管理' },
-        { to: '/community', title: '学习社区' },
-        { to: '/leaderboard', title: '排行榜' },
-        { to: '/mentor', title: '师徒' },
-        { to: '/learning-path', title: '学习路径' },
-        { to: '/skill-tree', title: '技能树' },
-      ],
-    });
-
-    // 6. 内容管理（仅出题负责人/管理员）：工作台 → 题库/题目 → 导入 → 扩展
     items.push({
       type: 'group',
       label: '内容管理',
@@ -156,7 +207,6 @@ export default function AppLayout() {
       ],
     });
 
-    // 7. 系统管理（仅管理员）
     items.push({
       type: 'group',
       label: '系统管理',
@@ -169,20 +219,18 @@ export default function AppLayout() {
       ],
     });
 
-    // 8. 个人中心（放最后，与「设置/退出」靠近）
     items.push({
       type: 'group',
-      label: '个人中心',
+      label: '个人',
       roles: ['student', 'question_manager', 'admin'],
       children: [
-        { to: '/profile', title: '个人中心' },
+        { to: '/profile', title: '个人资料' },
         { to: '/shop', title: '成就商城' },
         ...(role !== 'admin' ? [{ to: '/role/apply', title: '角色申请' }] : []),
         { to: '/settings', title: '系统设置' },
       ],
     });
 
-    // 根据当前用户角色过滤菜单项
     return items.filter(item => {
       if (!item.roles) return true;
       return item.roles.includes(role);
@@ -190,8 +238,6 @@ export default function AppLayout() {
   };
 
   const menuItems = getMenuItems();
-
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // 如果还在加载认证状态，显示加载提示（必须在所有 Hooks 之后）
   if (loading) {
@@ -206,7 +252,7 @@ export default function AppLayout() {
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-100">
+    <div className="flex min-h-screen bg-transparent">
       {/* 移动端菜单按钮 */}
       <button
         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -231,24 +277,29 @@ export default function AppLayout() {
         onMouseLeave={() => setExpand(false)}
         className={`
           group fixed left-0 top-0 z-50 h-full flex flex-col
-          bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 shadow-lg border-r border-slate-200 dark:border-slate-700
+          bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] border-r border-[var(--color-border)]
           transition-[width] duration-300 ease-out
           ${expand ? "w-64" : "w-[4.5rem]"}
           ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
         `}
       >
         {/* 顶部：Logo + 用户 */}
-        <div className="shrink-0 px-3 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50">
+        <div className="shrink-0 px-3 py-4 border-b border-[var(--color-border)]">
           <div className={`flex items-center ${expand ? 'gap-3' : 'justify-center'}`}>
             <img
               src={logo}
-              className="w-10 h-10 rounded-xl border-2 border-white dark:border-slate-700 shadow-md shrink-0"
+              className="w-10 h-10 rounded-xl border border-[var(--color-border)] shrink-0 object-cover bg-[var(--color-bg-secondary)]"
               alt="GraphTutor"
             />
             {expand && (
-              <span className="text-base font-bold text-slate-800 dark:text-slate-100 truncate">
-                GraphTutor
-              </span>
+              <div className="min-w-0">
+                <span className="block text-base font-bold tracking-tight text-[var(--color-text-primary)] truncate">
+                  GraphTutor
+                </span>
+                <span className="block text-[11px] text-[var(--color-text-tertiary)] truncate">
+                  知识图谱学习
+                </span>
+              </div>
             )}
           </div>
           {user && (
@@ -258,7 +309,7 @@ export default function AppLayout() {
                   <img
                     src={user.avatarUrl}
                     alt=""
-                    className="w-9 h-9 rounded-full border-2 border-white dark:border-slate-700 object-cover"
+                    className="w-9 h-9 rounded-full border border-slate-200 dark:border-slate-600 object-cover"
                     onError={(e) => {
                       e.target.style.display = 'none';
                       const fallback = e.target.nextElementSibling;
@@ -267,7 +318,7 @@ export default function AppLayout() {
                   />
                 ) : null}
                 <div
-                  className={`w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 border-2 border-white dark:border-slate-700 flex items-center justify-center text-white font-semibold text-sm ${user.avatarUrl ? 'hidden' : 'flex'}`}
+                  className={`w-9 h-9 rounded-full border border-white dark:border-slate-700 flex items-center justify-center text-white font-semibold text-sm ${user.avatarUrl ? 'hidden' : 'flex'}`} style={{ backgroundColor: 'var(--color-primary-deep)' }}
                 >
                   {(user.name || user.email || "?").charAt(0).toUpperCase()}
                 </div>
@@ -324,16 +375,16 @@ export default function AppLayout() {
 
         {/* 底部：设置 + 退出 */}
         {user && (
-          <div className="shrink-0 p-2 border-t border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/80 space-y-1.5">
+          <div className="shrink-0 p-2 border-t border-slate-200/80 dark:border-slate-700 space-y-1.5">
             <button
               onClick={() => navigate("/profile")}
-              className={`w-full rounded-lg px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors ${expand ? '' : 'flex justify-center'}`}
+              className={`w-full rounded-xl px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/80 transition-colors ${expand ? '' : 'flex justify-center'}`}
             >
               {expand ? '个人设置' : '⚙️'}
             </button>
             <button
               onClick={() => { logout(); navigate("/login"); }}
-              className={`w-full rounded-lg px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors ${expand ? '' : 'flex justify-center'}`}
+              className={`w-full rounded-xl px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors ${expand ? '' : 'flex justify-center'}`}
             >
               {expand ? '退出登录' : '🚪'}
             </button>
@@ -346,9 +397,9 @@ export default function AppLayout() {
         <main
           className={`
             flex-1 transition-[margin] duration-300 ease-out
-            px-4 sm:px-6 pb-8 max-w-full min-w-0
+            px-3 sm:px-4 lg:px-6 xl:px-8 pb-6 sm:pb-8 max-w-full min-w-0
             ${expand ? "md:ml-64" : "md:ml-[4.5rem]"}
-            pt-16 md:pt-0
+            pt-14 md:pt-2 lg:pt-3
           `}
         >
           <Outlet />
@@ -399,6 +450,7 @@ function MenuGroup({ label, children, expand, isExpanded, onToggle }) {
               title={child.title}
               expand={expand}
               isSubItem={true}
+              badge={child.badge}
             />
           ))}
         </div>
@@ -408,9 +460,10 @@ function MenuGroup({ label, children, expand, isExpanded, onToggle }) {
 }
 
 /* 单个菜单项 */
-function SideItem({ to, title, expand, isSubItem = false }) {
+function SideItem({ to, title, expand, isSubItem = false, badge = 0 }) {
   const match = useMatch(to);
   const isActive = match !== null;
+  const showBadge = Number(badge) > 0;
 
   return (
     <NavLink
@@ -421,21 +474,35 @@ function SideItem({ to, title, expand, isSubItem = false }) {
         ${isSubItem ? 'text-sm' : 'text-sm'}
         ${
           isActive
-            ? 'bg-blue-600 dark:bg-blue-500 text-white font-medium'
-            : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-slate-100'
+            ? 'bg-[var(--color-primary-light)] text-[var(--color-primary-deep)] font-medium'
+            : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]'
         }
         ${expand ? '' : 'justify-center'}
       `}
     >
       {expand ? (
-        <span className="flex-1 truncate">{title}</span>
+        <>
+          <span className="flex-1 truncate">{title}</span>
+          {showBadge && (
+            <span className={`ml-2 min-w-[1.25rem] h-5 px-1.5 rounded-full text-[10px] font-semibold flex items-center justify-center ${
+              isActive ? 'bg-white/90 text-[var(--color-primary-deep)]' : 'bg-[var(--color-error)] text-white'
+            }`}>
+              {Number(badge) > 99 ? '99+' : badge}
+            </span>
+          )}
+        </>
       ) : (
-        <span className="text-xs truncate max-w-full" title={title}>
-          {title.length > 2 ? title.slice(0, 2) : title}
-        </span>
+        <>
+          <span className="text-xs truncate max-w-full" title={title}>
+            {title.length > 2 ? title.slice(0, 2) : title}
+          </span>
+          {showBadge && (
+            <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500" aria-label={`${badge} 条未读`} />
+          )}
+        </>
       )}
       {isActive && (
-        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-white dark:bg-slate-200 rounded-r-full" aria-hidden />
+        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r-full" style={{ backgroundColor: 'var(--color-primary-deep)' }} aria-hidden />
       )}
     </NavLink>
   );

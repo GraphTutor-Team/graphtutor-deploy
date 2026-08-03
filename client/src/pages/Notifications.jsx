@@ -25,9 +25,9 @@ const TYPE_COLORS = {
   reply: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
   like: 'bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300',
   reminder: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
-  goal: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
+  goal: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
   system: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
-  discussion: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300',
+  discussion: 'bg-sky-50 text-sky-800 dark:bg-slate-800 dark:text-slate-300',
 };
 
 export default function Notifications() {

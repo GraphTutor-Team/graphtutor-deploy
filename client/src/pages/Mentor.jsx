@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import PageHeader from '../components/PageHeader';
+import LoginPrompt from '../components/common/LoginPrompt';
 import { toast } from '../utils/toast';
 import {
   getMentorRelations,
@@ -104,7 +105,10 @@ export default function Mentor() {
 
   if (!user) {
     return (
-      <div className="p-6 text-center text-slate-500">请先登录</div>
+      <LoginPrompt
+        title="登录后使用师徒功能"
+        description="登录后可申请师傅或管理师徒关系。也可先看教程，或去做题。"
+      />
     );
   }
 
@@ -231,24 +235,26 @@ export default function Mentor() {
               {applications.map((r) => (
                 <div
                   key={r._id}
-                  className="flex items-center justify-between p-4 border rounded-lg"
+                  className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-4 border rounded-lg min-w-0"
                 >
-                  <div>
-                    <span className="font-medium">{r.apprentice?.name || r.apprenticeId}</span>
+                  <div className="min-w-0 flex-1">
+                    <span className="font-medium break-words">{r.apprentice?.name || r.apprenticeId}</span>
                     <span className="text-slate-500 text-sm ml-2">
                       申请成为你的徒弟 · {new Date(r.createdAt).toLocaleDateString()}
                     </span>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                     <button
+                      type="button"
                       onClick={() => handleAccept(r._id)}
-                      className="px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
+                      className="flex-1 sm:flex-none px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
                     >
                       接受
                     </button>
                     <button
+                      type="button"
                       onClick={() => handleReject(r._id)}
-                      className="px-3 py-1.5 bg-slate-200 text-slate-700 text-sm rounded-lg hover:bg-slate-300"
+                      className="flex-1 sm:flex-none px-3 py-1.5 bg-slate-200 text-slate-700 text-sm rounded-lg hover:bg-slate-300"
                     >
                       拒绝
                     </button>

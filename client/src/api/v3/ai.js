@@ -135,7 +135,7 @@ export async function getAIStats() {
  * AI 对话（学习伴侣）
  * @param {Array<{role: string, content: string}>} messages - 消息列表
  * @param {Object} [context] - 上下文 { pageType, questionId, knowledgeNodeId, wrongQuestionIds }
- * @returns {Promise<{ content: string }>}
+ * @returns {Promise<{ content: string, recommendedQuestionIds?: string[] }>}
  */
 export async function chat(messages, context) {
   const res = await api.post('/v3/ai/chat', { messages, context });

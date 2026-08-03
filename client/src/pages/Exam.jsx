@@ -11,6 +11,7 @@ import ProgressBar from "../components/ProgressBar";
 import TimerBadge from "../components/TimerBadge";
 import { useAuth } from "../context/AuthContext";
 import { useLearningData } from "../context/LearningDataContext";
+import { useAIContext } from "../context/AIContext";
 import { getBanks } from "../api/v3/questionBanks";
 import { getSubjectTree } from "../api/v3/subjects";
 
@@ -30,6 +31,7 @@ export default function Exam() {
   const navigate = useNavigate();
   const { user } = useAuth() || {};
   const { invalidateLearningData } = useLearningData();
+  const { setAIContext } = useAIContext();
 
   // ===== 配置表单状态 =====
   const [knowledgeNodeId, setKnowledgeNodeId] = useState("");
@@ -105,6 +107,28 @@ export default function Exam() {
 
   const canPrev = step === "exam" && currentIndex > 0;
   const canNext = step === "exam" && currentIndex < total - 1;
+
+  useEffect(() => {
+    if (step !== 'exam' || !currentQuestion) {
+      setAIContext({ questionId: null, knowledgeNodeId: null });
+      return undefined;
+    }
+    const qid = currentQuestion._id || currentQuestion.id || null;
+    setAIContext({
+      pageType: 'exam',
+      questionId: qid,
+      knowledgeNodeId: currentQuestion.knowledgeNodeId ?? currentQuestion.knowledgeNode ?? null,
+    });
+    return () => setAIContext({ questionId: null, knowledgeNodeId: null });
+  }, [
+    step,
+    currentIndex,
+    currentQuestion?._id,
+    currentQuestion?.id,
+    currentQuestion?.knowledgeNodeId,
+    currentQuestion?.knowledgeNode,
+    setAIContext,
+  ]);
 
   function formatTime(sec) {
     const m = Math.floor(sec / 60);
@@ -481,6 +505,11 @@ export default function Exam() {
         invalidateLearningData();
       }
 
+      try {
+        const { syncFriendChallengesAfterPractice } = await import('../utils/syncFriendChallenges');
+        await syncFriendChallengesAfterPractice();
+      } catch (_) {}
+
       if (assignmentInfo?.assignmentId && assignmentInfo?.groupId) {
         try {
           const { submitGroupAssignment } = await import('../api/v3/groups');
@@ -512,18 +541,18 @@ export default function Exam() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="page-shell !space-y-4">
       <PageHeader
         title="考试模式"
         subtitle="按知识点 / 难度抽题进行模拟考试，支持答题卡与评分统计。"
       />
 
       {/* ===== 使用说明卡片（带跳转） ===== */}
-      <div className="card">
+      <div className="surface">
         <div className="font-bold flex items-center gap-2 mb-3 text-lg">
-          <span className="text-slate-900">💡 使用说明</span>
+          <span className="text-slate-900 dark:text-slate-100">使用说明</span>
         </div>
-        <ul className="list-disc pl-5 space-y-2 text-sm font-medium text-slate-900">
+        <ul className="list-disc pl-5 space-y-2 text-sm font-medium text-slate-700 dark:text-slate-300">
           <li>
             请先在{" "}
             <Link
@@ -533,7 +562,7 @@ export default function Exam() {
               题库管理
             </Link>{" "}
             中添加题目，并为每道题设置合适的{" "}
-            <span className="font-mono text-sm font-semibold bg-slate-100 px-2 py-1 rounded border-2 border-slate-300 text-slate-900">
+            <span className="font-mono text-sm font-semibold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-900 dark:text-slate-100">
               知识点ID
             </span>
             。
@@ -577,7 +606,7 @@ export default function Exam() {
       </div>
 
       {/* ===== 考试配置区 ===== */}
-      <div className="card space-y-4">
+      <div className="surface space-y-4">
         <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-3">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
             考试配置
@@ -861,7 +890,7 @@ export default function Exam() {
       {step !== "config" && (
         <div className="grid grid-cols-1 lg:grid-cols-[2fr,1fr] gap-4 items-start">
           {/* 左：当前题目 */}
-          <div className="card space-y-4">
+          <div className="surface space-y-4">
             <div className="flex items-center justify-between gap-2 border-b-2 border-slate-200 pb-3">
               <h3 className="text-lg font-bold text-slate-900">
                 当前题目
@@ -886,7 +915,7 @@ export default function Exam() {
                   {currentQuestion.type && (
                     <span className={`ml-3 px-2 py-1 rounded text-xs font-medium ${
                       currentQuestion.type === 'single' ? 'bg-blue-100 text-blue-700' :
-                      currentQuestion.type === 'multiple' ? 'bg-purple-100 text-purple-700' :
+                      currentQuestion.type === 'multiple' ? 'bg-slate-100 text-slate-700' :
                       currentQuestion.type === 'judge' ? 'bg-green-100 text-green-700' :
                       currentQuestion.type === 'fill' ? 'bg-orange-100 text-orange-700' :
                       'bg-red-100 text-red-700'
@@ -1027,7 +1056,7 @@ export default function Exam() {
           {/* 右：答题卡 + 成绩卡片 */}
           <div className="space-y-4">
             {/* 答题卡 */}
-            <div className="card">
+            <div className="surface">
               <h3 className="text-lg font-bold text-slate-900 mb-4 border-b-2 border-slate-200 pb-3">
                 答题卡
               </h3>
@@ -1068,7 +1097,7 @@ export default function Exam() {
 
             {/* 结果卡片 */}
             {stats && (
-              <div className="card space-y-3">
+              <div className="surface space-y-3">
                 <h3 className="text-lg font-bold text-slate-900 border-b-2 border-slate-200 pb-3">
                   本次考试结果
                 </h3>

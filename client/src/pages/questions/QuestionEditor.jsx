@@ -583,7 +583,7 @@ export default function QuestionEditor() {
               type="button"
               onClick={handleAIClassify}
               disabled={aiAnalyzing}
-              className="px-3 py-1 text-sm bg-purple-100 text-purple-700 rounded hover:bg-purple-200 disabled:opacity-50"
+              className="px-3 py-1 text-sm bg-slate-100 text-slate-700 rounded hover:bg-slate-200 disabled:opacity-50"
             >
               🤖 AI推荐学科
             </button>

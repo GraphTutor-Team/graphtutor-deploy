@@ -1037,4 +1037,67 @@ async function getAccuracyLeaderboardForFriends(friendIds, dateFilter, limit) {
   }));
 }
 
+/**
+ * 获取用户公开资料（含与当前用户的关系）
+ * @param {string} viewerId
+ * @param {string} targetUserId
+ */
+export async function getPublicUserProfile(viewerId, targetUserId) {
+  if (!targetUserId) {
+    throw new Error('用户 ID 无效');
+  }
+  const target = await User.findById(targetUserId)
+    .select('name avatarUrl school major grade bio friendSettings')
+    .lean();
+  if (!target) {
+    const err = new Error('用户不存在');
+    err.status = 404;
+    throw err;
+  }
 
+  const isSelf = viewerId && String(viewerId) === String(target._id);
+  let relationship = 'none';
+  if (isSelf) {
+    relationship = 'self';
+  } else if (viewerId) {
+    const isFriend = await areFriends(viewerId, target._id);
+    if (isFriend) {
+      relationship = 'friend';
+    } else {
+      const pending = await FriendRequest.findOne({
+        status: 'pending',
+        $or: [
+          { fromUserId: viewerId, toUserId: target._id },
+          { fromUserId: target._id, toUserId: viewerId },
+        ],
+      }).lean();
+      if (pending) {
+        relationship = String(pending.fromUserId) === String(viewerId)
+          ? 'request_sent'
+          : 'request_received';
+      }
+    }
+  }
+
+  const showFull =
+    isSelf || relationship === 'friend' || target.friendSettings?.showProfile !== false;
+
+  const profile = {
+    _id: target._id,
+    name: target.name || '用户',
+    avatarUrl: target.avatarUrl || null,
+    relationship,
+    allowFriendRequests: target.friendSettings?.allowFriendRequests !== false,
+  };
+
+  if (showFull) {
+    profile.school = target.school || null;
+    profile.major = target.major || null;
+    profile.grade = target.grade || null;
+    profile.bio = target.bio || null;
+  } else {
+    profile.profileRestricted = true;
+  }
+
+  return profile;
+}

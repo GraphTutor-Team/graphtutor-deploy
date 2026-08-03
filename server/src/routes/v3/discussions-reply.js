@@ -10,23 +10,20 @@ import { requireAuth } from '../../middleware/auth.js';
 import DiscussionReply from '../../models/DiscussionReply.js';
 import Discussion from '../../models/Discussion.js';
 import User from '../../models/User.js';
+import { attachAuthors, withLikedByMe } from '../../utils/discussionHelpers.js';
 
 const router = express.Router({ mergeParams: true });
 
 /**
  * PUT /api/v3/discussions/:id/replies/:replyId/like
- * 点赞回复
+ * 点赞 / 取消点赞回复
  */
 router.put('/:replyId/like', requireAuth, async (req, res) => {
   try {
     const { replyId } = req.params;
+    const userId = String(req.user.id);
 
-    const reply = await DiscussionReply.findByIdAndUpdate(
-      replyId,
-      { $inc: { likeCount: 1 } },
-      { new: true }
-    ).lean();
-
+    const reply = await DiscussionReply.findById(replyId);
     if (!reply) {
       return res.status(404).json({
         success: false,
@@ -34,9 +31,34 @@ router.put('/:replyId/like', requireAuth, async (req, res) => {
       });
     }
 
+    const likedBy = (reply.likedBy || []).map(String);
+    const alreadyLiked = likedBy.includes(userId);
+
+    let updated;
+    if (alreadyLiked) {
+      updated = await DiscussionReply.findByIdAndUpdate(
+        replyId,
+        { $pull: { likedBy: userId }, $inc: { likeCount: -1 } },
+        { new: true }
+      ).lean();
+      if (updated && updated.likeCount < 0) {
+        updated.likeCount = 0;
+        await DiscussionReply.findByIdAndUpdate(replyId, { $set: { likeCount: 0 } });
+      }
+    } else {
+      updated = await DiscussionReply.findByIdAndUpdate(
+        replyId,
+        { $addToSet: { likedBy: userId }, $inc: { likeCount: 1 } },
+        { new: true }
+      ).lean();
+    }
+
+    const [withAuthor] = await attachAuthors([updated]);
+
     res.json({
       success: true,
-      data: reply,
+      data: withLikedByMe(withAuthor, userId),
+      message: alreadyLiked ? '已取消点赞' : '点赞成功',
     });
   } catch (err) {
     console.error('PUT /api/v3/discussions/:id/replies/:replyId/like error:', err);

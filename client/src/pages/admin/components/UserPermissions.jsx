@@ -120,7 +120,7 @@ export default function UserPermissions({ permissions, stats }) {
   return (
     <div className="space-y-4">
       {/* 角色和摘要 */}
-      <div className="card bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+      <div className="card bg-slate-50 border-blue-200">
         <div className="flex items-center justify-between mb-3">
           <div>
             <h3 className="font-semibold text-slate-900">角色与权限</h3>
@@ -161,9 +161,9 @@ export default function UserPermissions({ permissions, stats }) {
               <div className="text-lg font-bold text-green-700">{stats.questions || 0}</div>
               <div className="text-xs text-green-600 mt-1">题目</div>
             </div>
-            <div className="text-center p-2 bg-purple-50 rounded-lg">
+            <div className="text-center p-2 bg-slate-50 rounded-lg">
               <div className="text-lg font-bold text-purple-700">{stats.notes || 0}</div>
-              <div className="text-xs text-purple-600 mt-1">笔记</div>
+              <div className="text-xs text-blue-600 mt-1">笔记</div>
             </div>
             <div className="text-center p-2 bg-orange-50 rounded-lg">
               <div className="text-lg font-bold text-orange-700">{stats.discussions || 0}</div>

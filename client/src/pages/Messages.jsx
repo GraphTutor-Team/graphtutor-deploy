@@ -14,7 +14,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   getConversations,
@@ -25,9 +25,11 @@ import {
   recallMessage as recallMessageAPI,
   deleteMessage as deleteMessageAPI,
 } from '../api/v3/messages';
+import { getFriends, checkFriendship } from '../api/v3/friends';
 import { toast } from '../utils/toast';
 import PageHeader from '../components/PageHeader';
 import Icon from '../components/common/Icon';
+import LoginPrompt from '../components/common/LoginPrompt';
 import { getWebSocketClient, initWebSocket } from '../utils/websocket';
 import ConversationList from '../components/messages/ConversationList';
 import MessageList from '../components/messages/MessageList';
@@ -37,6 +39,7 @@ import MessageContextMenu from '../components/messages/MessageContextMenu';
 export default function Messages() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [conversations, setConversations] = useState([]);
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -49,24 +52,47 @@ export default function Messages() {
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [contextMenu, setContextMenu] = useState(null);
+  const [peerOnline, setPeerOnline] = useState(false);
+  const [peerTyping, setPeerTyping] = useState(false);
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
+  const selectedUserIdRef = useRef(null);
+  const typingTimerRef = useRef(null);
+  const peerTypingClearRef = useRef(null);
+  const wsHandlersRef = useRef({});
+
+  selectedUserIdRef.current = selectedUserId;
 
   useEffect(() => {
     if (user) {
-      loadConversations();
+      loadConversations().then(() => {
+        const peerId = searchParams.get('userId');
+        if (peerId) {
+          openConversationWith(peerId);
+        }
+      });
       initializeWebSocket();
     }
 
     return () => {
-      // 清理WebSocket监听
       const ws = getWebSocketClient();
-      if (ws) {
-        ws.off('message:new');
-        ws.off('message:read');
+      const h = wsHandlersRef.current;
+      if (ws && h) {
+        if (h.onNew) ws.off('message:new', h.onNew);
+        if (h.onRead) ws.off('message:read', h.onRead);
+        if (h.onRecalled) ws.off('message:recalled', h.onRecalled);
+        if (h.onPresence) ws.off('presence:update', h.onPresence);
+        if (h.onTyping) ws.off('typing:update', h.onTyping);
       }
     };
   }, [user]);
+
+  useEffect(() => {
+    const peerId = searchParams.get('userId');
+    if (user && peerId && peerId !== selectedUserId) {
+      openConversationWith(peerId);
+    }
+  }, [searchParams]);
 
   const initializeWebSocket = async () => {
     try {
@@ -74,6 +100,59 @@ export default function Messages() {
       setupWebSocketListeners(ws);
     } catch (err) {
       console.error('WebSocket初始化失败:', err);
+    }
+  };
+
+  /** 从好友页深链打开会话（即使尚无历史消息） */
+  const openConversationWith = async (peerId) => {
+    if (!peerId) return;
+
+    try {
+      const isFriend = await checkFriendship(peerId);
+      if (!isFriend) {
+        toast.error('只能与好友私信，请先添加好友');
+        navigate(`/users/${peerId}`, { replace: true });
+        setSearchParams({}, { replace: true });
+        return;
+      }
+    } catch (err) {
+      console.warn('检查好友关系失败:', err);
+    }
+
+    setSelectedUserId(peerId);
+    setConversations((prev) => {
+      if (prev.some((c) => String(c.userId) === String(peerId))) return prev;
+      return [
+        {
+          userId: peerId,
+          name: '好友',
+          avatarUrl: null,
+          unreadCount: 0,
+          lastMessage: null,
+        },
+        ...prev,
+      ];
+    });
+    try {
+      const data = await getFriends({ page: 1, limit: 100 });
+      const friend = (data.items || []).find(
+        (f) => String(f._id) === String(peerId)
+      );
+      if (friend) {
+        setConversations((prev) =>
+          prev.map((c) =>
+            String(c.userId) === String(peerId)
+              ? {
+                  ...c,
+                  name: friend.name || friend.email || '好友',
+                  avatarUrl: friend.avatarUrl || null,
+                }
+              : c
+          )
+        );
+      }
+    } catch (err) {
+      console.warn('加载好友信息失败:', err);
     }
   };
 
@@ -87,27 +166,28 @@ export default function Messages() {
   const setupWebSocketListeners = (ws) => {
     if (!ws) return;
 
-    ws.on('message:new', (data) => {
+    const onNew = (data) => {
       const newMessage = data.message;
+      const currentPeer = selectedUserIdRef.current;
       
-      if (selectedUserId && (
-        newMessage.senderId === selectedUserId || 
-        newMessage.receiverId === selectedUserId
+      if (currentPeer && (
+        String(newMessage.senderId) === String(currentPeer) || 
+        String(newMessage.receiverId) === String(currentPeer)
       )) {
         setMessages(prev => [...prev, newMessage]);
         scrollToBottom();
-        if (newMessage.receiverId === user.id) {
+        if (String(newMessage.receiverId) === String(user.id)) {
           markAsRead(newMessage.senderId);
         }
-      } else if (newMessage.receiverId === user.id) {
+      } else if (String(newMessage.receiverId) === String(user.id)) {
         showNotification(newMessage);
       }
 
       loadConversations();
-    });
+    };
 
-    ws.on('message:read', (data) => {
-      if (data.receiverId === user.id && selectedUserId === data.receiverId) {
+    const onRead = (data) => {
+      if (String(data.receiverId) === String(user.id) && String(selectedUserIdRef.current) === String(data.receiverId)) {
         setMessages(prev =>
           prev.map(msg =>
             msg.senderId === user.id && !msg.isRead
@@ -116,10 +196,10 @@ export default function Messages() {
           )
         );
       }
-    });
+    };
 
-    ws.on('message:recalled', (data) => {
-      if (selectedUserId) {
+    const onRecalled = (data) => {
+      if (selectedUserIdRef.current) {
         setMessages(prev =>
           prev.map(msg =>
             msg._id === data.messageId
@@ -129,7 +209,58 @@ export default function Messages() {
         );
       }
       loadConversations();
-    });
+    };
+
+    const onPresence = (data) => {
+      if (String(data.userId) === String(selectedUserIdRef.current)) {
+        setPeerOnline(!!data.online);
+      }
+      setConversations((prev) =>
+        prev.map((c) =>
+          String(c.userId) === String(data.userId)
+            ? { ...c, isOnline: !!data.online }
+            : c
+        )
+      );
+    };
+
+    const onTyping = (data) => {
+      if (String(data.fromUserId) !== String(selectedUserIdRef.current)) return;
+      setPeerTyping(!!data.isTyping);
+      if (peerTypingClearRef.current) clearTimeout(peerTypingClearRef.current);
+      if (data.isTyping) {
+        peerTypingClearRef.current = setTimeout(() => setPeerTyping(false), 3000);
+      }
+    };
+
+    wsHandlersRef.current = { onNew, onRead, onRecalled, onPresence, onTyping };
+    ws.on('message:new', onNew);
+    ws.on('message:read', onRead);
+    ws.on('message:recalled', onRecalled);
+    ws.on('presence:update', onPresence);
+    ws.on('typing:update', onTyping);
+  };
+
+  useEffect(() => {
+    setPeerTyping(false);
+    setPeerOnline(false);
+    const ws = getWebSocketClient();
+    if (ws?.isConnected?.() && selectedUserId) {
+      ws.emit('presence:query', { userId: selectedUserId });
+    }
+  }, [selectedUserId]);
+
+  const emitTyping = (isTyping) => {
+    const ws = getWebSocketClient();
+    if (!ws?.isConnected?.() || !selectedUserId) return;
+    ws.emit('typing', { toUserId: selectedUserId, isTyping });
+  };
+
+  const handleMessageInputChange = (value) => {
+    setMessageInput(value);
+    emitTyping(true);
+    if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+    typingTimerRef.current = setTimeout(() => emitTyping(false), 1200);
   };
 
   const showNotification = (message) => {
@@ -155,7 +286,7 @@ export default function Messages() {
     try {
       setLoading(true);
       const data = await getConversations();
-      setConversations(data);
+      setConversations(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('加载会话列表失败:', err);
       toast.error(err.response?.data?.message || '加载会话列表失败');
@@ -229,6 +360,7 @@ export default function Messages() {
 
       setMessages(prev => [...prev, newMessage]);
       setMessageInput('');
+      emitTyping(false);
       scrollToBottom();
       await loadConversations();
     } catch (err) {
@@ -336,33 +468,33 @@ export default function Messages() {
 
   if (!user) {
     return (
-      <div className="p-6 text-center">
-        <div className="text-slate-500">请先登录</div>
-      </div>
+      <LoginPrompt
+        title="登录后查看消息"
+        description="登录后可与好友聊天。还不熟流程？先看教程，或直接去练习。"
+      />
     );
   }
 
   const selectedConversation = conversations.find(c => c.userId === selectedUserId);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+    <div className="page-shell">
       <PageHeader
         title="消息"
         description="与好友聊天"
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white dark:bg-slate-800 rounded-lg border dark:border-slate-700 overflow-hidden">
-          <div className="flex h-[600px]">
+      <div className="surface !p-0 overflow-hidden">
+          <div className="flex h-[min(70vh,640px)] min-h-[380px] sm:min-h-[420px]">
             {/* 会话列表 */}
-            <div className="w-1/3 border-r dark:border-slate-700 flex flex-col">
-              <div className="p-4 border-b dark:border-slate-700">
+            <div className="w-1/3 border-r border-slate-200/80 dark:border-slate-700 flex flex-col">
+              <div className="p-4 border-b border-slate-200/80 dark:border-slate-700">
                 <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                  <h2 className="text-lg font-semibold tracking-tight text-slate-900 dark:text-slate-100">
                     会话列表
                   </h2>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-2">
                   <input
                     type="text"
                     value={searchKeyword}
@@ -373,11 +505,12 @@ export default function Messages() {
                       }
                     }}
                     placeholder="搜索消息..."
-                    className="flex-1 px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                    className="input flex-1 !py-1.5 text-sm"
                   />
                   <button
+                    type="button"
                     onClick={handleSearch}
-                    className="p-1.5 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                    className="p-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700"
                   >
                     <Icon name="search" className="h-4 w-4" />
                   </button>
@@ -419,9 +552,15 @@ export default function Messages() {
                       )}
                       <div>
                         <h3 className="font-medium text-slate-900 dark:text-slate-100">
-                          {selectedConversation?.name}
+                          {selectedConversation?.name || '好友'}
                         </h3>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">在线</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                          {peerTyping
+                            ? '正在输入...'
+                            : peerOnline || selectedConversation?.isOnline
+                              ? '在线'
+                              : '离线'}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -454,7 +593,7 @@ export default function Messages() {
                   {/* 消息输入 */}
                   <MessageInput
                     messageInput={messageInput}
-                    setMessageInput={setMessageInput}
+                    setMessageInput={handleMessageInputChange}
                     onSendMessage={handleSendMessage}
                     sending={sending}
                   />
@@ -470,7 +609,6 @@ export default function Messages() {
             </div>
           </div>
         </div>
-      </div>
     </div>
   );
 }

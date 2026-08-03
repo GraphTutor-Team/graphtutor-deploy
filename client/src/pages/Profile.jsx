@@ -19,6 +19,7 @@ import PageHeader from "../components/PageHeader";
 import { useAuth } from "../context/AuthContext";
 import UserStatsCard from "../components/UserStatsCard";
 import AccountLinksSection from "../components/AccountLinksSection";
+import LoginPrompt from "../components/common/LoginPrompt";
 import api from "../api/api";
 
 export default function Profile() {
@@ -393,9 +394,10 @@ export default function Profile() {
 
   if (!user) {
     return (
-      <div className="p-6 text-sm font-semibold text-slate-700">
-        请先登录后再查看个人中心。
-      </div>
+      <LoginPrompt
+        title="登录后查看个人中心"
+        description="登录后可完善资料与学习角色。也可先看使用教程，或去做题。"
+      />
     );
   }
 
@@ -404,7 +406,7 @@ export default function Profile() {
     (user.name || user.email || "?").charAt(0).toUpperCase();
 
   return (
-    <div className="space-y-4">
+    <div className="page-shell !space-y-4">
       <PageHeader
         title="个人中心"
         subtitle="查看并完善你的个人信息，这些资料仅用于学习记录展示，不涉及隐私。"
@@ -417,8 +419,8 @@ export default function Profile() {
 
       {/* 学习角色养成（学习元宇宙 MVP） */}
       {user && (
-        <section className="card">
-          <h2 className="text-base font-bold text-slate-900 mb-4 border-b-2 border-slate-200 pb-2">
+        <section className="surface">
+          <h2 className="section-title mb-4 border-b border-slate-200/80 dark:border-slate-700 pb-2">
             学习角色
           </h2>
           <div className="space-y-3">
@@ -484,13 +486,13 @@ export default function Profile() {
       )}
 
       {loading ? (
-        <div className="card text-sm">
+        <div className="surface text-sm">
           正在加载个人信息…
         </div>
       ) : (
         <>
           {/* 顶部：头像 + 基本账户信息 */}
-          <section className="card flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <section className="surface flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="w-14 h-14 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden border-2 border-slate-300">
                 {form.avatarUrl ? (
@@ -570,7 +572,7 @@ export default function Profile() {
           )}
 
           {/* 可编辑的个人资料表单 */}
-          <section className="card">
+          <section className="surface">
             <h2 className="text-base font-bold text-slate-900 mb-4 border-b-2 border-slate-200 pb-2">
               个人资料
             </h2>
@@ -798,7 +800,7 @@ export default function Profile() {
           </section>
 
           {/* 账户安全设置 */}
-          <section className="card">
+          <section className="surface">
             <h2 className="text-base font-bold text-slate-900 mb-4 border-b-2 border-slate-200 pb-2">
               账户安全
             </h2>

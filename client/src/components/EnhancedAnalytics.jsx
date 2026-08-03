@@ -154,7 +154,7 @@ export default function EnhancedAnalytics({ days = 30, onDaysChange }) {
 
             {/* 效率评分 */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-lg">
+              <div className="bg-blue-600 text-white p-6 rounded-lg">
                 <div className="text-sm opacity-90 mb-2">效率评分</div>
                 <div className="text-4xl font-bold">{efficiencyData.score}分</div>
                 <div className="text-sm opacity-90 mt-2">{efficiencyData.level}</div>
@@ -241,7 +241,7 @@ export default function EnhancedAnalytics({ days = 30, onDaysChange }) {
               </div>
               <div className="bg-slate-50 dark:bg-slate-700 p-6 rounded-lg">
                 <div className="text-sm text-slate-600 dark:text-slate-400 mb-2">平均每日时长</div>
-                <div className="text-3xl font-bold text-purple-600">
+                <div className="text-3xl font-bold text-blue-600">
                   {habitsData.duration.avgDailyMinutes.toFixed(0)}分钟
                 </div>
               </div>
@@ -400,7 +400,7 @@ export default function EnhancedAnalytics({ days = 30, onDaysChange }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* 效率概览 */}
               {comprehensiveData.efficiency && (
-                <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-lg">
+                <div className="bg-blue-600 text-white p-6 rounded-lg">
                   <div className="text-sm opacity-90 mb-2">学习效率</div>
                   <div className="text-4xl font-bold mb-2">{comprehensiveData.efficiency.score}分</div>
                   <div className="text-sm opacity-90">{comprehensiveData.efficiency.level}</div>
@@ -409,7 +409,7 @@ export default function EnhancedAnalytics({ days = 30, onDaysChange }) {
 
               {/* 习惯概览 */}
               {comprehensiveData.habits && (
-                <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-6 rounded-lg">
+                <div className="bg-emerald-600 text-white p-6 rounded-lg">
                   <div className="text-sm opacity-90 mb-2">学习一致性</div>
                   <div className="text-4xl font-bold mb-2">{comprehensiveData.habits.consistency.score}分</div>
                   <div className="text-sm opacity-90">等级: {comprehensiveData.habits.consistency.level}</div>

@@ -88,12 +88,9 @@ export default function StudyStreakWidget() {
   const { totalDays, streak } = data;
 
   return (
-    <div className="card max-w-sm bg-gradient-to-br from-sky-50 to-emerald-50 dark:from-slate-800 dark:to-slate-900 border border-sky-100 dark:border-slate-700 hover:-translate-y-0.5 hover:shadow-lg transition-all">
-      <div className="flex justify-between items-center mb-2">
-        <div className="text-xs uppercase tracking-wider text-sky-500 dark:text-sky-300 font-semibold">
-          学习打卡
-        </div>
-        <div className="text-xl">📚</div>
+    <div className="card max-w-sm">
+      <div className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold mb-2">
+        学习打卡
       </div>
 
       <div className="flex items-baseline gap-4 mb-2">
@@ -101,7 +98,7 @@ export default function StudyStreakWidget() {
           <div className="text-xs text-slate-500 dark:text-slate-400">
             连续学习天数
           </div>
-          <div className="text-3xl font-bold text-sky-600 dark:text-sky-300">
+          <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
             {streak}
             <span className="text-base ml-1">天</span>
           </div>

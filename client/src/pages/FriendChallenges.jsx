@@ -11,6 +11,7 @@ import { getFriendChallenges, getChallengeStats } from '../api/v3/friendChalleng
 import { getFriends } from '../api/v3/friends';
 import { toast } from '../utils/toast';
 import PageHeader from '../components/PageHeader';
+import LoginPrompt from '../components/common/LoginPrompt';
 import Icon from '../components/common/Icon';
 import FriendChallengeCard from '../components/FriendChallengeCard';
 import CreateChallengeModal from '../components/CreateChallengeModal';
@@ -33,6 +34,12 @@ export default function FriendChallenges() {
     }
   }, [user, activeTab, friendId]);
 
+  useEffect(() => {
+    if (friendId && user) {
+      setShowCreateModal(true);
+    }
+  }, [friendId, user]);
+
   const loadData = async () => {
     setLoading(true);
     try {
@@ -43,8 +50,9 @@ export default function FriendChallenges() {
       ]);
 
       setChallenges(challengesRes.data?.items || []);
-      setStats(statsRes.data?.data || null);
-      setFriends(friendsRes.data?.items || []);
+      setStats(statsRes.data || null);
+      // getFriends 已解包为 data，直接取 items
+      setFriends(friendsRes.items || []);
     } catch (err) {
       console.error('加载挑战数据失败:', err);
       toast.error('加载挑战数据失败');
@@ -55,9 +63,10 @@ export default function FriendChallenges() {
 
   if (!user) {
     return (
-      <div className="p-6 text-center">
-        <div className="text-slate-500">请先登录</div>
-      </div>
+      <LoginPrompt
+        title="登录后发起挑战"
+        description="登录后可与好友发起学习挑战。也可先看教程，或去做题。"
+      />
     );
   }
 
@@ -97,7 +106,7 @@ export default function FriendChallenges() {
             </div>
             <div className="card p-4">
               <div className="text-sm text-slate-600 dark:text-slate-400">胜率</div>
-              <div className="text-2xl font-bold text-purple-600">{stats.winRate || 0}%</div>
+              <div className="text-2xl font-bold text-blue-600">{stats.winRate || 0}%</div>
             </div>
           </div>
         )}
@@ -162,6 +171,7 @@ export default function FriendChallenges() {
       {showCreateModal && (
         <CreateChallengeModal
           friends={friends}
+          initialFriendId={friendId || ''}
           onClose={() => setShowCreateModal(false)}
           onSuccess={() => {
             setShowCreateModal(false);

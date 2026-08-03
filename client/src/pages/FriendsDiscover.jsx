@@ -119,21 +119,24 @@ export default function FriendsDiscover() {
   };
 
   const getRelationshipButton = (targetUser) => {
+    const btnBase = 'flex-1 min-w-[6.5rem] px-4 py-2 rounded-lg text-sm font-medium';
     if (targetUser.relationship === 'friend') {
       return (
         <button
-          onClick={() => navigate(`/friends`)}
-          className="px-4 py-2 bg-green-100 text-green-700 rounded-md hover:bg-green-200 text-sm font-medium"
+          type="button"
+          onClick={() => navigate(`/users/${targetUser._id}`)}
+          className={`${btnBase} bg-green-100 text-green-700 hover:bg-green-200`}
         >
-          已是好友
+          查看资料
         </button>
       );
     }
     if (targetUser.relationship === 'request_sent') {
       return (
         <button
+          type="button"
           disabled
-          className="px-4 py-2 bg-slate-100 text-slate-500 rounded-md text-sm font-medium cursor-not-allowed"
+          className={`${btnBase} bg-slate-100 text-slate-500 cursor-not-allowed`}
         >
           已发送请求
         </button>
@@ -142,8 +145,9 @@ export default function FriendsDiscover() {
     if (targetUser.relationship === 'request_received') {
       return (
         <button
+          type="button"
           onClick={() => navigate(`/friends?tab=requests`)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
+          className={`${btnBase} bg-blue-600 text-white hover:bg-blue-700`}
         >
           查看请求
         </button>
@@ -151,8 +155,9 @@ export default function FriendsDiscover() {
     }
     return (
       <button
+        type="button"
         onClick={() => handleSendRequest(targetUser._id)}
-        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
+        className={`${btnBase} bg-blue-600 text-white hover:bg-blue-700`}
       >
         添加好友
       </button>
@@ -160,65 +165,70 @@ export default function FriendsDiscover() {
   };
 
   const UserCard = ({ user: targetUser }) => (
-    <div className="bg-white dark:bg-slate-800 rounded-lg border dark:border-slate-700 p-6 hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between">
-        <div className="flex items-center space-x-4 flex-1">
-          <div className="flex-shrink-0">
-            {targetUser.avatarUrl ? (
-              <img
-                src={targetUser.avatarUrl}
-                alt={targetUser.name}
-                className="h-16 w-16 rounded-full"
-              />
-            ) : (
-              <div className="h-16 w-16 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold text-xl">
-                {targetUser.name?.charAt(0)?.toUpperCase() || 'U'}
-              </div>
-            )}
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">
+    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 hover:shadow-md transition-shadow flex flex-col gap-3 min-w-0">
+      <div className="flex items-start gap-3 min-w-0">
+        <div className="flex-shrink-0">
+          {targetUser.avatarUrl ? (
+            <img
+              src={targetUser.avatarUrl}
+              alt={targetUser.name}
+              className="h-14 w-14 rounded-full object-cover"
+            />
+          ) : (
+            <div className="h-14 w-14 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold text-lg">
+              {targetUser.name?.charAt(0)?.toUpperCase() || 'U'}
+            </div>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <button
+            type="button"
+            onClick={() => navigate(`/users/${targetUser._id}`)}
+            className="text-left w-full min-w-0 hover:text-blue-600 dark:hover:text-blue-400"
+          >
+            <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 truncate">
               {targetUser.name || targetUser.email}
             </h3>
-            {targetUser.email && targetUser.name && (
-              <p className="text-sm text-slate-500 dark:text-slate-400 truncate">
-                {targetUser.email}
-              </p>
-            )}
-            {targetUser.school && (
-              <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">
-                <Icon name="school" className="inline h-4 w-4 mr-1" />
-                {targetUser.school}
-              </p>
-            )}
-            {targetUser.major && (
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                {targetUser.major}
-              </p>
-            )}
-            {targetUser.grade && (
-              <p className="text-xs text-slate-400 dark:text-slate-500">
-                {targetUser.grade}
-              </p>
-            )}
-            {targetUser.bio && (
-              <p className="text-sm text-slate-600 dark:text-slate-300 mt-2 line-clamp-2">
-                {targetUser.bio}
-              </p>
-            )}
-            {targetUser.mutualFriendsCount !== undefined && targetUser.mutualFriendsCount > 0 && (
-              <button
-                onClick={() => handleViewMutualFriends(targetUser._id)}
-                className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-2"
-              >
-                {targetUser.mutualFriendsCount} 个共同好友
-              </button>
-            )}
-          </div>
+          </button>
+          {targetUser.email && targetUser.name && (
+            <p className="text-sm text-slate-500 dark:text-slate-400 truncate">
+              {targetUser.email}
+            </p>
+          )}
+          {targetUser.school && (
+            <p className="text-sm text-slate-600 dark:text-slate-300 mt-1 truncate">
+              <Icon name="school" className="inline h-4 w-4 mr-1" />
+              {targetUser.school}
+            </p>
+          )}
+          {targetUser.major && (
+            <p className="text-sm text-slate-500 dark:text-slate-400 truncate">
+              {targetUser.major}
+            </p>
+          )}
+          {targetUser.grade && (
+            <p className="text-xs text-slate-400 dark:text-slate-500">
+              {targetUser.grade}
+            </p>
+          )}
+          {targetUser.bio && (
+            <p className="text-sm text-slate-600 dark:text-slate-300 mt-2 line-clamp-2">
+              {targetUser.bio}
+            </p>
+          )}
+          {targetUser.mutualFriendsCount !== undefined && targetUser.mutualFriendsCount > 0 && (
+            <button
+              type="button"
+              onClick={() => handleViewMutualFriends(targetUser._id)}
+              className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-2"
+            >
+              {targetUser.mutualFriendsCount} 个共同好友
+            </button>
+          )}
         </div>
-        <div className="flex-shrink-0 ml-4">
-          {getRelationshipButton(targetUser)}
-        </div>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {getRelationshipButton(targetUser)}
       </div>
     </div>
   );
@@ -231,6 +241,37 @@ export default function FriendsDiscover() {
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-4 flex flex-wrap gap-3 text-sm">
+          <button
+            type="button"
+            onClick={() => navigate('/friends')}
+            className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
+            ← 好友列表
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/friend-challenges')}
+            className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
+            好友挑战
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/learning-posts')}
+            className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
+            学习动态
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/community')}
+            className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
+            学习社区
+          </button>
+        </div>
+
         {/* 标签页 */}
         <div className="mb-6">
           <div className="border-b border-slate-200 dark:border-slate-700">

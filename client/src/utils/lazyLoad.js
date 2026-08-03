@@ -57,6 +57,7 @@ export const LazyReports = lazy(() => import('../pages/admin/Reports.jsx'));
 export const LazyFriends = lazy(() => import('../pages/Friends.jsx'));
 export const LazyFriendsDiscover = lazy(() => import('../pages/FriendsDiscover.jsx'));
 export const LazyFriendDetail = lazy(() => import('../pages/FriendDetail.jsx'));
+export const LazyUserProfile = lazy(() => import('../pages/UserProfile.jsx'));
 export const LazyFriendChallenges = lazy(() => import('../pages/FriendChallenges.jsx'));
 export const LazyLearningPosts = lazy(() => import('../pages/LearningPosts.jsx'));
 export const LazyMessages = lazy(() => import('../pages/Messages.jsx'));

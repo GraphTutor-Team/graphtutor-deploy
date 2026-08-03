@@ -25,7 +25,7 @@ export default function FriendStatsSection({ stats }) {
         title="正确率"
         value={`${(stats.records?.accuracy || 0).toFixed(1)}%`}
         icon="target"
-        color="purple"
+        color="slate"
       />
       <StatCard
         title="学习时长"
@@ -55,7 +55,7 @@ export default function FriendStatsSection({ stats }) {
         title="笔记数量"
         value={stats.notes || 0}
         icon="file-text"
-        color="purple"
+        color="slate"
       />
     </div>
   );
@@ -65,7 +65,7 @@ function StatCard({ title, value, icon, color }) {
   const colorClasses = {
     blue: 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300',
     green: 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300',
-    purple: 'bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-300',
+    slate: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
     orange: 'bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-300',
     red: 'bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-300',
   };
@@ -79,7 +79,7 @@ function StatCard({ title, value, icon, color }) {
             {value}
           </p>
         </div>
-        <div className={`p-3 rounded-full ${colorClasses[color]}`}>
+        <div className={`p-3 rounded-lg ${colorClasses[color]}`}>
           <Icon name={icon} className="h-6 w-6" />
         </div>
       </div>

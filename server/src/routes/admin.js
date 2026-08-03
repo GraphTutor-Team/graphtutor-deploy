@@ -19,12 +19,65 @@ import { requireAuth, requireAdmin } from "../middleware/auth.js";
 import Question from "../models/Question.js";
 import User from "../models/User.js";
 import { generateSystemReport } from "../services/reportService.js";
+import { exportFullBackup, importFullBackup } from "../services/adminBackupService.js";
 
 const router = express.Router();
 
 // 先确保已登录 & 是管理员
 router.use(requireAuth);
 router.use(requireAdmin);
+
+/**
+ * GET /api/admin/export/all
+ * 全量导出：学科 + 知识点 + 题库（含题目）+ 作答记录
+ */
+router.get("/export/all", async (req, res) => {
+  try {
+    const backup = await exportFullBackup();
+    const date = new Date().toISOString().slice(0, 10);
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="graphtutor_backup_${date}.json"`
+    );
+    res.json(backup);
+  } catch (e) {
+    console.error("GET /api/admin/export/all error:", e);
+    res.status(500).json({
+      success: false,
+      message: e.message || "全量导出失败",
+    });
+  }
+});
+
+/**
+ * POST /api/admin/import
+ * 全量导入（JSON body）
+ */
+router.post("/import", async (req, res) => {
+  try {
+    const payload = req.body;
+    if (!payload || typeof payload !== "object") {
+      return res.status(400).json({
+        success: false,
+        message: "请提交有效的 JSON 备份",
+      });
+    }
+
+    const result = await importFullBackup(payload);
+    res.json({
+      success: true,
+      data: result,
+      message: "导入完成",
+    });
+  } catch (e) {
+    console.error("POST /api/admin/import error:", e);
+    res.status(500).json({
+      success: false,
+      message: e.message || "全量导入失败",
+    });
+  }
+});
 
 /**
  * GET /api/admin/stats

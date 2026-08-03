@@ -64,13 +64,13 @@ export default function OAuthCallback() {
 
   if (status === "error") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-        <div className="w-full max-w-md bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/20 p-8 text-center space-y-4">
-          <div className="text-red-500 text-lg font-medium">{message}</div>
+      <div className="min-h-screen flex items-center justify-center bg-slate-100 px-4">
+        <div className="w-full max-w-md surface text-center space-y-4">
+          <div className="text-red-600 text-lg font-medium">{message}</div>
           <button
             type="button"
             onClick={() => navigate("/login")}
-            className="w-full mt-4 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold py-3 px-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
+            className="btn btn-primary w-full"
           >
             返回登录
           </button>
@@ -80,9 +80,9 @@ export default function OAuthCallback() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      <div className="w-full max-w-md bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/20 p-8 text-center">
-        <div className="animate-spin w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-4" />
+    <div className="min-h-screen flex items-center justify-center bg-slate-100 px-4">
+      <div className="w-full max-w-md surface text-center">
+        <div className="animate-spin w-10 h-10 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-4" />
         <p className="text-slate-600">登录成功，正在跳转…</p>
       </div>
     </div>

@@ -201,7 +201,7 @@ export default function PublicNotes() {
 
       {/* 推荐笔记区域 */}
       {showRecommendations && recommendedNotes.length > 0 && page === 1 && !searchKeyword && !selectedType && selectedTags.length === 0 && (
-        <div className="mb-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-slate-800 dark:to-slate-700 rounded-lg border dark:border-slate-600 p-6">
+        <div className="mb-6 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-600 p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
               🔥 热门推荐
@@ -380,13 +380,14 @@ export default function PublicNotes() {
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between pt-4 border-t dark:border-slate-700">
-                    <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pt-4 border-t dark:border-slate-700 min-w-0">
+                    <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
                       <span className="flex items-center gap-1">
                         <Icon name="eye" size={14} />
                         {note.viewCount || 0}
                       </span>
                       <button
+                        type="button"
                         onClick={() => handleLike(note._id)}
                         className={`flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400 ${
                           isLiked ? 'text-blue-600 dark:text-blue-400' : ''
@@ -396,6 +397,7 @@ export default function PublicNotes() {
                         {note.likeCount || 0}
                       </button>
                       <button
+                        type="button"
                         onClick={() => handleFavorite(note._id)}
                         className={`flex items-center gap-1 hover:text-yellow-600 dark:hover:text-yellow-400 ${
                           isFavorited ? 'text-yellow-600 dark:text-yellow-400' : ''
@@ -405,19 +407,21 @@ export default function PublicNotes() {
                         {note.favoriteCount || 0}
                       </button>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                       {note.knowledgeNodeId && (
                         <button
+                          type="button"
                           onClick={() => navigate(`/nodes`)}
-                          className="px-3 py-1 text-sm border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700"
+                          className="flex-1 sm:flex-none px-3 py-1 text-sm border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700"
                         >
                           查看知识点
                         </button>
                       )}
                       {note.shareToken && (
                         <button
+                          type="button"
                           onClick={() => navigate(`/notes/share/${note.shareToken}`)}
-                          className="px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                          className="flex-1 sm:flex-none px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                         >
                           查看详情
                         </button>

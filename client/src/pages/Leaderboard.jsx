@@ -10,6 +10,7 @@ import api from '../api/api';
 import { getSubjectTree } from '../api/v3/subjects';
 import { toast } from '../utils/toast';
 import PageHeader from '../components/PageHeader';
+import LoginPrompt from '../components/common/LoginPrompt';
 
 function flattenSubjects(subjects, result = []) {
   subjects.forEach((s) => {
@@ -146,9 +147,10 @@ export default function Leaderboard() {
 
   if (!user) {
     return (
-      <div className="p-6 text-center">
-        <div className="text-slate-500">请先登录</div>
-      </div>
+      <LoginPrompt
+        title="登录后查看排行榜"
+        description="登录后可查看学习排行与联赛。也可先看教程，或去做题上榜。"
+      />
     );
   }
 
@@ -363,7 +365,7 @@ export default function Leaderboard() {
           )}
 
           {leagueItems.length > 0 && (
-            <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-6 rounded-lg border border-amber-200">
+            <div className="bg-amber-50 p-6 rounded-lg border border-amber-200">
               <h3 className="font-semibold mb-3">我的联赛</h3>
               {(() => {
                 const my = leagueItems.find((item) => item.isMe);
@@ -501,7 +503,7 @@ export default function Leaderboard() {
           )}
 
           {leaderboard.length > 0 && (
-            <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-lg border border-blue-200">
+            <div className="bg-slate-50 p-6 rounded-lg border border-blue-200">
               <h3 className="font-semibold mb-3">我的排名</h3>
               {(() => {
                 const myRank = leaderboard.findIndex((item) => item.isMe);
@@ -516,7 +518,7 @@ export default function Leaderboard() {
                       <div className="text-sm text-slate-600 mt-1">{getTypeLabel(selectedType)}</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-xl font-bold text-purple-600">
+                      <div className="text-xl font-bold text-blue-600">
                         {formatScore(myData.score || 0, selectedType)}
                       </div>
                       <div className="text-xs text-slate-500">{getScoreLabel(selectedType)}</div>
