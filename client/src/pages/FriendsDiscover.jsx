@@ -23,6 +23,7 @@ import {
 } from '../api/v3/friends';
 import { toast } from '../utils/toast';
 import PageHeader from '../components/PageHeader';
+import SocialHubNav from '../components/SocialHubNav';
 import Icon from '../components/common/Icon';
 import { useDebounce } from '../hooks/useDebounce';
 
@@ -241,34 +242,21 @@ export default function FriendsDiscover() {
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-4 flex flex-wrap gap-3 text-sm">
-          <button
-            type="button"
-            onClick={() => navigate('/friends')}
-            className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
-          >
-            ← 好友列表
-          </button>
+        <SocialHubNav />
+        <div className="mb-4 flex flex-wrap gap-2 text-sm">
           <button
             type="button"
             onClick={() => navigate('/friend-challenges')}
-            className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="btn btn-outline"
           >
             好友挑战
           </button>
           <button
             type="button"
             onClick={() => navigate('/learning-posts')}
-            className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="btn btn-outline"
           >
             学习动态
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate('/community')}
-            className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
-          >
-            学习社区
           </button>
         </div>
 

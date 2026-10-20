@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useAIContext } from '../../context/AIContext';
+import { buildQuestionBrief } from '../../utils/aiBrief';
 import { getQuestion, getQuestionVersions, restoreQuestionVersion } from '../../api/v3/questions';
 import { getRecommendedQuestions } from '../../api/v3/recommendations';
 import { checkFavorite, addFavorite, removeFavorite, getFavoriteFolders } from '../../api/v3/favorites';
@@ -60,12 +61,15 @@ export default function QuestionDetail() {
   useEffect(() => {
     if (question && id) {
       setAIContext({
+        pageType: 'question_detail',
+        mode: 'browse',
         questionId: id,
         knowledgeNodeId: question.knowledgeNodeId ?? question.knowledgeNode ?? null,
+        brief: buildQuestionBrief(question, null, { revealAnswer: true }),
       });
     }
-    return () => setAIContext({ questionId: null, knowledgeNodeId: null });
-  }, [id, question?.knowledgeNodeId, question?.knowledgeNode, setAIContext]);
+    return () => setAIContext({ questionId: null, knowledgeNodeId: null, brief: '', mode: 'browse' });
+  }, [id, question, setAIContext]);
 
   useEffect(() => {
     if (!question?.knowledgeNodeId) return;

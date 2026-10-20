@@ -2,11 +2,13 @@
 // 结果分析页面：接收 Exam / Quiz 传入的统计数据，展示详细结果列表。
 // 如果没有 state（用户直接打开 /result），则提示先去做一次考试/练习。
 
-import { useLocation, Link } from "react-router-dom";
-import { useMemo, useState } from "react";
+import { useLocation, Link, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
 import PageHeader from "../components/PageHeader";
 import { formatAnswerDisplay, formatCorrectAnswerDisplay } from "../utils/questionScoring";
 import QuizResultInsights from "../components/QuizResultInsights";
+import { useAIContext } from "../context/AIContext";
+import { chat } from "../api/v3/ai";
 
 function StatCard({ label, value, suffix, hint }) {
   const display =
@@ -62,6 +64,8 @@ function StatusTag({ isCorrect, isEmpty }) {
 
 export default function Result() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { setAIContext } = useAIContext();
   const incoming = location.state || {};
 
   const stats = incoming.stats || null;
@@ -70,6 +74,10 @@ export default function Result() {
   const source = incoming.source || "exam";
 
   const [filterMode, setFilterMode] = useState("all"); // all | wrong | empty | correct
+  const [recap, setRecap] = useState("");
+  const [recapIds, setRecapIds] = useState([]);
+  const [recapLoading, setRecapLoading] = useState(false);
+  const [recapError, setRecapError] = useState("");
 
   const hasData = !!stats && Array.isArray(questions) && questions.length > 0;
 
@@ -143,6 +151,72 @@ export default function Result() {
   const accuracy =
     stats?.accuracy ?? (total > 0 ? correct / total : null);
   const durationSec = stats?.durationSec ?? null;
+
+  const sessionBrief = useMemo(() => {
+    if (!hasData) return "";
+    const wrongItems = perQuestion.filter((item) => !item.isCorrect).slice(0, 8);
+    const lines = wrongItems.map((item) => {
+      const q = questions[item.index];
+      const stem = String(q?.content || "").replace(/\s+/g, " ").slice(0, 80);
+      return `- ${item.isEmpty ? "未答" : "答错"}：${stem}`;
+    });
+    return `本次${source === "exam" ? "考试" : "练习"}：共 ${total} 题，对 ${correct}，错 ${wrong}，未答 ${empty}。\n错题摘要：\n${lines.join("\n") || "没有错题"}`;
+  }, [hasData, perQuestion, questions, source, total, correct, wrong, empty]);
+
+  const wrongIds = useMemo(
+    () =>
+      perQuestion
+        .filter((item) => !item.isCorrect && item.questionId)
+        .map((item) => String(item.questionId))
+        .slice(0, 20),
+    [perQuestion]
+  );
+
+  useEffect(() => {
+    if (!hasData) {
+      setAIContext({ pageType: "other", mode: "browse", brief: "", questionId: null });
+      return undefined;
+    }
+    setAIContext({
+      pageType: "result",
+      mode: "review_session",
+      brief: sessionBrief,
+      questionId: null,
+      knowledgeNodeId: null,
+      wrongQuestionIds: wrongIds,
+    });
+    return () =>
+      setAIContext({
+        pageType: "other",
+        mode: "browse",
+        brief: "",
+        questionId: null,
+        wrongQuestionIds: [],
+      });
+  }, [hasData, sessionBrief, wrongIds, setAIContext]);
+
+  async function generateRecap() {
+    if (!sessionBrief || recapLoading) return;
+    setRecapLoading(true);
+    setRecapError("");
+    try {
+      const data = await chat(
+        [{ role: "user", content: "根据这次错题复盘错因，并推荐练习题。不要输出题目 ID。" }],
+        {
+          pageType: "result",
+          mode: "review_session",
+          brief: sessionBrief,
+          wrongQuestionIds: wrongIds,
+        }
+      );
+      setRecap(data?.content || "");
+      setRecapIds(Array.isArray(data?.recommendedQuestionIds) ? data.recommendedQuestionIds : []);
+    } catch (err) {
+      setRecapError(err.message || "复盘生成失败");
+    } finally {
+      setRecapLoading(false);
+    }
+  }
 
   function formatTime(sec) {
     if (!sec && sec !== 0) return "—";
@@ -232,6 +306,38 @@ export default function Result() {
           suffix=""
           hint="从开始到交卷的总耗时。"
         />
+      </section>
+
+      <section className="card space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="text-base font-bold text-slate-900">AI 复盘</div>
+            <div className="text-sm text-slate-600 mt-1">根据这次错题概括薄弱点，并给出下一步练习建议。</div>
+          </div>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={generateRecap}
+            disabled={recapLoading}
+          >
+            {recapLoading ? "生成中…" : "生成复盘"}
+          </button>
+        </div>
+        {recapError && <div className="text-sm text-rose-600">{recapError}</div>}
+        {recap && <div className="text-sm text-slate-700 whitespace-pre-wrap">{recap}</div>}
+        {recapIds.length > 0 && (
+          <button
+            type="button"
+            className="btn"
+            onClick={() =>
+              navigate("/quiz", {
+                state: { practiceQuestionIds: recapIds, practiceSource: "ai" },
+              })
+            }
+          >
+            练习推荐的 {recapIds.length} 题
+          </button>
+        )}
       </section>
 
       {/* 过滤工具条 */}

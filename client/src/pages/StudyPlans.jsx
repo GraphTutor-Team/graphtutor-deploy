@@ -4,9 +4,11 @@
  * 功能：管理学习计划、查看日历、打卡
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import StudyPlanGenerator from '../components/StudyPlanGenerator';
 import { useNavigate } from 'react-router-dom';
+import PageHeader from '../components/PageHeader';
+import PlanHubNav from '../components/PlanHubNav';
 import { useAuth } from '../context/AuthContext';
 import LoginPrompt from '../components/common/LoginPrompt';
 import {
@@ -21,12 +23,23 @@ import {
   getCalendarView,
 } from '../api/v3/studyPlans';
 import { toast } from '../utils/toast';
+import { usePageAI } from '../hooks/usePageAI';
 
 export default function StudyPlans() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
   const [plans, setPlans] = useState([]);
+
+  const plansBrief = useMemo(() => {
+    const titles = (Array.isArray(plans) ? plans : [])
+      .slice(0, 5)
+      .map((plan) => plan.title || plan.name)
+      .filter(Boolean);
+    return `页面：学习计划。计划：${titles.join('、') || '暂无'}`;
+  }, [plans]);
+
+  usePageAI({ pageType: 'plans', brief: plansBrief });
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -349,26 +362,21 @@ export default function StudyPlans() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      {/* 头部 */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-2">
-          <h1 className="text-2xl font-bold">学习计划</h1>
-          <button
-            onClick={handleCreatePlan}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            + 新建计划
-          </button>
+      <PageHeader
+        title="学习计划"
+        subtitle="安排每天要做的题。打卡和目标用下面的切换条。"
+        backTo="/home"
+        actions={[{ label: '新建计划', onClick: handleCreatePlan }]}
+      />
+      <PlanHubNav />
+      {stats && (
+        <div className="mb-6 flex flex-wrap gap-4 text-sm text-slate-600">
+          <span>连续打卡：{stats.currentStreak || 0} 天</span>
+          <span>总学习时长：{Math.round((stats.totalDuration || 0) / 60)} 小时</span>
+          <span>总完成题数：{stats.totalQuestions || 0} 题</span>
+          <span>正确率：{stats.accuracy || 0}%</span>
         </div>
-        {stats && (
-          <div className="flex gap-4 text-sm text-slate-600">
-            <span>连续打卡：{stats.currentStreak || 0} 天</span>
-            <span>总学习时长：{Math.round((stats.totalDuration || 0) / 60)} 小时</span>
-            <span>总完成题数：{stats.totalQuestions || 0} 题</span>
-            <span>正确率：{stats.accuracy || 0}%</span>
-          </div>
-        )}
-      </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* 左侧：计划列表 */}

@@ -4,19 +4,30 @@
  * 功能：显示智能推荐的题目
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getRecommendedQuestions } from '../api/v3/recommendations';
 import { getSubjectTree } from '../api/v3/subjects';
 import { getBanks } from '../api/v3/questionBanks';
 import { toast } from '../utils/toast';
+import { usePageAI } from '../hooks/usePageAI';
 
 export default function Recommendations() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [questions, setQuestions] = useState([]);
+
+  const recommendBrief = useMemo(() => {
+    const stems = questions
+      .slice(0, 5)
+      .map((q) => String(q.content || '').replace(/\s+/g, ' ').slice(0, 40))
+      .filter(Boolean);
+    return `页面：智能推荐。当前推荐：${stems.join('；') || '暂无'}`;
+  }, [questions]);
+
+  usePageAI({ pageType: 'recommendations', brief: recommendBrief });
   const [subjects, setSubjects] = useState([]);
   const [banks, setBanks] = useState([]);
 

@@ -11,6 +11,7 @@ import { getFriendChallenges, getChallengeStats } from '../api/v3/friendChalleng
 import { getFriends } from '../api/v3/friends';
 import { toast } from '../utils/toast';
 import PageHeader from '../components/PageHeader';
+import SocialHubNav from '../components/SocialHubNav';
 import LoginPrompt from '../components/common/LoginPrompt';
 import Icon from '../components/common/Icon';
 import FriendChallengeCard from '../components/FriendChallengeCard';
@@ -78,6 +79,7 @@ export default function FriendChallenges() {
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <SocialHubNav />
         {/* 创建挑战按钮 */}
         <div className="mb-6 flex justify-end">
           <button

@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { getLearningPosts } from '../api/v3/learningPosts';
 import { toast } from '../utils/toast';
 import PageHeader from '../components/PageHeader';
+import SocialHubNav from '../components/SocialHubNav';
 import LearningPostCard from '../components/LearningPostCard';
 import CreatePostModal from '../components/CreatePostModal';
 import Icon from '../components/common/Icon';
@@ -81,30 +82,13 @@ export default function LearningPosts() {
         description="分享你的学习成果，与好友一起进步"
       />
 
+      <SocialHubNav />
+
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-slate-500 dark:text-slate-400">
-            <Link
-              to="/community"
-              className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-            >
-              学习社区
-            </Link>
-            <span className="text-slate-300 dark:text-slate-600">·</span>
-            <Link
-              to="/friends"
-              className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-            >
-              好友
-            </Link>
-            <span className="text-slate-300 dark:text-slate-600">·</span>
-            <Link
-              to="/friend-challenges"
-              className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-            >
-              好友挑战
-            </Link>
-          </div>
+          <Link to="/friend-challenges" className="btn btn-outline">
+            好友挑战
+          </Link>
           <button
             type="button"
             onClick={() => setShowCreateModal(true)}

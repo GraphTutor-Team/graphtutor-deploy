@@ -43,11 +43,7 @@ export const learningRoutes = [
   <Route
     key="quiz"
     path="/quiz"
-    element={
-      <ProtectedRoute>
-        <Quiz />
-      </ProtectedRoute>
-    }
+    element={<Quiz />}
   />,
   <Route
     key="quiz2"

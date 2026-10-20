@@ -4,7 +4,7 @@
  * 功能：创建、查看和管理学习目标
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
   getLearningGoals,
@@ -16,11 +16,24 @@ import {
 import { getBanks } from '../api/v3/questionBanks';
 import { getSubjectTree } from '../api/v3/subjects';
 import { toast } from '../utils/toast';
+import { usePageAI } from '../hooks/usePageAI';
+import PageHeader from '../components/PageHeader';
+import PlanHubNav from '../components/PlanHubNav';
 
 export default function LearningGoals() {
   const { user } = useAuth();
   const [goals, setGoals] = useState([]);
   const [stats, setStats] = useState(null);
+
+  const goalsBrief = useMemo(() => {
+    const titles = (Array.isArray(goals) ? goals : [])
+      .slice(0, 5)
+      .map((goal) => goal.title || goal.name)
+      .filter(Boolean);
+    return `页面：学习目标。进行中的目标：${titles.join('、') || '暂无'}。统计：${stats ? JSON.stringify(stats).slice(0, 180) : '暂无'}`;
+  }, [goals, stats]);
+
+  usePageAI({ pageType: 'goals', brief: goalsBrief });
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
@@ -163,27 +176,16 @@ export default function LearningGoals() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* 头部 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold mb-2">学习目标</h1>
-          <p className="text-slate-600">设定和管理你的学习目标，跟踪学习进度</p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            + 创建目标
-          </button>
-          <button
-            onClick={() => setShowTemplateModal(true)}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-          >
-            ⚡ 快速模板
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="学习目标"
+        subtitle="设定目标并跟踪进度。"
+        backTo="/study-plans"
+        actions={[
+          { label: '创建目标', onClick: () => setShowCreateModal(true) },
+          { label: '快速模板', onClick: () => setShowTemplateModal(true), variant: 'btn-outline' },
+        ]}
+      />
+      <PlanHubNav />
 
       {/* 统计卡片 */}
       {stats && (

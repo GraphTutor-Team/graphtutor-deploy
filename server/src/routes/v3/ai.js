@@ -38,6 +38,9 @@ const router = express.Router();
  *   count: number (1-20),
  *   knowledgePoint: string (可选),
  *   reference: string (可选),
+ *   questionType: 'single'|'multiple'|'judge'|'fill'|'short'|'mixed',
+ *   bloom: 'remember'|'understand'|'apply'|'analyze',
+ *   review: boolean (生成后审题修订，数量≤10 时生效),
  *   async: boolean (是否异步执行，默认false)
  * }
  */
@@ -53,6 +56,9 @@ router.post(
         count = 5,
         knowledgePoint = '',
         reference = '',
+        questionType = 'single',
+        bloom = 'apply',
+        review = true,
         async = false,
       } = req.body;
 
@@ -77,6 +83,9 @@ router.post(
         count: countNum,
         knowledgePoint,
         reference,
+        questionType,
+        bloom,
+        review,
       };
 
       // 异步执行
@@ -446,13 +455,39 @@ router.post('/chat', requireAuth, async (req, res) => {
     }
 
     const systemParts = [
-      '你是 GraphTutor 的学习助手。根据用户当前学习上下文（如有）回答问题，回答要简洁、准确、有帮助。',
+      '你是 GraphTutor 的学习教练，会在首页、图谱、笔记、统计、路径、计划、练习和社区等页面提供辅助。回答要短、可执行，并依据当前页面现场；没有提供的数据不要编造。',
       '不要输出原始题目 ID 或数据库字段；需要练习时引导用户点击界面上的「开始练习」按钮即可。',
     ];
+    const pageCoach = {
+      home: '用户在首页。帮助决定今天先复习还是先练习。',
+      graph: '用户在知识图谱。根据掌握度建议先补哪个知识点。',
+      nodes: '用户在知识点页。解释概念、常考点和笔记要点。',
+      notes: '用户在笔记。只依据笔记内容整理或出自测题。',
+      analytics: '用户在学习统计。解读强弱项并给出本周安排。',
+      learning_path: '用户在学习路径。解释推荐顺序，并指出第一步。',
+      goals: '用户在学习目标。把目标拆成几天内能完成的小任务。',
+      plans: '用户在学习计划。帮助调整节奏，避免计划不可执行。',
+      checkin: '用户在打卡页。给一个今天能完成的短学习任务。',
+      recommendations: '用户在推荐题页。说明这些题在补哪块薄弱点。',
+      community: '用户在学习社区。帮助把问题写清楚。',
+      messages: '用户在消息页。帮助写出简短、清楚的学习求助。',
+      groups: '用户在学习小组。建议共同练习的主题。',
+    };
+    if (context?.pageType && pageCoach[context.pageType]) {
+      systemParts.push(pageCoach[context.pageType]);
+    }
     if (context && typeof context === 'object') {
       if (context.pageType) systemParts.push(`当前页面类型：${context.pageType}`);
+      if (context.mode === 'practice') {
+        systemParts.push('用户正在作答。默认只给思路提示，不要直接公布正确选项或标准答案，除非用户明确要求对答案或完整讲解。');
+      } else if (context.mode === 'review_session') {
+        systemParts.push('本次作答已经结束，可以指出错因、正确答案要点和下一步练习建议。');
+      }
       if (context.questionId) systemParts.push(`当前题目ID：${context.questionId}`);
       if (context.knowledgeNodeId) systemParts.push(`当前知识点ID：${context.knowledgeNodeId}`);
+      if (context.brief) {
+        systemParts.push(`当前学习现场：\n${String(context.brief).slice(0, 1800)}`);
+      }
       if (wrongIds.length > 0) {
         systemParts.push(`用户近期错题数量：${wrongIds.length}（可用于薄弱点分析）`);
       }

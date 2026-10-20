@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { getDiscussionDetail, addReply, likeDiscussion, likeReply, markBestAnswer } from '../api/v3/discussions';
 import { toast } from '../utils/toast';
 import PageHeader from '../components/PageHeader';
+import SocialHubNav from '../components/SocialHubNav';
 import MarkdownPreview from '../components/MarkdownPreview';
 import AuthorLink from '../components/AuthorLink';
 
@@ -95,7 +96,8 @@ export default function DiscussionDetail() {
   if (loading) {
     return (
       <div className="p-6">
-        <PageHeader title="讨论详情" />
+        <PageHeader title="讨论详情" backTo="/community" />
+        <SocialHubNav />
         <div className="text-center py-12 text-slate-500">加载中...</div>
       </div>
     );
@@ -104,7 +106,8 @@ export default function DiscussionDetail() {
   if (!discussion) {
     return (
       <div className="p-6">
-        <PageHeader title="讨论不存在" />
+        <PageHeader title="讨论不存在" backTo="/community" />
+        <SocialHubNav />
         <div className="text-center py-12">
           <button
             onClick={() => navigate('/community')}
@@ -119,7 +122,8 @@ export default function DiscussionDetail() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
-      <PageHeader title="讨论详情" />
+      <PageHeader title="讨论详情" backTo="/community" />
+      <SocialHubNav />
 
       {/* 讨论内容 */}
       <div className="bg-white p-6 rounded-lg border">

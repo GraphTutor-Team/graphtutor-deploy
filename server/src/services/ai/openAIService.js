@@ -155,9 +155,14 @@ export async function generateQuestions(config, userId) {
     count = 5,
     knowledgePoint = '',
     reference = '',
+    questionType = 'single',
+    bloom = 'apply',
+    review = true,
   } = config;
 
   const countNum = Math.max(1, Math.min(count, 20)); // 限制1-20
+  const type = QUESTION_TYPES.includes(questionType) ? questionType : 'single';
+  const bloomKey = BLOOM_LEVELS[bloom] ? bloom : 'apply';
 
   try {
     const prompt = buildGenerationPrompt({
@@ -166,41 +171,59 @@ export async function generateQuestions(config, userId) {
       count: countNum,
       knowledgePoint,
       reference,
+      questionType: type,
+      bloom: bloomKey,
     });
 
     const messages = [
       {
         role: 'system',
         content:
-          '你是一名专业的出题老师，擅长为中国高校课程设计单选题。请严格按照要求输出JSON格式的题目数组。',
+          '你是中国高校课程的出题教师。题目必须可判分、干扰项来自真实误解、解析能独立讲清「为什么对、怎么想、哪里容易错」。只输出 JSON 数组，不要 Markdown。',
       },
       { role: 'user', content: prompt },
     ];
 
     const content = await callOpenAI(messages, {
-      temperature: 0.7,
+      temperature: type === 'short' ? 0.6 : 0.7,
     });
 
-    // 解析JSON数组
-    const questions = extractJsonArray(content);
+    let questions = extractJsonArray(content);
+    let reviewed = false;
 
-    // 规范化题目数据
+    if (review !== false && questions.length > 0 && countNum <= 10) {
+      try {
+        const revised = await reviewGeneratedQuestions(questions, {
+          subjectName,
+          knowledgePoint,
+          difficulty,
+          questionType: type,
+        });
+        if (revised.length > 0) {
+          questions = revised;
+          reviewed = true;
+        }
+      } catch (reviewErr) {
+        console.warn('[AI] 审题修订跳过:', reviewErr.message);
+      }
+    }
+
     const normalized = normalizeQuestions(questions, {
       subjectCode,
       difficulty,
+      questionType: type,
     });
 
     const duration = Date.now() - startTime;
 
-    // 记录日志
     await logAIRun({
       userId,
       type: 'generate',
-      input: config,
-      output: { count: normalized.length },
+      input: { ...config, questionType: type, bloom: bloomKey, reviewed },
+      output: { count: normalized.length, reviewed },
       duration,
       status: 'success',
-      cost: estimateCost(countNum, 'gpt-4o-mini'), // 估算成本
+      cost: estimateCost(countNum * (reviewed ? 2 : 1), 'gpt-4o-mini'),
     });
 
     return normalized;
@@ -417,25 +440,89 @@ export async function generateExplanation(question, userId) {
 
 // ========== 辅助函数 ==========
 
+const QUESTION_TYPES = ['single', 'multiple', 'judge', 'fill', 'short', 'mixed'];
+
+const BLOOM_LEVELS = {
+  remember: '记忆：考查定义、术语、基本事实，不要求推导',
+  understand: '理解：考查概念对比、为什么成立，能用自己的话解释',
+  apply: '应用：给出具体情境或小数据，要求选用正确方法得出结果',
+  analyze: '分析：需要拆步骤、比较方案或定位错误，干扰项对应不同推理路径',
+};
+
+const TYPE_SPEC = {
+  single: `题型 type 固定为 "single"。4 个互斥选项，有且仅有 1 个正确，correctIndex 为 0–3。`,
+  multiple: `题型 type 固定为 "multiple"。4 个选项，2–3 个正确，correctIndexes 为下标数组（不要只给一个）。`,
+  judge: `题型 type 固定为 "judge"。options 必须是 ["正确","错误"]，correctIndex 为 0 或 1。陈述句要有明确对错，避免含糊。`,
+  fill: `题型 type 固定为 "fill"。题干用 ____ 标出 1–2 个空，options 为空数组，blankAnswers 为标准答案（可含常见等价写法，每空一个主答案）。`,
+  short: `题型 type 固定为 "short"。options 为空数组，referenceAnswer 为 80–180 字参考答案，explain 说明评分要点。`,
+  mixed: `在 single、multiple、judge、fill 中混合出题，每种至少尽量覆盖，type 字段必须准确。`,
+};
+
 /**
- * 构建题目生成Prompt
+ * 构建题目生成 Prompt
  */
-function buildGenerationPrompt({ subjectName, difficulty, count, knowledgePoint, reference }) {
-  return `你现在是一名专业出题老师，请围绕「${subjectName}」出 ${count} 道单选题。
+function buildGenerationPrompt({
+  subjectName,
+  difficulty,
+  count,
+  knowledgePoint,
+  reference,
+  questionType,
+  bloom,
+}) {
+  return `请围绕「${subjectName}」出 ${count} 道题。
 
-难度要求：${difficulty}（1=非常基础，2=基础，3=中等，4=偏难，5=很难）
-${knowledgePoint ? `知识点：${knowledgePoint}\n` : ''}
-${reference ? `参考内容：${reference}\n` : ''}
+难度：${difficulty}（1 非常基础 / 2 基础 / 3 中等 / 4 偏难 / 5 挑战）。相邻题目不要同一问法。
+认知层次：${BLOOM_LEVELS[bloom]}
+${TYPE_SPEC[questionType] || TYPE_SPEC.single}
+${knowledgePoint ? `必须紧扣知识点：${knowledgePoint}。不要跑题。\n` : ''}${reference ? `参考材料（只据此出题，不要编造材料里没有的事实）：\n${String(reference).slice(0, 4000)}\n` : ''}
+出题约束：
+- 干扰项写学生真实会犯的错（概念混淆、边界条件、符号/方向弄反），禁止「以上都对/都不对」、禁止选项互相重复或明显长度泄题。
+- 题干不出现答案原文。
+- explain 用三段纯文本，用换行分隔，标题固定为：答案依据、解题步骤、易错点。每段 1–3 句。
+- 只输出 JSON 数组。
 
-请严格输出一个 JSON 数组，不要包含任何多余说明，不要使用 Markdown 代码块。
-每个元素的格式如下：
+元素字段：
 {
-  "content": "题干（清晰明确）",
-  "options": ["选项A", "选项B", "选项C", "选项D"],
+  "type": "single|multiple|judge|fill|short",
+  "content": "题干",
+  "options": ["..."],
   "correctIndex": 0,
+  "correctIndexes": [0, 2],
+  "blankAnswers": ["空1"],
+  "referenceAnswer": "简答参考答案",
   "difficulty": ${difficulty},
-  "explain": "解析说明（可选）"
+  "explain": "答案依据：...\\n解题步骤：...\\n易错点：..."
 }`;
+}
+
+/**
+ * 第二遍审题：改正答案、干扰项和解析结构
+ */
+async function reviewGeneratedQuestions(questions, context) {
+  const payload = JSON.stringify(questions).slice(0, 12000);
+  const messages = [
+    {
+      role: 'system',
+      content:
+        '你是审题编辑。修正题目中的事实错误、唯一答案冲突、无效干扰项和空解析。保持题量和题型，只输出 JSON 数组。',
+    },
+    {
+      role: 'user',
+      content: `学科：${context.subjectName}。知识点：${context.knowledgePoint || '未指定'}。难度：${context.difficulty}。期望题型：${context.questionType}。
+
+请检查并改写下面的题目：
+1. 正确答案必须站得住，多选不能只剩一个对的选项。
+2. 删掉「以上都对」和重复选项，把过弱的干扰项改成常见误解。
+3. explain 必须含「答案依据」「解题步骤」「易错点」。
+4. 不要新增与知识点无关的题。
+
+${payload}`,
+    },
+  ];
+
+  const content = await callOpenAI(messages, { temperature: 0.2 });
+  return extractJsonArray(content);
 }
 
 /**
@@ -514,26 +601,91 @@ function parseAnalysisResult(text) {
 /**
  * 规范化题目数据
  */
-function normalizeQuestions(questions, { subjectCode, difficulty }) {
+function normalizeQuestions(questions, { subjectCode, difficulty, questionType }) {
   const normalized = [];
+  const fallbackType = questionType === 'mixed' ? 'single' : questionType;
 
   for (const q of questions) {
-    if (!q.content || !Array.isArray(q.options) || q.options.length < 2) {
+    if (!q?.content) continue;
+
+    const type = QUESTION_TYPES.includes(q.type) && q.type !== 'mixed'
+      ? q.type
+      : fallbackType || 'single';
+    const options = Array.isArray(q.options) ? q.options.map((opt) => String(opt).trim()).filter(Boolean) : [];
+    const explain = String(q.explain || '').trim();
+    const base = {
+      type,
+      content: String(q.content).trim(),
+      difficulty: q.difficulty || difficulty,
+      subjectCode,
+      explain,
+      source: 'ai',
+      tags: ['ai-generated'],
+    };
+
+    if (type === 'judge') {
+      const opts = options.length >= 2 ? options.slice(0, 2) : ['正确', '错误'];
+      const correctIndex = q.correctIndex === 1 ? 1 : 0;
+      normalized.push({
+        ...base,
+        options: opts,
+        answerIndex: correctIndex,
+        answer: correctIndex,
+      });
       continue;
     }
 
-    const correctIndex = Math.max(
-      0,
-      Math.min(q.correctIndex || 0, q.options.length - 1)
-    );
+    if (type === 'multiple') {
+      if (options.length < 2) continue;
+      const indexes = (Array.isArray(q.correctIndexes) ? q.correctIndexes : [q.correctIndex])
+        .map((n) => Number(n))
+        .filter((n) => Number.isInteger(n) && n >= 0 && n < options.length);
+      const unique = [...new Set(indexes)];
+      if (unique.length === 0) continue;
+      normalized.push({
+        ...base,
+        options,
+        answer: unique,
+        answerIndex: unique[0],
+      });
+      continue;
+    }
 
+    if (type === 'fill') {
+      const blanks = (Array.isArray(q.blankAnswers) ? q.blankAnswers : [])
+        .map((a) => String(a).trim())
+        .filter(Boolean);
+      if (blanks.length === 0) continue;
+      normalized.push({
+        ...base,
+        options: [],
+        blankAnswers: blanks,
+        blanks: blanks.length,
+        answer: blanks,
+      });
+      continue;
+    }
+
+    if (type === 'short') {
+      const referenceAnswer = String(q.referenceAnswer || q.answer || '').trim();
+      if (!referenceAnswer && !explain) continue;
+      normalized.push({
+        ...base,
+        options: [],
+        answer: referenceAnswer,
+        referenceAnswer,
+      });
+      continue;
+    }
+
+    if (options.length < 2) continue;
+    const correctIndex = Math.max(0, Math.min(Number(q.correctIndex) || 0, options.length - 1));
     normalized.push({
-      content: String(q.content).trim(),
-      options: q.options.map((opt) => String(opt).trim()),
+      ...base,
+      type: 'single',
+      options,
       answerIndex: correctIndex,
-      difficulty: q.difficulty || difficulty,
-      subjectCode: subjectCode,
-      explain: String(q.explain || '').trim(),
+      answer: correctIndex,
     });
   }
 

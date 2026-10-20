@@ -9,6 +9,7 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
 import { useAuth } from '../context/AuthContext';
 import { useAIContext } from '../context/AIContext';
+import { buildQuestionBrief } from '../utils/aiBrief';
 import api from '../api/api';
 import { toast } from '../utils/toast';
 import { exportToJSON, exportToCSV } from '../utils/export';
@@ -61,16 +62,18 @@ export default function Review() {
 
   useEffect(() => {
     if (!focusedQuestionId) {
-      setAIContext({ questionId: null, knowledgeNodeId: null });
+      setAIContext({ questionId: null, knowledgeNodeId: null, brief: '', mode: 'browse' });
       return undefined;
     }
     const row = rows.find((r) => String(r.questionId || r.question?._id) === String(focusedQuestionId));
     setAIContext({
       pageType: 'review',
+      mode: 'browse',
       questionId: focusedQuestionId,
       knowledgeNodeId: row?.question?.knowledgeNodeId ?? row?.knowledgeNodeId ?? null,
+      brief: row?.question ? buildQuestionBrief(row.question, null, { revealAnswer: true }) : '',
     });
-    return () => setAIContext({ questionId: null, knowledgeNodeId: null });
+    return () => setAIContext({ questionId: null, knowledgeNodeId: null, brief: '', mode: 'browse' });
   }, [focusedQuestionId, rows, setAIContext]);
   
   // 筛选状态

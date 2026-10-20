@@ -222,7 +222,7 @@ export default function BankList() {
               onClick={() => navigate('/banks/import')}
               className="btn btn-outline"
             >
-              导入
+              导入题库
             </button>
           )}
           

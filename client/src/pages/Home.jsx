@@ -5,7 +5,7 @@
  * 详细统计数据已迁移到 /statistics 页面
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useLearningData } from "../context/LearningDataContext";
@@ -20,6 +20,7 @@ import { getFriends } from "../api/v3/friends";
 import { getForgettingCurve } from "../api/v3/enhancedAnalytics";
 import { getDailyChallenge } from "../api/v3/dailyChallenge";
 import { listSessions } from "../api/quizzes";
+import { usePageAI } from "../hooks/usePageAI";
 
 function formatTimeAgo(dateString) {
   if (!dateString) return '刚刚';
@@ -65,6 +66,25 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [dailyChallengeLoading, setDailyChallengeLoading] = useState(false);
   const [ongoingSession, setOngoingSession] = useState(null);
+
+  const homeBrief = useMemo(() => {
+    const forgetNames = (Array.isArray(forgettingCurve) ? forgettingCurve : [])
+      .slice(0, 5)
+      .map((item) => item.name || item.knowledgeNodeName || item.key || item.nodeName)
+      .filter(Boolean);
+    const recStems = (Array.isArray(recommendedQuestions) ? recommendedQuestions : [])
+      .slice(0, 3)
+      .map((q) => String(q.content || q.title || '').replace(/\s+/g, ' ').slice(0, 40))
+      .filter(Boolean);
+    return [
+      '页面：学习首页。',
+      `建议复习：${forgetNames.join('、') || '暂无'}`,
+      `推荐题：${recStems.join('；') || '暂无'}`,
+      `未完成练习：${ongoingSession ? '有' : '无'}`,
+    ].join('\n');
+  }, [forgettingCurve, recommendedQuestions, ongoingSession]);
+
+  usePageAI({ pageType: 'home', brief: homeBrief });
 
   useEffect(() => {
     if (userId) {

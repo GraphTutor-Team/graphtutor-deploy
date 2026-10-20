@@ -1,11 +1,11 @@
 /**
  * GraphTutor V3.0 - AI控制台页面
- * 
+ *
  * 功能：AI题目生成、任务管理、使用统计
  */
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   generateQuestions,
@@ -15,9 +15,59 @@ import {
 } from '../../api/v3/ai';
 import { getBanks } from '../../api/v3/questionBanks';
 import { getSubjectTree } from '../../api/v3/subjects';
+import { batchCreateQuestions } from '../../api/v3/questions';
+
+const TYPE_LABEL = {
+  single: '单选',
+  multiple: '多选',
+  judge: '判断',
+  fill: '填空',
+  short: '简答',
+};
+
+function GeneratedQuestionCard({ question: q }) {
+  const answers = Array.isArray(q.answer) ? q.answer : [];
+  const isCorrectOption = (optIndex) => {
+    if (q.type === 'multiple') return answers.includes(optIndex);
+    return optIndex === q.answerIndex;
+  };
+
+  return (
+    <div className="p-4 bg-slate-50 rounded-lg">
+      <div className="mb-2 flex items-center gap-2 text-xs text-slate-500">
+        <span className="rounded bg-slate-200 px-2 py-0.5">{TYPE_LABEL[q.type] || '单选'}</span>
+        <span>难度 {q.difficulty}</span>
+      </div>
+      <div className="font-medium mb-2 whitespace-pre-wrap">{q.content}</div>
+      {Array.isArray(q.options) && q.options.length > 0 && (
+        <div className="space-y-1 text-sm">
+          {q.options.map((opt, optIndex) => (
+            <div
+              key={optIndex}
+              className={isCorrectOption(optIndex) ? 'text-green-700 font-medium' : 'text-slate-600'}
+            >
+              {String.fromCharCode(65 + optIndex)}. {opt}
+              {isCorrectOption(optIndex) ? ' ✓' : ''}
+            </div>
+          ))}
+        </div>
+      )}
+      {q.type === 'fill' && Array.isArray(q.blankAnswers) && (
+        <div className="mt-2 text-sm text-green-700">参考答案：{q.blankAnswers.join('；')}</div>
+      )}
+      {q.type === 'short' && q.referenceAnswer && (
+        <div className="mt-2 text-sm text-green-700 whitespace-pre-wrap">参考答案：{q.referenceAnswer}</div>
+      )}
+      {q.explain && (
+        <div className="mt-2 text-sm text-slate-600 whitespace-pre-wrap">解析：{q.explain}</div>
+      )}
+    </div>
+  );
+}
 
 export default function AIConsole() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
 
   const [activeTab, setActiveTab] = useState('generate'); // generate, tasks, stats
@@ -32,10 +82,16 @@ export default function AIConsole() {
     count: 5,
     knowledgePoint: '',
     reference: '',
+    questionType: 'single',
+    bloom: 'apply',
+    review: true,
     async: false,
   });
 
   const [generatedQuestions, setGeneratedQuestions] = useState([]);
+  const [bankId, setBankId] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saveNote, setSaveNote] = useState('');
   const [tasks, setTasks] = useState([]);
   const [stats, setStats] = useState(null);
 
@@ -98,6 +154,7 @@ export default function AIConsole() {
       } else {
         // 同步模式，返回题目列表
         setGeneratedQuestions(result.questions || []);
+        setSaveNote('');
         setActiveTab('generate');
       }
     } catch (err) {
@@ -107,12 +164,68 @@ export default function AIConsole() {
     }
   };
 
+  async function saveGenerated(thenPractice) {
+    if (generatedQuestions.length === 0) return;
+    try {
+      setSaving(true);
+      setError('');
+      setSaveNote('');
+      const payloadQuestions = generatedQuestions.map((q) => ({
+        ...q,
+        answer: q.type === 'short' ? q.referenceAnswer || q.answer : q.answer,
+        subjectCode: q.subjectCode || config.subjectCode || undefined,
+        source: 'ai',
+        autoGenerateQid: true,
+        tags: Array.isArray(q.tags) ? q.tags : ['ai-generated'],
+      }));
+      const result = await batchCreateQuestions({
+        questions: payloadQuestions,
+        bankId: bankId || undefined,
+      });
+      const ids = result?.ids || [];
+      const failed = result?.errors || 0;
+      setSaveNote(
+        `已入库 ${result?.successCount || ids.length} 道${failed ? `，失败 ${failed} 道` : ''}`
+      );
+      if (thenPractice) {
+        if (ids.length === 0) {
+          setError('没有成功入库的题目，无法开始练习');
+          return;
+        }
+        navigate('/quiz', {
+          state: { practiceQuestionIds: ids, practiceSource: 'ai' },
+        });
+      }
+    } catch (err) {
+      setError(err.message || '入库失败');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   const handleConfigChange = (field, value) => {
     setConfig((prev) => ({
       ...prev,
       [field]: value,
     }));
   };
+
+  async function openTaskQuestions(taskId) {
+    try {
+      setError('');
+      const task = await getAITaskStatus(taskId);
+      const questions = task?.result?.questions;
+      if (!Array.isArray(questions) || questions.length === 0) {
+        setError('该任务还没有可查看的题目');
+        return;
+      }
+      setGeneratedQuestions(questions);
+      setSaveNote('');
+      setActiveTab('generate');
+    } catch (err) {
+      setError(err.message || '读取任务结果失败');
+    }
+  }
 
   // 轮询任务状态
   useEffect(() => {
@@ -235,6 +348,40 @@ export default function AIConsole() {
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
+                  题型
+                </label>
+                <select
+                  value={config.questionType}
+                  onChange={(e) => handleConfigChange('questionType', e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="single">单选题</option>
+                  <option value="multiple">多选题</option>
+                  <option value="judge">判断题</option>
+                  <option value="fill">填空题</option>
+                  <option value="short">简答题</option>
+                  <option value="mixed">混合（单选/多选/判断/填空）</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  认知层次
+                </label>
+                <select
+                  value={config.bloom}
+                  onChange={(e) => handleConfigChange('bloom', e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="remember">记忆：定义与事实</option>
+                  <option value="understand">理解：对比与解释</option>
+                  <option value="apply">应用：情境求解</option>
+                  <option value="analyze">分析：拆步骤与纠错</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
                   生成数量
                 </label>
                 <input
@@ -269,11 +416,22 @@ export default function AIConsole() {
                   onChange={(e) => handleConfigChange('reference', e.target.value)}
                   rows={3}
                   className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="如：教材第3章、历年真题"
+                  placeholder="贴上教材段落或讲义，模型只据此出题"
                 />
               </div>
 
-              <div className="md:col-span-2">
+              <div className="md:col-span-2 flex flex-col gap-2">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={config.review !== false}
+                    onChange={(e) => handleConfigChange('review', e.target.checked)}
+                    className="w-4 h-4"
+                  />
+                  <span className="text-sm text-slate-700">
+                    生成后审题修订（10 题以内：改正答案、干扰项和三段解析）
+                  </span>
+                </label>
                 <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -305,31 +463,43 @@ export default function AIConsole() {
               <h2 className="text-lg font-bold mb-4">
                 生成结果 ({generatedQuestions.length} 道题目)
               </h2>
+              <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-end">
+                <label className="flex-1 text-sm text-slate-700">
+                  入库到题库
+                  <select
+                    value={bankId}
+                    onChange={(e) => setBankId(e.target.value)}
+                    className="mt-1 w-full px-4 py-2 border rounded-lg"
+                  >
+                    <option value="">不指定题库（仅写入题目）</option>
+                    {banks.map((bank) => (
+                      <option key={bank._id} value={bank._id}>
+                        {bank.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => saveGenerated(false)}
+                  disabled={saving}
+                  className="px-4 py-2 border rounded-lg hover:bg-slate-50 disabled:opacity-50"
+                >
+                  {saving ? '入库中…' : '保存到题库'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => saveGenerated(true)}
+                  disabled={saving}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                >
+                  保存并练习
+                </button>
+              </div>
+              {saveNote && <div className="mb-4 text-sm text-green-700">{saveNote}</div>}
               <div className="space-y-4">
                 {generatedQuestions.map((q, index) => (
-                  <div key={index} className="p-4 bg-slate-50 rounded-lg">
-                    <div className="font-medium mb-2">{q.content}</div>
-                    <div className="space-y-1 text-sm">
-                      {q.options.map((opt, optIndex) => (
-                        <div
-                          key={optIndex}
-                          className={`${
-                            optIndex === q.answerIndex
-                              ? 'text-green-600 font-medium'
-                              : 'text-slate-600'
-                          }`}
-                        >
-                          {String.fromCharCode(65 + optIndex)}. {opt}
-                          {optIndex === q.answerIndex && ' ✓'}
-                        </div>
-                      ))}
-                    </div>
-                    {q.explain && (
-                      <div className="mt-2 text-sm text-slate-600">
-                        解析：{q.explain}
-                      </div>
-                    )}
-                  </div>
+                  <GeneratedQuestionCard key={index} question={q} />
                 ))}
               </div>
             </div>
@@ -351,6 +521,7 @@ export default function AIConsole() {
                   <th className="px-4 py-3 text-left text-sm font-medium">状态</th>
                   <th className="px-4 py-3 text-left text-sm font-medium">进度</th>
                   <th className="px-4 py-3 text-left text-sm font-medium">创建时间</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">操作</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -392,6 +563,17 @@ export default function AIConsole() {
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">
                       {new Date(task.createdAt).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      {task.type === 'generate' && task.status === 'completed' && (
+                        <button
+                          type="button"
+                          className="text-blue-600 hover:underline"
+                          onClick={() => openTaskQuestions(task.id)}
+                        >
+                          查看并入库
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

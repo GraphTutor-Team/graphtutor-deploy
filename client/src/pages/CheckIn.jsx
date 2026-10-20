@@ -5,12 +5,14 @@
  */
 
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getAllCheckIns, getCheckIns, checkIn } from '../api/v3/studyPlans';
 import { getStudyPlans } from '../api/v3/studyPlans';
 import { getEquipment } from '../api/v3/equipment';
 import { toast } from '../utils/toast';
 import PageHeader from '../components/PageHeader';
+import PlanHubNav from '../components/PlanHubNav';
 import LoginPrompt from '../components/common/LoginPrompt';
 
 const MOOD_OPTIONS = [
@@ -244,19 +246,17 @@ export default function CheckIn() {
   if (plans.length === 0) {
     return (
       <div className="p-6">
-        <PageHeader title="每日打卡" subtitle="记录你的学习情况" />
+        <PageHeader title="每日打卡" subtitle="先有学习计划，才能记录今天的学习。" backTo="/study-plans" />
+        <PlanHubNav />
         <div className="bg-white rounded-lg border p-12 text-center">
           <div className="text-4xl mb-4">📅</div>
           <div className="text-lg font-semibold text-slate-900 mb-2">暂无学习计划</div>
           <div className="text-sm text-slate-600 mb-4">
             请先创建学习计划，然后才能进行打卡
           </div>
-          <button
-            onClick={() => window.location.href = '/study-plans'}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
+          <Link to="/study-plans" className="btn btn-primary">
             去创建学习计划
-          </button>
+          </Link>
         </div>
       </div>
     );
@@ -269,7 +269,12 @@ export default function CheckIn() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      <PageHeader title="每日打卡" subtitle="记录你的学习情况，保持学习习惯" />
+      <PageHeader
+        title="每日打卡"
+        subtitle="记录今天学了多久、做了多少题。"
+        backTo="/study-plans"
+      />
+      <PlanHubNav />
 
       {/* 统计卡片 */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">

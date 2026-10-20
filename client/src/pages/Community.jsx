@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
+import SocialHubNav from '../components/SocialHubNav';
 import AuthorLink from '../components/AuthorLink';
 import { toast } from '../utils/toast';
 import { getDiscussions, createDiscussion } from '../api/v3/discussions';
@@ -96,16 +97,13 @@ export default function Community() {
     <div className="page-shell">
       <PageHeader title="学习社区" subtitle="题目讨论、心得分享、问答互助" />
 
-      <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-slate-500 dark:text-slate-400">
-        <Link to="/learning-posts" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+      <SocialHubNav />
+
+      <div className="mb-4 flex flex-wrap gap-2 text-sm">
+        <Link to="/learning-posts" className="btn btn-outline">
           学习动态
         </Link>
-        <span className="text-slate-300 dark:text-slate-600">·</span>
-        <Link to="/friends" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-          好友
-        </Link>
-        <span className="text-slate-300 dark:text-slate-600">·</span>
-        <Link to="/leaderboard" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+        <Link to="/leaderboard" className="btn btn-outline">
           排行榜
         </Link>
       </div>

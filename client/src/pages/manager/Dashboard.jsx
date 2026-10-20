@@ -247,7 +247,8 @@ export default function ManagerDashboard() {
 
       {/* 快捷操作 */}
       <div className="bg-white p-6 rounded-lg border shadow-sm">
-        <h2 className="text-lg font-bold mb-4">快捷操作</h2>
+        <h2 className="text-lg font-bold mb-1">快捷操作</h2>
+        <p className="text-sm text-slate-500 mb-4">创建、导入和 AI 出题都从这里进入，不必再在侧栏单独找。</p>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
           <button
             onClick={() => navigate('/banks/create')}

@@ -9,6 +9,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
 import { useAuth } from '../context/AuthContext';
 import { useAIContext } from '../context/AIContext';
+import { buildQuestionBrief } from '../utils/aiBrief';
 import { listQuestions } from '../api/questions';
 import { startSession, getSession, submitAnswer, finishSession, listSessions } from '../api/quizzes';
 import { STORAGE_KEYS } from '../constants/index.js';
@@ -62,16 +63,19 @@ export default function QuizSession() {
 
   useEffect(() => {
     if (status !== 'ongoing' || !cur) {
-      setAIContext({ questionId: null, knowledgeNodeId: null });
+      setAIContext({ questionId: null, knowledgeNodeId: null, brief: '', mode: 'browse' });
       return undefined;
     }
+    const qid = cur.id || cur._id || null;
     setAIContext({
       pageType: 'quiz',
-      questionId: cur.id || cur._id || null,
+      mode: 'practice',
+      questionId: qid,
       knowledgeNodeId: cur.knowledgeNodeId ?? cur.knowledgeNode ?? null,
+      brief: buildQuestionBrief(cur, qid ? answers[qid] : undefined),
     });
-    return () => setAIContext({ questionId: null, knowledgeNodeId: null });
-  }, [status, idx, cur?.id, cur?._id, cur?.knowledgeNodeId, cur?.knowledgeNode, setAIContext]);
+    return () => setAIContext({ questionId: null, knowledgeNodeId: null, brief: '', mode: 'browse' });
+  }, [status, idx, cur, answers, setAIContext]);
 
   const loadOptions = async () => {
     try {

@@ -15,7 +15,7 @@
  *   - 导出功能
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -47,6 +47,7 @@ import Icon from '../components/common/Icon';
 import PageHeader from '../components/PageHeader';
 import EmptyState from '../components/common/EmptyState';
 import LoginPrompt from '../components/common/LoginPrompt';
+import { usePageAI } from '../hooks/usePageAI';
 
 const NOTE_TYPE_LABELS = {
   question: '题目笔记',
@@ -94,6 +95,20 @@ export default function Notes() {
   const [relatedQuestionsForNote, setRelatedQuestionsForNote] = useState([]);
   const [loadingRelatedQuestions, setLoadingRelatedQuestions] = useState(false);
   const [viewingNote, setViewingNote] = useState(null);
+
+  const noteBrief = useMemo(() => {
+    const current = viewingNote || (editingNote ? { title: noteForm.title, content: noteForm.content } : null);
+    if (!current) return `页面：学习笔记。共 ${notes.length} 篇，当前没有打开某一篇。`;
+    const body = String(current.content || '').replace(/\s+/g, ' ').slice(0, 500);
+    return `页面：学习笔记。标题：${current.title || '未命名'}。正文摘录：${body || '空'}`;
+  }, [viewingNote, editingNote, noteForm.title, noteForm.content, notes.length]);
+
+  const openNoteContent = viewingNote?.content || (editingNote ? noteForm.content : '');
+  usePageAI({
+    pageType: 'notes',
+    brief: noteBrief,
+    noteContent: String(openNoteContent || '').slice(0, 8000),
+  });
 
   const filterKnowledgeNodeId = searchParams.get('knowledgeNodeId');
   const filterQuestionId = searchParams.get('questionId');

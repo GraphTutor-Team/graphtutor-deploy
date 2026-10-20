@@ -66,11 +66,27 @@ export default function Analytics() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    setAIContext({ pageType: 'analytics', questionId: null, knowledgeNodeId: null });
-    return () => setAIContext({ pageType: 'other', questionId: null, knowledgeNodeId: null });
-  }, [setAIContext]);
   const [masteryData, setMasteryData] = useState(null);
+
+  useEffect(() => {
+    const nodes = Array.isArray(masteryData?.knowledgeNodes) ? masteryData.knowledgeNodes : [];
+    const weak = [...nodes]
+      .sort((a, b) => Number(a.accuracy ?? a.masteryRate ?? 1) - Number(b.accuracy ?? b.masteryRate ?? 1))
+      .slice(0, 5)
+      .map((node) => node.name || node.key || node.title)
+      .filter(Boolean);
+    const accuracy = masteryData?.overall?.accuracy ?? masteryData?.overall?.correctRate;
+    setAIContext({
+      pageType: 'analytics',
+      mode: 'browse',
+      questionId: null,
+      knowledgeNodeId: null,
+      brief: masteryData
+        ? `页面：学习统计。整体正确率：${accuracy ?? '未知'}。较薄弱：${weak.join('、') || '暂无'}`
+        : '页面：学习统计。还没有足够的作答数据。',
+    });
+    return () => setAIContext({ pageType: 'other', mode: 'browse', brief: '', questionId: null, knowledgeNodeId: null });
+  }, [masteryData, setAIContext]);
   const [trendData, setTrendData] = useState([]);
   const [subjects, setSubjects] = useState([]);
   

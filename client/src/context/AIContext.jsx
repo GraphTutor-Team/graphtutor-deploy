@@ -7,16 +7,24 @@ import { createContext, useContext, useState, useCallback } from 'react';
 
 const AIContext = createContext({
   pageType: 'other',
+  mode: 'browse',
   questionId: null,
   knowledgeNodeId: null,
+  brief: '',
+  noteContent: '',
+  wrongQuestionIds: [],
   setAIContext: () => {},
 });
 
 export function AIContextProvider({ children }) {
   const [ctx, setCtx] = useState({
     pageType: 'other',
+    mode: 'browse',
     questionId: null,
     knowledgeNodeId: null,
+    brief: '',
+    noteContent: '',
+    wrongQuestionIds: [],
   });
 
   const setAIContext = useCallback((next) => {

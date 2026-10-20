@@ -770,7 +770,7 @@ router.post(
             }),
             creatorId: userId, // 设置创建者ID
             managerId: userId, // 向后兼容
-            source: 'bank',
+            source: q.source === 'ai' ? 'ai' : 'bank',
           };
           
           // 如果提供了id字段，使用它；否则不设置id（避免null值唯一性冲突）
@@ -903,6 +903,7 @@ router.post(
         data: {
           successCount: created.length,
           created: created.length,
+          ids: created.map((id) => String(id)),
           errors: errors.length,
           details: errors,
         },

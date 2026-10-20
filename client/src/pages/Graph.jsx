@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import PageHeader from '../components/PageHeader';
 import SectionCard from '../components/SectionCard';
 import HelpHint from '../components/HelpHint.jsx';
 import { downloadFile, toast, API_BASE, getStoredToken } from '../utils/download';
 import { getGraphHeatmap } from '../api/v3/enhancedAnalytics';
+import { usePageAI } from '../hooks/usePageAI';
 
 async function safeJSON(r) {
   try {
@@ -22,6 +23,22 @@ export default function Graph() {
   const [name, setName] = useState('');
   const [nodePage, setNodePage] = useState(1);
   const [heatmapMap, setHeatmapMap] = useState({}); // Phase 2.4: key -> { masteryPercent, wrongCount, practiceCount }
+
+  const graphBrief = useMemo(() => {
+    const weak = Object.entries(heatmapMap)
+      .map(([key, value]) => ({
+        key,
+        name: value?.name || key,
+        mastery: Number(value?.masteryPercent ?? value?.mastery ?? 100),
+      }))
+      .sort((a, b) => a.mastery - b.mastery)
+      .slice(0, 5);
+    return `页面：知识图谱。知识点数 ${nodes.length}。掌握度较低：${
+      weak.map((item) => `${item.name}(${item.mastery}%)`).join('、') || '暂无热力数据'
+    }`;
+  }, [nodes.length, heatmapMap]);
+
+  usePageAI({ pageType: 'graph', brief: graphBrief });
 
   async function load() {
     setBusy(true);

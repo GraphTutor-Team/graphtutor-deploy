@@ -18,6 +18,8 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import EmptyState from '../components/common/EmptyState';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import GroupDetailDialog from './groups/GroupDetailDialog';
+import PageHeader from '../components/PageHeader';
+import SocialHubNav from '../components/SocialHubNav';
 
 export default function Groups() {
   const { user } = useAuth();
@@ -154,34 +156,15 @@ export default function Groups() {
 
   return (
     <div className="page-shell">
-      <header className="animate-fade-in">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
-              群组管理
-            </h1>
-            <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
-              创建和管理学习群组，组织学生协作学习
-            </p>
-          </div>
-          <div className="flex gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={() => setShowJoinDialog(true)}
-              className="btn btn-outline"
-            >
-              加入群组
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowCreateDialog(true)}
-              className="btn btn-primary"
-            >
-              创建群组
-            </button>
-          </div>
-        </div>
-      </header>
+      <PageHeader
+        title="群组"
+        subtitle="创建和管理学习群组，一起协作学习"
+        actions={[
+          { label: '加入群组', variant: 'btn-outline', onClick: () => setShowJoinDialog(true) },
+          { label: '创建群组', onClick: () => setShowCreateDialog(true) },
+        ]}
+      />
+      <SocialHubNav />
 
         {/* 群组列表 */}
         <section>

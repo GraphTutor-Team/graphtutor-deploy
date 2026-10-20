@@ -26,6 +26,7 @@ import {
 } from '../api/v3/friends';
 import { toast } from '../utils/toast';
 import PageHeader from '../components/PageHeader';
+import SocialHubNav from '../components/SocialHubNav';
 import Icon from '../components/common/Icon';
 import EmptyState from '../components/common/EmptyState';
 
@@ -152,8 +153,10 @@ export default function Friends() {
     <div className="page-shell">
       <PageHeader
         title="好友"
-        subtitle="管理好友与请求；发现好友、挑战见下方入口"
+        subtitle="好友列表与请求"
       />
+
+      <SocialHubNav />
 
       <div className="space-y-6">
         <div className="flex flex-wrap gap-2 text-sm">
@@ -177,13 +180,6 @@ export default function Friends() {
             className="btn btn-outline"
           >
             学习动态
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate('/community')}
-            className="btn btn-outline"
-          >
-            学习社区
           </button>
         </div>
 

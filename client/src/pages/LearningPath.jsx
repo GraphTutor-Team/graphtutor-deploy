@@ -4,7 +4,7 @@
  * 功能：基于知识图谱推荐个性化学习路径
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getKnowledgeMastery } from '../api/analytics';
 import api from '../api/api';
@@ -13,6 +13,7 @@ import PageHeader from '../components/PageHeader';
 import { Link } from 'react-router-dom';
 import { cachedApiRequest, generateCacheKey } from '../utils/apiCache';
 import { getPathRecommendations } from '../api/v3/enhancedAnalytics';
+import { usePageAI } from '../hooks/usePageAI';
 
 export default function LearningPath() {
   const { user } = useAuth();
@@ -24,6 +25,20 @@ export default function LearningPath() {
   const [loading, setLoading] = useState(true);
   const [selectedStartNode, setSelectedStartNode] = useState('');
   const [selectedEndNode, setSelectedEndNode] = useState('');
+
+  const pathBrief = useMemo(() => {
+    const names = (Array.isArray(recommendedNext) ? recommendedNext : [])
+      .slice(0, 5)
+      .map((node) => node.name || node.title || node.key || node.label)
+      .filter(Boolean);
+    const pathNames = (Array.isArray(recommendedPath) ? recommendedPath : [])
+      .slice(0, 6)
+      .map((node) => node.name || node.title || node.key)
+      .filter(Boolean);
+    return `页面：学习路径。下一步：${names.join('、') || '暂无'}。推荐路径：${pathNames.join(' → ') || '暂无'}`;
+  }, [recommendedNext, recommendedPath]);
+
+  usePageAI({ pageType: 'learning_path', brief: pathBrief });
 
   useEffect(() => {
     if (user) {

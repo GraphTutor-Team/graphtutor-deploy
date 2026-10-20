@@ -22,6 +22,7 @@ import api from "../api/api";
 import { useAuth } from "../context/AuthContext";
 import { useLearningData } from "../context/LearningDataContext";
 import { useAIContext } from "../context/AIContext";
+import { buildQuestionBrief } from "../utils/aiBrief";
 import { getSubjectTree } from "../api/v3/subjects";
 import { runJavaCode } from "../api/coding";
 
@@ -78,7 +79,13 @@ export default function Quiz() {
   const [submitErr, setSubmitErr] = useState("");
   const [finished, setFinished] = useState(false);
   const [score, setScore] = useState(null);
-  const [questionCount, setQuestionCount] = useState(50); // 可配置的题目数量
+  const requestedCount = Number(location.state?.practiceCount);
+  const [questionCount, setQuestionCount] = useState(() => {
+    if (Number.isFinite(requestedCount) && requestedCount >= 1) {
+      return Math.min(50, Math.round(requestedCount));
+    }
+    return 50;
+  });
   const [subjectCode, setSubjectCode] = useState(""); // 学科筛选
   const [subjects, setSubjects] = useState([]); // 学科列表
   const [bankId, setBankId] = useState(""); // 题库筛选
@@ -98,6 +105,7 @@ export default function Quiz() {
         : null);
   const groupPracticeQuestionIds = practiceQuestionIds; // 兼容后续固定题号开练逻辑
   const predictionPlan = location.state?.predictionPlan || null; // Phase 2.6 考前预测计划：{ nodes: string[], totalQuestions }
+  const predictionKey = predictionPlan?.nodes?.join('|') || '';
   // Phase 2.3 动态难度：根据近期正确率与作答时间调整下一题难度
   const [adaptiveMode, setAdaptiveMode] = useState(false);
   const [visitedOrder, setVisitedOrder] = useState([]); // 已做题目索引顺序
@@ -208,7 +216,14 @@ export default function Quiz() {
       cancelled = true;
       window.removeEventListener('reload-questions', handleReload);
     };
-  }, [groupPracticeQuestionIds?.join(','), questionCount, subjectCode, bankId, adaptiveMode]);
+  }, [groupPracticeQuestionIds?.join(','), questionCount, subjectCode, bankId, adaptiveMode, predictionKey, predictionPlan?.totalQuestions]);
+
+  useEffect(() => {
+    const count = Number(location.state?.practiceCount);
+    if (Number.isFinite(count) && count >= 1) {
+      setQuestionCount(Math.min(50, Math.round(count)));
+    }
+  }, [location.state?.practiceCount]);
 
   useEffect(() => {
     setRunOutput("");
@@ -219,17 +234,19 @@ export default function Quiz() {
 
   useEffect(() => {
     if (!current) {
-      setAIContext({ questionId: null, knowledgeNodeId: null });
+      setAIContext({ questionId: null, knowledgeNodeId: null, brief: '', mode: 'browse' });
       return undefined;
     }
     const qid = current._id || current.id || null;
     setAIContext({
       pageType: 'quiz',
+      mode: 'practice',
       questionId: qid,
       knowledgeNodeId: current.knowledgeNodeId ?? current.knowledgeNode ?? null,
+      brief: buildQuestionBrief(current, qid ? answers[qid] : undefined),
     });
-    return () => setAIContext({ questionId: null, knowledgeNodeId: null });
-  }, [idx, current?._id, current?.id, current?.knowledgeNodeId, current?.knowledgeNode, setAIContext]);
+    return () => setAIContext({ questionId: null, knowledgeNodeId: null, brief: '', mode: 'browse' });
+  }, [idx, current, answers, setAIContext]);
 
   // 每次切题时记录开始时间（用于自适应难度的作答时间）
   useEffect(() => {
@@ -608,6 +625,18 @@ export default function Quiz() {
                 : '选择题库与题目数量后开始练习；错题会自动进入错题本，便于复习。'
         }
       />
+
+      <div className="flex flex-wrap gap-2 text-sm">
+        <Link to="/quiz2" className="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50">
+          继续未完成会话
+        </Link>
+        <Link to="/review" className="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50">
+          错题复习
+        </Link>
+        <Link to="/exam" className="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50">
+          去考试
+        </Link>
+      </div>
 
       <section className="surface !pb-3">
         {groupPracticeQuestionIds?.length > 0 && (

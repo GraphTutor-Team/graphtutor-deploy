@@ -12,6 +12,7 @@ import TimerBadge from "../components/TimerBadge";
 import { useAuth } from "../context/AuthContext";
 import { useLearningData } from "../context/LearningDataContext";
 import { useAIContext } from "../context/AIContext";
+import { buildQuestionBrief } from "../utils/aiBrief";
 import { getBanks } from "../api/v3/questionBanks";
 import { getSubjectTree } from "../api/v3/subjects";
 
@@ -110,23 +111,23 @@ export default function Exam() {
 
   useEffect(() => {
     if (step !== 'exam' || !currentQuestion) {
-      setAIContext({ questionId: null, knowledgeNodeId: null });
+      setAIContext({ questionId: null, knowledgeNodeId: null, brief: '', mode: 'browse' });
       return undefined;
     }
     const qid = currentQuestion._id || currentQuestion.id || null;
     setAIContext({
       pageType: 'exam',
+      mode: 'practice',
       questionId: qid,
       knowledgeNodeId: currentQuestion.knowledgeNodeId ?? currentQuestion.knowledgeNode ?? null,
+      brief: buildQuestionBrief(currentQuestion, answers[currentIndex]),
     });
-    return () => setAIContext({ questionId: null, knowledgeNodeId: null });
+    return () => setAIContext({ questionId: null, knowledgeNodeId: null, brief: '', mode: 'browse' });
   }, [
     step,
     currentIndex,
-    currentQuestion?._id,
-    currentQuestion?.id,
-    currentQuestion?.knowledgeNodeId,
-    currentQuestion?.knowledgeNode,
+    currentQuestion,
+    answers,
     setAIContext,
   ]);
 

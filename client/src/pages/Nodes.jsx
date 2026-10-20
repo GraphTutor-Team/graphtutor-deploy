@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BackBar from '../components/BackBar';
 import HelpHint from '../components/HelpHint.jsx';
@@ -9,6 +9,7 @@ import { getKnowledgeNotes, createNote, updateNote, deleteNote } from '../api/v3
 import { useAuth } from '../context/AuthContext';
 import MarkdownPreview from '../components/MarkdownPreview';
 import Icon from '../components/common/Icon';
+import { usePageAI } from '../hooks/usePageAI';
 
 export default function Nodes(){
   const navigate = useNavigate();
@@ -22,6 +23,14 @@ export default function Nodes(){
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [editingNote, setEditingNote] = useState(null);
   const [selectedNodeKey, setSelectedNodeKey] = useState('');
+
+  const nodesBrief = useMemo(() => {
+    const current = rows.find((row) => String(row.key || row._id) === String(selectedNodeKey || expandedNode));
+    const name = current?.name || current?.key || selectedNodeKey || expandedNode || '';
+    return `页面：知识点。当前：${name || '未选中'}。知识点数量：${rows.length}`;
+  }, [rows, selectedNodeKey, expandedNode]);
+
+  usePageAI({ pageType: 'nodes', brief: nodesBrief });
   const [noteForm, setNoteForm] = useState({
     title: '',
     content: '',

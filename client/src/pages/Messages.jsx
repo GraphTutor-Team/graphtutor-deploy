@@ -28,6 +28,7 @@ import {
 import { getFriends, checkFriendship } from '../api/v3/friends';
 import { toast } from '../utils/toast';
 import PageHeader from '../components/PageHeader';
+import SocialHubNav from '../components/SocialHubNav';
 import Icon from '../components/common/Icon';
 import LoginPrompt from '../components/common/LoginPrompt';
 import { getWebSocketClient, initWebSocket } from '../utils/websocket';
@@ -483,6 +484,8 @@ export default function Messages() {
         title="消息"
         description="与好友聊天"
       />
+
+      <SocialHubNav />
 
       <div className="surface !p-0 overflow-hidden">
           <div className="flex h-[min(70vh,640px)] min-h-[380px] sm:min-h-[420px]">

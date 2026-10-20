@@ -30,9 +30,11 @@ import { getUnreadCount } from "../api/v3/messages.js";
 import { getWebSocketClient, initWebSocket } from "../utils/websocket.js";
 
 export default function AppLayout() {
-  const [expand, setExpand] = useState(false);
+  const [expand, setExpand] = useState(true);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
-  const [expandedGroups, setExpandedGroups] = useState(() => new Set(['学习', '社交']));
+  const [expandedGroups, setExpandedGroups] = useState(
+    () => new Set(['学习', '工具', '社交', '更多', '个人', '内容管理', '系统管理'])
+  );
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, logout, loading } = useAuth();
@@ -156,6 +158,7 @@ export default function AppLayout() {
         { to: '/favorites', title: '我的收藏' },
         { to: '/study-plans', title: '学习计划' },
         { to: '/check-in', title: '每日打卡' },
+        { to: '/recommendations', title: '智能推荐' },
       ],
     });
 
@@ -166,11 +169,11 @@ export default function AppLayout() {
       children: [
         { to: '/messages', title: '消息', badge: unreadMessages },
         { to: '/friends', title: '好友' },
-        { to: '/groups', title: '群组' },
-        { to: '/community', title: '社区' },
-        { to: '/learning-posts', title: '学习动态' },
         { to: '/friends/discover', title: '发现好友' },
         { to: '/friend-challenges', title: '好友挑战' },
+        { to: '/learning-posts', title: '学习动态' },
+        { to: '/groups', title: '群组' },
+        { to: '/community', title: '社区' },
       ],
     });
 
@@ -179,7 +182,6 @@ export default function AppLayout() {
       label: '更多',
       roles: ['student', 'question_manager', 'admin'],
       children: [
-        { to: '/quiz2', title: '测验会话' },
         { to: '/review-plans', title: '复习计划' },
         { to: '/leaderboard', title: '排行榜' },
         { to: '/mentor', title: '师徒' },
@@ -187,7 +189,6 @@ export default function AppLayout() {
         { to: '/skill-tree', title: '技能树' },
         { to: '/goals', title: '学习目标' },
         { to: '/achievements', title: '学习成就' },
-        { to: '/recommendations', title: '智能推荐' },
       ],
     });
 
@@ -199,8 +200,6 @@ export default function AppLayout() {
         { to: '/manager/dashboard', title: '工作台' },
         { to: '/banks', title: '题库管理' },
         { to: '/questions', title: '题目管理' },
-        { to: '/questions/import', title: '题目导入' },
-        { to: '/banks/import', title: '题库导入' },
         { to: '/ai', title: 'AI 出题' },
         { to: '/nodes', title: '知识点管理' },
         { to: '/subjects', title: '学科管理' },
@@ -273,8 +272,6 @@ export default function AppLayout() {
 
       {/* ---------- 左侧侧边栏 ---------- */}
       <aside
-        onMouseEnter={() => setExpand(true)}
-        onMouseLeave={() => setExpand(false)}
         className={`
           group fixed left-0 top-0 z-50 h-full flex flex-col
           bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] border-r border-[var(--color-border)]
@@ -286,11 +283,22 @@ export default function AppLayout() {
         {/* 顶部：Logo + 用户 */}
         <div className="shrink-0 px-3 py-4 border-b border-[var(--color-border)]">
           <div className={`flex items-center ${expand ? 'gap-3' : 'justify-center'}`}>
+            <button
+              type="button"
+              onClick={() => setExpand((open) => !open)}
+              className="shrink-0 w-10 h-10 rounded-xl border border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)]"
+              aria-label={expand ? '收起侧栏' : '展开侧栏'}
+              title={expand ? '收起侧栏' : '展开侧栏'}
+            >
+              {expand ? '«' : '»'}
+            </button>
+            {expand && (
             <img
               src={logo}
               className="w-10 h-10 rounded-xl border border-[var(--color-border)] shrink-0 object-cover bg-[var(--color-bg-secondary)]"
               alt="GraphTutor"
             />
+            )}
             {expand && (
               <div className="min-w-0">
                 <span className="block text-base font-bold tracking-tight text-[var(--color-text-primary)] truncate">
@@ -441,15 +449,15 @@ function MenuGroup({ label, children, expand, isExpanded, onToggle }) {
           </span>
         )}
       </button>
-      {expand && isExpanded && (
-        <div className="mt-0.5 ml-1 pl-3 border-l border-slate-200 dark:border-slate-600 space-y-0.5">
+      {(expand ? isExpanded : true) && (
+        <div className={`mt-0.5 space-y-0.5 ${expand ? 'ml-1 pl-3 border-l border-slate-200 dark:border-slate-600' : ''}`}>
           {children.map((child) => (
             <SideItem
               key={child.to}
               to={child.to}
               title={child.title}
               expand={expand}
-              isSubItem={true}
+              isSubItem={expand}
               badge={child.badge}
             />
           ))}
