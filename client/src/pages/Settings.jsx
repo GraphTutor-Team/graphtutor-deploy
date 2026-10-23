@@ -367,16 +367,19 @@ export default function Settings() {
             界面语言
           </label>
           <select
-            value={settings.language}
-            onChange={(e) => handleSettingChange('language', e.target.value)}
+            value={lang === 'en' ? 'en-US' : 'zh-CN'}
+            onChange={(e) => {
+              const next = e.target.value === 'en-US' ? 'en' : 'zh';
+              setLang(next);
+              handleSettingChange('language', next === 'en' ? 'en-US' : 'zh-CN');
+            }}
             className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="zh-CN">简体中文</option>
-            <option value="zh-TW">繁体中文</option>
             <option value="en-US">English</option>
           </select>
           <div className="text-xs text-slate-500 mt-1">
-            当前仅支持简体中文，其他语言选项为预留功能
+            这里和上面的按钮一样，只切换侧栏文字。页面正文仍是中文。
           </div>
         </div>
       </div>
