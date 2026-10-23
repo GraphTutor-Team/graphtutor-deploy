@@ -1,16 +1,29 @@
-// client/src/api/graph.js
-// Full Graph API (CRUD + reorder + import/export). ESM-safe.
+// 图谱节点接口。写入走统一 api 客户端，才会带上 CSRF 和登录 token。
+import api from './api.js';
 
-const toJSON = async (r) => {
-  if (!r.ok) throw new Error(`graph_api_error ${r.status}`);
-  return r.json();
-};
+function fail(error, fallback) {
+  const data = error?.response?.data;
+  const status = error?.response?.status;
+  const message = data?.error || data?.message || (status ? `${fallback} ${status}` : error?.message || fallback);
+  return new Error(message);
+}
+
+async function call(request, fallback) {
+  try {
+    const res = await request();
+    return res.data;
+  } catch (error) {
+    throw fail(error, fallback);
+  }
+}
 
 export async function findNodeName(key) {
   if (!key) return "";
   try {
-    const r = await fetch(`/api/graph/nodes?key=${encodeURIComponent(key)}&limit=1`);
-    const data = await toJSON(r);
+    const data = await call(
+      () => api.get('/graph/nodes', { params: { key, limit: 1 } }),
+      'graph_api_error',
+    );
     const list = Array.isArray(data) ? data : data?.nodes || [];
     return list.find((node) => String(node.key) === String(key))?.name || "";
   } catch {
@@ -19,43 +32,43 @@ export async function findNodeName(key) {
 }
 
 export async function listNodes({ parentId = "", q = "", tree = false } = {}) {
-  const qs = new URLSearchParams({
-    ...(parentId ? { parentId } : {}),
-    ...(q ? { q } : {}),
-    ...(tree ? { tree: 1 } : {}),
-  }).toString();
-  const r = await fetch(`/api/graph/nodes${qs ? `?${qs}` : ""}`);
-  return toJSON(r);
+  return call(
+    () => api.get('/graph/nodes', {
+      params: {
+        ...(parentId ? { parentId } : {}),
+        ...(q ? { q } : {}),
+        ...(tree ? { tree: 1 } : {}),
+      },
+    }),
+    'graph_api_error',
+  );
 }
 
 export async function graphStats() {
-  const r = await fetch(`/api/graph/stats`);
-  return toJSON(r);
+  return call(() => api.get('/graph/stats'), 'graph_api_error');
 }
 
 export async function createNode({ key, name, parentId = null, order = 0, meta = {} }) {
-  const r = await fetch(`/api/graph/nodes`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ key, name, parentId, order, meta }),
-  });
-  return toJSON(r);
+  return call(
+    () => api.post('/graph/nodes', { key, name, parentId, order, meta }),
+    'graph_api_error',
+  );
 }
 
 export async function updateNode(id, patch) {
-  const r = await fetch(`/api/graph/nodes/${encodeURIComponent(id)}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(patch || {}),
-  });
-  return toJSON(r);
+  return call(
+    () => api.put(`/graph/nodes/${encodeURIComponent(id)}`, patch || {}),
+    'graph_api_error',
+  );
 }
 
 export async function deleteNode(id, { cascade = false } = {}) {
-  const r = await fetch(`/api/graph/nodes/${encodeURIComponent(id)}${cascade ? "?cascade=1" : ""}`, {
-    method: "DELETE",
-  });
-  return toJSON(r);
+  return call(
+    () => api.delete(`/graph/nodes/${encodeURIComponent(id)}`, {
+      params: cascade ? { cascade: 1 } : undefined,
+    }),
+    'graph_api_error',
+  );
 }
 
 /**
@@ -64,24 +77,16 @@ export async function deleteNode(id, { cascade = false } = {}) {
  */
 export async function reorderNodes(items) {
   const arr = Array.isArray(items) ? items : [];
-  const r = await fetch(`/api/graph/nodes/reorder`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(arr),
-  });
-  return toJSON(r);
+  return call(() => api.post('/graph/nodes/reorder', arr), 'graph_api_error');
 }
 
 export async function exportGraph() {
-  const r = await fetch(`/api/graph/export`);
-  return toJSON(r);
+  return call(() => api.get('/graph/export'), 'graph_api_error');
 }
 
 export async function importGraph(items, { mode = "upsert" } = {}) {
-  const r = await fetch(`/api/graph/import?mode=${encodeURIComponent(mode)}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(items || []),
-  });
-  return toJSON(r);
+  return call(
+    () => api.post('/graph/import', items || [], { params: { mode } }),
+    'graph_api_error',
+  );
 }

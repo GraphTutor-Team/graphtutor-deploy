@@ -1,51 +1,46 @@
-// client/src/api/quizzes.js
-// 会话测验相关请求
+// 会话测验。走统一的 api 客户端，POST/DELETE 才会带上 CSRF 和登录 token。
+import api from './api.js';
 
-const BASE = import.meta.env.VITE_API_BASE || '/api';
-
-async function request(path, options = {}) {
-  const res = await fetch(`${BASE}${path}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers || {}),
-    },
-    ...options,
-  });
-
-  let data = null;
-  try {
-    data = await res.json();
-  } catch {}
-
-  if (!res.ok) {
-    const msg = data?.error || data?.message || `HTTP ${res.status}`;
-    throw new Error(msg);
-  }
-  return data;
+function unwrap(error) {
+  const data = error?.response?.data;
+  const message = data?.error || data?.message || error?.message || '请求失败';
+  return new Error(message);
 }
 
-export async function startSession({ userId, size, difficulty, node, bankId, subjectCode }) {
-  return request('/quizzes/session/start', {
-    method: 'POST',
-    body: JSON.stringify({ userId, size, difficulty, node, bankId, subjectCode }),
-  });
+async function call(request) {
+  try {
+    const res = await request();
+    return res.data;
+  } catch (error) {
+    throw unwrap(error);
+  }
+}
+
+export async function startSession({ userId, size, difficulty, node, bankId, subjectCode, questionIds }) {
+  return call(() => api.post('/quizzes/session/start', {
+    userId,
+    size,
+    difficulty,
+    node,
+    bankId,
+    subjectCode,
+    questionIds,
+  }));
 }
 
 export async function getSession(id, opts = {}) {
-  const params = new URLSearchParams();
-  if (opts.reveal) params.set('reveal', '1');
-  const qs = params.toString();
-  const tail = qs ? `?${qs}` : '';
-  return request(`/quizzes/session/${id}${tail}`);
+  return call(() => api.get(`/quizzes/session/${id}`, {
+    params: opts.reveal ? { reveal: '1' } : undefined,
+  }));
 }
 
 export async function listSessions({ userId, status } = {}) {
-  const params = new URLSearchParams();
-  if (userId) params.set('userId', userId);
-  if (status) params.set('status', status);
-  const qs = params.toString();
-  const tail = qs ? `?${qs}` : '';
-  return request(`/quizzes${tail}`);
+  return call(() => api.get('/quizzes', {
+    params: {
+      ...(userId ? { userId } : {}),
+      ...(status ? { status } : {}),
+    },
+  }));
 }
 
 export async function submitAnswer({
@@ -57,27 +52,20 @@ export async function submitAnswer({
   timeSpentMs,
   userId,
 }) {
-  return request(`/quizzes/session/${sessionId}/answer`, {
-    method: 'POST',
-    body: JSON.stringify({
-      questionId,
-      answerIndex,
-      userAnswer,
-      answer,
-      timeSpentMs,
-      userId,
-    }),
-  });
+  return call(() => api.post(`/quizzes/session/${sessionId}/answer`, {
+    questionId,
+    answerIndex,
+    userAnswer,
+    answer,
+    timeSpentMs,
+    userId,
+  }));
 }
 
 export async function finishSession(sessionId) {
-  return request(`/quizzes/session/${sessionId}/finish`, {
-    method: 'POST',
-  });
+  return call(() => api.post(`/quizzes/session/${sessionId}/finish`));
 }
 
 export async function deleteSession(sessionId) {
-  return request(`/quizzes/session/${sessionId}`, {
-    method: 'DELETE',
-  });
+  return call(() => api.delete(`/quizzes/session/${sessionId}`));
 }

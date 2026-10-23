@@ -1,27 +1,26 @@
-// client/src/api/ai.js
-// AI 出题 API
-
-const BASE = import.meta.env.VITE_API_BASE || '/api';
+// AI 出题 API。写入走统一 api 客户端，才会带上 CSRF。
+import api from './api.js';
 
 async function request(path, options = {}) {
-  const res = await fetch(`${BASE}${path}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers || {}),
-    },
-    ...options,
-  });
-
-  let data = null;
+  const method = (options.method || 'GET').toLowerCase();
+  let data;
+  if (options.body != null && options.body !== '') {
+    data = typeof options.body === 'string' ? JSON.parse(options.body) : options.body;
+  }
   try {
-    data = await res.json();
-  } catch {}
-
-  if (!res.ok) {
-    const msg = data?.error || data?.message || `HTTP ${res.status}`;
+    const res = await api.request({
+      url: path,
+      method,
+      data,
+      headers: options.headers,
+    });
+    return res.data;
+  } catch (error) {
+    const body = error?.response?.data;
+    const status = error?.response?.status;
+    const msg = body?.error || body?.message || (status ? `HTTP ${status}` : error?.message || '请求失败');
     throw new Error(msg);
   }
-  return data;
 }
 
 // 直接调用 /api/ai/generate

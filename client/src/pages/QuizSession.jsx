@@ -23,7 +23,7 @@ export default function QuizSession() {
   const [searchParams] = useSearchParams();
   const { user } = useAuth() || {};
   const { setAIContext } = useAIContext();
-  const userId = user?._id || user?.id || user?.userId || 'demo-user';
+  const userId = user?._id || user?.id || user?.userId || '';
   const autoResumeTried = useRef(false);
 
   const [size, setSize] = useState(10);
@@ -91,6 +91,10 @@ export default function QuizSession() {
   };
 
   async function start() {
+    if (!userId) {
+      setError('请先登录后再开始会话');
+      return;
+    }
     setBusy(true);
     setError('');
     try {
@@ -211,6 +215,10 @@ export default function QuizSession() {
   }
 
   async function resume(preferredSessionId) {
+    if (!userId) {
+      setError('请先登录后再继续会话');
+      return;
+    }
     setBusy(true);
     setError('');
     try {
@@ -260,7 +268,7 @@ export default function QuizSession() {
   }
 
   useEffect(() => {
-    if (autoResumeTried.current) return;
+    if (!userId || autoResumeTried.current) return;
     const sessionId = searchParams.get('sessionId');
     const shouldResume = searchParams.get('resume') === '1' || !!sessionId;
     if (!shouldResume) return;

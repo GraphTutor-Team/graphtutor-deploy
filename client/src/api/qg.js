@@ -1,22 +1,31 @@
-import { API_BASE } from '../utils/download';
+import api from './api.js';
 
-export async function genFromText({ text, node='misc', difficulty=1, upsert=false, limit=12 }){
-  const r = await fetch(`${API_BASE}/qg/generate-from-text`, {
-    method:'POST',
-    headers:{ 'Content-Type':'application/json' },
-    body: JSON.stringify({ text, node, difficulty, upsert, limit })
-  });
-  if(!r.ok) throw new Error(await r.text());
-  return r.json();
+function fail(error) {
+  const data = error?.response?.data;
+  const message = typeof data === 'string'
+    ? data
+    : (data?.error || data?.message || error?.message || '出题失败');
+  return new Error(message);
 }
 
-export async function genFromFile({ file, node='misc', difficulty=1, upsert=false, limit=12 }){
+export async function genFromText({ text, node = 'misc', difficulty = 1, upsert = false, limit = 12 }) {
+  try {
+    const res = await api.post('/qg/generate-from-text', { text, node, difficulty, upsert, limit });
+    return res.data;
+  } catch (error) {
+    throw fail(error);
+  }
+}
+
+export async function genFromFile({ file, node = 'misc', difficulty = 1, upsert = false, limit = 12 }) {
   const fd = new FormData();
   fd.append('file', file);
-  const r = await fetch(`${API_BASE}/qg/generate-from-file?node=${encodeURIComponent(node)}&difficulty=${difficulty}&upsert=${upsert?1:0}&limit=${limit}`, {
-    method:'POST',
-    body: fd
-  });
-  if(!r.ok) throw new Error(await r.text());
-  return r.json();
+  try {
+    const res = await api.post('/qg/generate-from-file', fd, {
+      params: { node, difficulty, upsert: upsert ? 1 : 0, limit },
+    });
+    return res.data;
+  } catch (error) {
+    throw fail(error);
+  }
 }

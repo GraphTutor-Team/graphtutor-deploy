@@ -15,6 +15,7 @@ import { useAIContext } from "../context/AIContext";
 import { buildQuestionBrief } from "../utils/aiBrief";
 import { getBanks } from "../api/v3/questionBanks";
 import { getSubjectTree } from "../api/v3/subjects";
+import api from "../api/api";
 
 // 简单随机抽题
 function pickRandom(arr, count) {
@@ -297,21 +298,16 @@ export default function Exam() {
       if (useAi && dataQuestions.length < count) {
         const aiNeed = count - dataQuestions.length;
 
-        const aiRes = await fetch("/api/ai/generate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        try {
+          const aiRes = await api.post("/ai/generate", {
             subject,
             count: aiNeed,
             difficulty: difficulty || 1,
             provider: aiProvider,
-          }),
-        });
-
-        if (aiRes.ok) {
-          const aiJson = await aiRes.json();
+          });
+          const aiJson = aiRes.data || {};
           const aiQuestions = aiJson.items || aiJson.data || aiJson || [];
-          const normalized = aiQuestions.map((q, idx) => ({
+          const normalized = (Array.isArray(aiQuestions) ? aiQuestions : []).map((q, idx) => ({
             _id: q._id || `AI_${Date.now()}_${idx}`,
             content: q.content,
             options: q.options || [],
@@ -323,8 +319,8 @@ export default function Exam() {
             isAi: true,
           }));
           dataQuestions = dataQuestions.concat(normalized);
-        } else {
-          console.warn("AI 出题失败，使用现有题库题目");
+        } catch (aiError) {
+          console.warn("AI 出题失败，使用现有题库题目", aiError);
         }
       }
 
@@ -519,29 +515,23 @@ export default function Exam() {
       }
 
       // 使用批量提交API
-      const response = await fetch("/api/records/batch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      try {
+        const response = await api.post("/records/batch", {
           userId: String(userId),
           records,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        });
+        console.log("考试结果提交成功:", response.data);
+        invalidateLearningData();
+      } catch (batchError) {
+        const errorData = batchError?.response?.data || {};
         console.error("提交考试结果失败:", errorData);
         // 尝试逐条提交作为降级方案
         let successCount = 0;
         for (const record of records) {
           try {
-            await fetch("/api/records", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                userId: String(userId),
-                ...record,
-              }),
+            await api.post("/records", {
+              userId: String(userId),
+              ...record,
             });
             successCount++;
           } catch (e) {
@@ -550,10 +540,6 @@ export default function Exam() {
         }
         console.log(`成功提交 ${successCount}/${records.length} 条记录`);
         if (successCount > 0) invalidateLearningData();
-      } else {
-        const result = await response.json();
-        console.log("考试结果提交成功:", result);
-        invalidateLearningData();
       }
 
       try {

@@ -81,17 +81,13 @@ export default function Profile() {
 
       try {
         // 尝试从后端拉最新信息（确保字段齐全）
-        const r = await fetch("/api/auth/me", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!r.ok) {
-          console.warn("GET /api/auth/me status:", r.status);
+        let data = null;
+        try {
+          const r = await api.get("/auth/me");
+          data = r.data;
+        } catch (err) {
+          console.warn("GET /api/auth/me status:", err?.response?.status);
         }
-
-        const data = await r.json().catch(() => null);
         const u = data?.user || user;
 
         if (!u) {
@@ -291,21 +287,11 @@ export default function Profile() {
     setSuccess("");
     setSaving(true);
     try {
-      const r = await fetch("/api/auth/me", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(form),
-      });
+      const r = await api.put("/auth/me", form);
+      const data = r.data;
 
-      const data = await r.json().catch(() => null);
-
-      if (!r.ok || !data?.success) {
-        setError(
-          data?.message || `保存失败（状态码 ${r.status}）`
-        );
+      if (!data?.success) {
+        setError(data?.message || "保存失败");
         return;
       }
 
@@ -320,7 +306,8 @@ export default function Profile() {
       setTimeout(() => setSuccess(""), 3000);
     } catch (e) {
       console.error("保存个人信息失败:", e);
-      setError("保存失败，请稍后再试");
+      const data = e?.response?.data;
+      setError(data?.message || data?.error || "保存失败，请稍后再试");
     } finally {
       setSaving(false);
     }
@@ -433,16 +420,8 @@ export default function Profile() {
                   if (!token || !["学者", "探险家", "书虫", "奋斗者"].includes(role)) return;
                   setUpdatingRole(true);
                   try {
-                    const r = await fetch("/api/auth/me", {
-                      method: "PUT",
-                      headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
-                      },
-                      body: JSON.stringify({ learningRole: role }),
-                    });
-                    const data = await r.json().catch(() => null);
-                    if (data?.user) setUser(data.user);
+                    const r = await api.put("/auth/me", { learningRole: role });
+                    if (r.data?.user) setUser(r.data.user);
                   } catch (err) {
                     console.error("更新学习角色失败:", err);
                   } finally {

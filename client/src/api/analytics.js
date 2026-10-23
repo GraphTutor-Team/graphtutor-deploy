@@ -1,33 +1,25 @@
-// client/src/api/analytics.js
-// 学习统计接口
+// 学习统计接口。走统一 api 客户端，登录 token 与其它页面一致。
+import api from './api.js';
 
-const BASE = import.meta.env.VITE_API_BASE || '/api';
+function fail(error) {
+  const data = error?.response?.data;
+  const status = error?.response?.status;
+  return new Error(data?.error || data?.message || (status ? `HTTP ${status}` : error?.message || '请求失败'));
+}
 
-async function request(path, options = {}) {
-  const res = await fetch(`${BASE}${path}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers || {}),
-    },
-    ...options,
-  });
-
-  let data = null;
+async function get(path) {
   try {
-    data = await res.json();
-  } catch {}
-
-  if (!res.ok) {
-    const msg = data?.error || data?.message || `HTTP ${res.status}`;
-    throw new Error(msg);
+    const res = await api.get(path);
+    return res.data;
+  } catch (error) {
+    throw fail(error);
   }
-  return data;
 }
 
 export async function getAccuracyByNode({ userId, limit = 50 }) {
   if (!userId) throw new Error('userId 不能为空');
   const params = new URLSearchParams({ userId, limit: String(limit) });
-  return request(`/analytics/accuracy-by-node?${params.toString()}`);
+  return get(`/analytics/accuracy-by-node?${params.toString()}`);
 }
 
 export async function getProgress7d({ userId, days = 7 }) {
@@ -36,7 +28,7 @@ export async function getProgress7d({ userId, days = 7 }) {
     userId,
     days: String(days),
   });
-  return request(`/analytics/progress-7d?${params.toString()}`);
+  return get(`/analytics/progress-7d?${params.toString()}`);
 }
 
 /**
@@ -51,12 +43,8 @@ export async function getKnowledgeMastery(params = {}) {
   if (days) queryParams.append('days', days);
   if (subjectCode) queryParams.append('subjectCode', subjectCode);
   if (minQuestions) queryParams.append('minQuestions', minQuestions);
-  
-  const res = await request(`/analytics/mastery?${queryParams.toString()}`, {
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
-    },
-  });
+
+  const res = await get(`/analytics/mastery?${queryParams.toString()}`);
   return res.data || res;
 }
 
@@ -69,11 +57,7 @@ export async function getLearningTrend(params = {}) {
   const { days = 30 } = params;
   const queryParams = new URLSearchParams();
   if (days) queryParams.append('days', days);
-  
-  const res = await request(`/analytics/trend?${queryParams.toString()}`, {
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
-    },
-  });
+
+  const res = await get(`/analytics/trend?${queryParams.toString()}`);
   return res.data;
 }

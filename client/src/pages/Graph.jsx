@@ -4,6 +4,7 @@ import PageHeader from '../components/PageHeader';
 import SectionCard from '../components/SectionCard';
 import HelpHint from '../components/HelpHint.jsx';
 import { downloadFile, toast, API_BASE, getStoredToken } from '../utils/download';
+import api from '../api/api';
 import { getGraphHeatmap } from '../api/v3/enhancedAnalytics';
 import { usePageAI } from '../hooks/usePageAI';
 
@@ -83,27 +84,14 @@ export default function Graph() {
     }
     setBusy(true);
     try {
-      const token = getStoredToken();
-      const headers = { 'Content-Type': 'application/json' };
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-      const r = await fetch(`${API_BASE}/graph/nodes`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ key: key.trim(), name: name.trim() }),
-      });
-      if (!r.ok) {
-        const error = await safeJSON(r);
-        throw new Error(error?.error || '创建失败');
-      }
+      await api.post('/graph/nodes', { key: key.trim(), name: name.trim() });
       setKey('');
       setName('');
       toast('节点创建成功');
       await load();
     } catch (err) {
       console.error('创建节点失败:', err);
-      toast(err.message || '创建失败，请检查key是否已存在');
+      toast(err?.response?.data?.error || err.message || '创建失败，请检查key是否已存在');
     } finally {
       setBusy(false);
     }
@@ -113,23 +101,12 @@ export default function Graph() {
     if (!confirm(`删除节点 ${k}？`)) return;
     setBusy(true);
     try {
-      const token = getStoredToken();
-      const headers = {};
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+      try {
+        await api.delete(`/graph/nodes/${encodeURIComponent(k)}`);
+      } catch (first) {
+        if (first?.response?.status !== 404) throw first;
+        await api.delete(`/graph/${encodeURIComponent(k)}`);
       }
-      let r = await fetch(
-        `${API_BASE}/graph/nodes/${encodeURIComponent(k)}`,
-        { method: 'DELETE', headers }
-      );
-      if (!r.ok) {
-        // 兼容旧版接口
-        r = await fetch(`${API_BASE}/graph/${encodeURIComponent(k)}`, {
-          method: 'DELETE',
-          headers,
-        });
-      }
-      if (!r.ok) throw new Error();
       toast('节点删除成功');
       await load();
     } catch (err) {
@@ -185,25 +162,12 @@ export default function Graph() {
           throw new Error('文件中没有找到节点数据');
         }
         
-        const token = getStoredToken();
-        const headers = { 'Content-Type': 'application/json' };
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
-        const r = await fetch(`${API_BASE}/graph/import`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({ nodes }),
-        });
-        if (!r.ok) {
-          const error = await safeJSON(r);
-          throw new Error(error?.error || '导入失败');
-        }
+        await api.post('/graph/import', { nodes });
         toast(`导入成功，共导入 ${nodes.length} 个节点`);
         await load();
       } catch (err) {
         console.error('导入失败:', err);
-        toast(err.message || '导入失败，请检查文件格式');
+        toast(err?.response?.data?.error || err.message || '导入失败，请检查文件格式');
       } finally {
         setBusy(false);
       }

@@ -1,33 +1,25 @@
-const BASE = import.meta.env.VITE_API_BASE || '/api';
+import api from './api.js';
 
-async function request(path, options = {}) {
-  const res = await fetch(`${BASE}${path}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers || {}),
-    },
-    credentials: 'include',
-    ...options,
-  });
-
-  let data = null;
-  try {
-    data = await res.json();
-  } catch {}
-
-  if (!res.ok) {
-    throw new Error(data?.message || data?.error || `HTTP ${res.status}`);
-  }
-  return data;
+function fail(error) {
+  const data = error?.response?.data;
+  const status = error?.response?.status;
+  return new Error(data?.message || data?.error || (status ? `HTTP ${status}` : error?.message || '请求失败'));
 }
 
 export async function getCodingRunStatus() {
-  return request('/v3/coding/status');
+  try {
+    const res = await api.get('/v3/coding/status');
+    return res.data;
+  } catch (error) {
+    throw fail(error);
+  }
 }
 
 export async function runJavaCode({ code, stdin = '' }) {
-  return request('/v3/coding/run', {
-    method: 'POST',
-    body: JSON.stringify({ code, stdin, language: 'java' }),
-  });
+  try {
+    const res = await api.post('/v3/coding/run', { code, stdin, language: 'java' });
+    return res.data;
+  } catch (error) {
+    throw fail(error);
+  }
 }

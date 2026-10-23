@@ -1,42 +1,51 @@
-export async function listNodes({ parentId='ROOT', q='' } = {}){
-  const qs = new URLSearchParams({ parentId, q }).toString();
-  const r = await fetch(`/api/graph/nodes?${qs}`);
-  if(!r.ok) throw new Error('nodes_list_failed');
-  return await r.json();
+import api from './api.js';
+
+function fail(error, fallback) {
+  const status = error?.response?.status;
+  return new Error(status ? `${fallback}` : (error?.message || fallback));
 }
 
-export async function createOrUpdateNode({ id, name, parentId=null, order=0 }){
-  const r = await fetch('/api/graph/nodes', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ id, name, parentId, order })
-  });
-  if(!r.ok) throw new Error('nodes_upsert_failed');
-  return await r.json();
+async function call(request, fallback) {
+  try {
+    const res = await request();
+    return res.data;
+  } catch (error) {
+    throw fail(error, fallback);
+  }
 }
 
-export async function patchNode(id, payload){
-  const r = await fetch(`/api/graph/nodes/${encodeURIComponent(id)}`, {
-    method:'PATCH', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify(payload)
-  });
-  if(!r.ok) throw new Error('nodes_patch_failed');
-  return await r.json();
+export async function listNodes({ parentId = 'ROOT', q = '' } = {}) {
+  return call(
+    () => api.get('/graph/nodes', { params: { parentId, q } }),
+    'nodes_list_failed',
+  );
 }
 
-export async function deleteNode(id){
-  const r = await fetch(`/api/graph/nodes/${encodeURIComponent(id)}`, { method:'DELETE' });
-  if(!r.ok) throw new Error('nodes_delete_failed');
-  return await r.json();
+export async function createOrUpdateNode({ id, name, parentId = null, order = 0 }) {
+  return call(
+    () => api.post('/graph/nodes', { id, name, parentId, order }),
+    'nodes_upsert_failed',
+  );
 }
 
-export async function getTree(){
-  const r = await fetch('/api/graph/tree');
-  if(!r.ok) throw new Error('tree_failed');
-  return await r.json();
+export async function patchNode(id, payload) {
+  return call(
+    () => api.patch(`/graph/nodes/${encodeURIComponent(id)}`, payload),
+    'nodes_patch_failed',
+  );
 }
 
-export async function getStats(){
-  const r = await fetch('/api/graph/stats');
-  if(!r.ok) throw new Error('stats_failed');
-  return await r.json();
+export async function deleteNode(id) {
+  return call(
+    () => api.delete(`/graph/nodes/${encodeURIComponent(id)}`),
+    'nodes_delete_failed',
+  );
+}
+
+export async function getTree() {
+  return call(() => api.get('/graph/tree'), 'tree_failed');
+}
+
+export async function getStats() {
+  return call(() => api.get('/graph/stats'), 'stats_failed');
 }
