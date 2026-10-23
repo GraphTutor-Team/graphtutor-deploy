@@ -1,6 +1,9 @@
 /**
  * 笔记详情侧栏：Markdown 预览、元信息、快捷操作
  */
+import { useState } from 'react';
+import api from '../api/api.js';
+import { toast } from '../utils/toast';
 import MarkdownPreview from './MarkdownPreview';
 import Icon from './common/Icon';
 
@@ -18,6 +21,8 @@ export default function NoteDetailPanel({
   onShare,
   onExport,
 }) {
+  const [current, setCurrent] = useState(note);
+  const shown = current?._id === note?._id ? current : note;
   if (!note) return null;
 
   const typeLabel = NOTE_TYPE_LABELS[note.type] || note.type;
@@ -71,15 +76,38 @@ export default function NoteDetailPanel({
       )}
 
       <div className="prose prose-sm max-w-none dark:prose-invert mb-4">
-        <MarkdownPreview text={note.content} />
+        {shown.locked ? (
+          <div>
+            <p>这篇笔记需要 {shown.pricePoints} 积分解锁后才能看正文。现在只能看标题和摘要。</p>
+            {shown.summary && <p>{shown.summary}</p>}
+            <button
+              type="button"
+              className="mt-2 text-sm text-blue-600 hover:underline"
+              onClick={async () => {
+                try {
+                  await api.post(`/v3/notes/${shown._id}/purchase`);
+                  const res = await api.get(`/v3/notes/${shown._id}`);
+                  setCurrent(res.data?.data || shown);
+                  toast.success('笔记已解锁');
+                } catch (err) {
+                  toast.error(err.response?.data?.message || '解锁失败');
+                }
+              }}
+            >
+              用积分解锁
+            </button>
+          </div>
+        ) : (
+          <MarkdownPreview text={shown.content} />
+        )}
       </div>
 
-      {note.images?.length > 0 && (
+      {shown.images?.length > 0 && (
         <div className="grid grid-cols-2 gap-2 mb-4">
-          {note.images.map((url, idx) => (
+          {shown.images.map((url, idx) => (
             <img
               key={url || idx}
-              src={url.startsWith('/') ? `${window.location.origin}${url}` : url}
+              src={typeof url === 'string' && url.startsWith('/') ? `${window.location.origin}${url}` : url}
               alt={`笔记图片 ${idx + 1}`}
               className="w-full rounded border object-cover max-h-40"
             />
@@ -87,9 +115,9 @@ export default function NoteDetailPanel({
         </div>
       )}
 
-      {note.attachments?.length > 0 && (
+      {shown.attachments?.length > 0 && (
         <ul className="mb-4 space-y-2 text-sm">
-          {note.attachments.map((file, idx) => (
+          {shown.attachments.map((file, idx) => (
             <li key={file.url || idx}>
               <a
                 href={file.url?.startsWith('/') ? `${window.location.origin}${file.url}` : file.url}
@@ -105,19 +133,25 @@ export default function NoteDetailPanel({
       )}
 
       <div className="flex flex-wrap gap-2 pt-4 border-t dark:border-slate-700">
-        <button type="button" onClick={() => onEdit?.(note)} className="px-3 py-1.5 text-sm border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700">
-          编辑
-        </button>
-        <button type="button" onClick={() => onShare?.(note._id)} className="px-3 py-1.5 text-sm border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700">
+        {!shown.locked && (
+          <button type="button" onClick={() => onEdit?.(shown)} className="px-3 py-1.5 text-sm border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700">
+            编辑
+          </button>
+        )}
+        <button type="button" onClick={() => onShare?.(shown._id)} className="px-3 py-1.5 text-sm border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700">
           分享
         </button>
-        <button type="button" onClick={() => onExport?.(note, 'markdown')} className="px-3 py-1.5 text-sm border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-1">
-          <Icon name="fileText" size={14} />
-          导出
-        </button>
-        <button type="button" onClick={() => onDelete?.(note._id)} className="px-3 py-1.5 text-sm text-red-600 hover:text-red-700">
-          删除
-        </button>
+        {!shown.locked && (
+          <button type="button" onClick={() => onExport?.(shown, 'markdown')} className="px-3 py-1.5 text-sm border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-1">
+            <Icon name="fileText" size={14} />
+            导出
+          </button>
+        )}
+        {!shown.locked && (
+          <button type="button" onClick={() => onDelete?.(shown._id)} className="px-3 py-1.5 text-sm text-red-600 hover:text-red-700">
+            删除
+          </button>
+        )}
       </div>
     </div>
   );

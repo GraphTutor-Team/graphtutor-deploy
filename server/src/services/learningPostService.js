@@ -18,7 +18,7 @@ export async function createLearningPost(userId, postData) {
   });
 
   await post.save();
-  return await post.populate('authorId', 'name email avatar');
+  return await post.populate('authorId', 'name email avatarUrl');
 }
 
 /**
@@ -62,7 +62,7 @@ export async function getLearningPosts(userId, options = {}) {
 
   const [posts, total] = await Promise.all([
     LearningPost.find(query)
-      .populate('authorId', 'name email avatar')
+      .populate('authorId', 'name email avatarUrl')
       .populate('relatedData.achievementId', 'name icon description')
       .populate('relatedData.challengeId', 'title target status')
       .sort({ pinned: -1, createdAt: -1 })
@@ -89,7 +89,7 @@ export async function getLearningPostById(postId, userId) {
     _id: postId,
     deleted: false,
   })
-    .populate('authorId', 'name email avatar')
+    .populate('authorId', 'name email avatarUrl')
     .populate('relatedData.achievementId', 'name icon description')
     .populate('relatedData.challengeId', 'title target status')
     .lean();
@@ -130,7 +130,7 @@ export async function toggleLikePost(postId, userId) {
 
   await post.like(userId);
   return await LearningPost.findById(postId)
-    .populate('authorId', 'name email avatar')
+    .populate('authorId', 'name email avatarUrl')
     .populate('relatedData.achievementId', 'name icon description')
     .lean();
 }
@@ -189,7 +189,7 @@ export async function createComment(postId, userId, commentData) {
   post.commentCount += 1;
   await post.save();
 
-  return await comment.populate('authorId', 'name email avatar');
+  return await comment.populate('authorId', 'name email avatarUrl');
 }
 
 /**
@@ -205,7 +205,7 @@ export async function getComments(postId, options = {}) {
       parentId: null, // 只获取顶级评论
       deleted: false,
     })
-      .populate('authorId', 'name email avatar')
+      .populate('authorId', 'name email avatarUrl')
       .sort({ createdAt: 1 })
       .skip(skip)
       .limit(limit)
@@ -223,7 +223,7 @@ export async function getComments(postId, options = {}) {
       parentId: comment._id,
       deleted: false,
     })
-      .populate('authorId', 'name email avatar')
+      .populate('authorId', 'name email avatarUrl')
       .sort({ createdAt: 1 })
       .limit(5)
       .lean();
@@ -250,7 +250,7 @@ export async function toggleLikeComment(commentId, userId) {
 
   await comment.like(userId);
   return await LearningPostComment.findById(commentId)
-    .populate('authorId', 'name email avatar')
+    .populate('authorId', 'name email avatarUrl')
     .lean();
 }
 

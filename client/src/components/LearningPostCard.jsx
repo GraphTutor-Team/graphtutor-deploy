@@ -142,7 +142,7 @@ export default function LearningPostCard({ post, onUpdate }) {
   const authorName = typeof post.authorId === 'object'
     ? post.authorId?.name || post.authorId?.email || '未知用户'
     : '未知用户';
-  const authorAvatar = typeof post.authorId === 'object' ? post.authorId?.avatar : null;
+  const authorAvatar = typeof post.authorId === 'object' ? post.authorId?.avatarUrl : null;
 
   return (
     <div className="card p-6  transition-shadow">
@@ -281,12 +281,26 @@ export default function LearningPostCard({ post, onUpdate }) {
                 const commentAuthorName = typeof comment.authorId === 'object'
                   ? comment.authorId?.name || comment.authorId?.email || '未知用户'
                   : '未知用户';
+                const commentAuthorAvatar = typeof comment.authorId === 'object'
+                  ? comment.authorId?.avatarUrl
+                  : null;
                 const isCommentLiked = comment.likes?.some(
                   (like) => like.userId?._id === user?.id || like.userId === user?.id
                 );
 
                 return (
                   <div key={comment._id} className="flex items-start space-x-3">
+                    {commentAuthorAvatar ? (
+                      <img
+                        src={commentAuthorAvatar}
+                        alt=""
+                        className="h-6 w-6 rounded-full object-cover flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="h-6 w-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
+                        {commentAuthorName.charAt(0).toUpperCase()}
+                      </div>
+                    )}
                     <div className="flex-1">
                       <div className="flex items-center space-x-2 mb-1">
                         <AuthorLink

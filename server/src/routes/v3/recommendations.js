@@ -7,6 +7,7 @@
 
 import express from 'express';
 import { requireAuth } from '../../middleware/auth.js';
+import { assertBankQuestionAccess } from '../../services/contentAccess.js';
 import {
   getRecommendedQuestions,
   getRecommendationReason,
@@ -39,6 +40,7 @@ router.get('/questions', requireAuth, async (req, res) => {
     } = req.query;
 
     const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 10));
+    if (bankId) await assertBankQuestionAccess(userId, bankId);
     const questions = await Promise.race([
       getRecommendedQuestions(userId, {
         limit: limitNum,
@@ -73,6 +75,13 @@ router.get('/questions', requireAuth, async (req, res) => {
       count: questionsWithReasons.length,
     });
   } catch (err) {
+    if (err.status === 403) {
+      return res.status(403).json({
+        success: false,
+        message: err.message,
+        pricePoints: err.pricePoints,
+      });
+    }
     console.error('GET /api/v3/recommendations/questions error:', err);
     sendEmpty('推荐服务暂不可用，已返回空列表');
   }

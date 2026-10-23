@@ -116,7 +116,7 @@ export default function Mentor() {
     <div className="p-6 space-y-6">
       <PageHeader
         title="师徒"
-        subtitle="申请成为徒弟、管理师徒关系与待处理申请"
+        subtitle="向好友发出申请后，对方要在「待处理申请」里接受，关系才会建立。被拒绝后可以再次申请。"
       />
 
       <div className="flex gap-2 border-b pb-2">
@@ -196,11 +196,14 @@ export default function Mentor() {
                   className="w-full px-3 py-2 border rounded-lg"
                 >
                   <option value="">请选择</option>
-                  {friends.map((f) => (
-                    <option key={f._id} value={f._id}>
-                      {f.name || f.email || f._id}
-                    </option>
-                  ))}
+                  {friends.map((f) => {
+                    const friendId = String(f._id || f.id || '');
+                    return (
+                      <option key={friendId} value={friendId}>
+                        {f.name || f.email || friendId}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
             )}

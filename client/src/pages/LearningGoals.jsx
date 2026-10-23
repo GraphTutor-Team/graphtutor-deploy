@@ -410,6 +410,15 @@ export default function LearningGoals() {
                     <option value="knowledge_nodes">掌握知识点数</option>
                     <option value="time">学习时间(分钟)</option>
                   </select>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {formData.targetType === 'accuracy'
+                      ? '当前值是目标日期内的正确率百分比。'
+                      : formData.targetType === 'knowledge_nodes'
+                        ? '当前值是这段时间内答对过的不同知识点。'
+                        : formData.targetType === 'questions'
+                          ? '每交一道已作答的题加 1，未作答不加。'
+                          : '按答题用时累计分钟。'}
+                  </p>
                 </div>
 
                 <div>

@@ -45,9 +45,9 @@ export default function FriendChallenges() {
     setLoading(true);
     try {
       const [challengesRes, statsRes, friendsRes] = await Promise.all([
-        getFriendChallenges({ status: activeTab === 'all' ? null : activeTab }),
+        getFriendChallenges(activeTab === 'all' ? {} : { status: activeTab }),
         getChallengeStats(),
-        getFriends(),
+        getFriends({ status: 'active', limit: 100 }),
       ]);
 
       setChallenges(challengesRes.data?.items || []);

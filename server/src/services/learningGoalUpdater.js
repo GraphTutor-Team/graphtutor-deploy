@@ -8,20 +8,71 @@ import LearningGoal from '../models/LearningGoal.js';
 import Record from '../models/Record.js';
 import Question from '../models/Question.js';
 
+async function recordsForGoal(goal) {
+  const query = {
+    userId: String(goal.userId),
+    createdAt: {
+      $gte: new Date(goal.startDate || 0),
+      $lte: new Date(goal.endDate),
+    },
+  };
+  if (!goal.subjectCode && !goal.bankId) return query;
+
+  const questionFilter = {};
+  if (goal.subjectCode) questionFilter.subjectCode = goal.subjectCode;
+  if (goal.bankId) questionFilter.bankId = goal.bankId;
+  const questions = await Question.find(questionFilter).select('_id').lean();
+  query.questionId = { $in: questions.map((item) => String(item._id)) };
+  return query;
+}
+
+async function measuredGoalValue(goal) {
+  const query = await recordsForGoal(goal);
+  if (goal.targetType === 'accuracy') {
+    const [total, correct] = await Promise.all([
+      Record.countDocuments(query),
+      Record.countDocuments({ ...query, isCorrect: true }),
+    ]);
+    if (!total) return 0;
+    return Math.round((correct / total) * 100);
+  }
+
+  const nodes = await Record.distinct('knowledgeNodeId', {
+    ...query,
+    isCorrect: true,
+    knowledgeNodeId: { $nin: [null, ''] },
+  });
+  return nodes.length;
+}
+
+async function writeMeasuredGoal(goal, nextValue) {
+  const currentValue = Math.min(nextValue, goal.targetValue);
+  const updateData = { currentValue };
+  if (currentValue >= goal.targetValue && goal.status === 'active') {
+    updateData.status = 'completed';
+  } else if (currentValue < goal.targetValue && goal.status === 'completed') {
+    updateData.status = 'active';
+  }
+  await LearningGoal.findByIdAndUpdate(goal._id, { $set: updateData });
+}
+
 /**
  * 更新用户的学习目标进度
  * @param {string} userId - 用户ID
- * @param {Object} answerData - 答题数据 { questionId, isCorrect, timeSpentMs, subjectCode, bankId, knowledgeNodeId }
+ * @param {Object} answerData - 答题数据 { questionId, timeSpentMs }
  */
 export async function updateLearningGoalsProgress(userId, answerData = {}) {
   try {
-    const { questionId, isCorrect, timeSpentMs, subjectCode, bankId, knowledgeNodeId } = answerData;
+    const { questionId, timeSpentMs } = answerData;
 
     // 获取用户的所有活跃目标
     const activeGoals = await LearningGoal.find({
       userId,
-      status: 'active',
-      endDate: { $gte: new Date() }, // 未过期
+      endDate: { $gte: new Date() },
+      $or: [
+        { status: 'active' },
+        { status: 'completed', targetType: { $in: ['accuracy', 'knowledge_nodes'] } },
+      ],
     }).lean();
 
     if (activeGoals.length === 0) {
@@ -41,11 +92,6 @@ export async function updateLearningGoalsProgress(userId, answerData = {}) {
       }
     }
 
-    // 获取用户最近的答题统计（用于计算正确率）
-    let recentAccuracy = null;
-    let totalQuestions = 0;
-    let correctQuestions = 0;
-
     // 更新每个匹配的目标
     for (const goal of activeGoals) {
       let shouldUpdate = false;
@@ -59,6 +105,12 @@ export async function updateLearningGoalsProgress(userId, answerData = {}) {
         continue;
       }
 
+      if (goal.targetType === 'accuracy' || goal.targetType === 'knowledge_nodes') {
+        const measured = await measuredGoalValue(goal);
+        await writeMeasuredGoal(goal, measured);
+        continue;
+      }
+
       // 根据目标类型更新进度
       switch (goal.targetType) {
         case 'questions':
@@ -66,36 +118,6 @@ export async function updateLearningGoalsProgress(userId, answerData = {}) {
           if (questionId) {
             shouldUpdate = true;
             increment = 1;
-          }
-          break;
-
-        case 'accuracy':
-          // 正确率：需要计算最近答题的正确率
-          // 这里我们使用一个简化的方法：记录正确答题数
-          // 实际正确率需要从统计中获取
-          if (questionId && isCorrect === true) {
-            shouldUpdate = true;
-            // 正确率目标需要特殊处理，这里先不更新，等统计时再计算
-            // 暂时跳过，因为正确率需要批量计算
-            continue;
-          }
-          break;
-
-        case 'knowledge_nodes':
-          // 掌握知识点数：答对一道题的知识点 +1（如果该知识点还没掌握）
-          if (questionId && isCorrect === true && knowledgeNodeId) {
-            // 检查该知识点是否已经掌握（需要查询历史记录）
-            const hasMastered = await Record.findOne({
-              userId,
-              knowledgeNodeId,
-              isCorrect: true,
-            }).lean();
-
-            if (!hasMastered) {
-              // 这是第一次答对这个知识点
-              shouldUpdate = true;
-              increment = 1;
-            }
           }
           break;
 

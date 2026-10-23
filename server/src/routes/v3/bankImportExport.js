@@ -11,6 +11,7 @@ import Question from '../../models/Question.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
 import { sanitizeString, validateInt } from '../../middleware/validation.js';
 import { updateBankQuestionCount } from '../../services/bankStats.js';
+import { attachSubjectNames } from '../../services/subjectNames.js';
 
 const router = express.Router();
 
@@ -209,12 +210,11 @@ router.get('/export', requireAuth, async (req, res) => {
     }
 
     // 查询题库列表
-    const banks = await QuestionBank.find(cond)
+    const banks = await attachSubjectNames(await QuestionBank.find(cond)
       .populate('ownerId', 'name email')
       .populate('managers', 'name email')
-      .populate('subjectCode', 'code name')
       .sort({ createdAt: -1 })
-      .lean();
+      .lean());
 
     const shouldIncludeQuestions = includeQuestions === 'true' && format === 'json';
 
@@ -344,11 +344,10 @@ router.get('/:id/export', requireAuth, async (req, res) => {
     const { id } = req.params;
     const { format = 'json' } = req.query;
 
-    const bank = await QuestionBank.findById(id)
+    const bank = await attachSubjectNames(await QuestionBank.findById(id)
       .populate('ownerId', 'name email')
       .populate('managers', 'name email')
-      .populate('subjectCode', 'code name')
-      .lean();
+      .lean());
 
     if (!bank) {
       return res.status(404).json({

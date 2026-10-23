@@ -17,13 +17,29 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import Question from '../models/Question.js';
+import { assertBankQuestionAccess, assertQuestionBanksAccessible } from '../services/contentAccess.js';
 import QuizSession from '../models/QuizSession.js';
 import Record from '../models/Record.js';
 import { checkAnswer, resolveUserAnswer } from '../utils/questionScoring.js';
 import { applySingleRecordSideEffects, applyBatchBonusSideEffects } from '../services/recordSideEffects.js';
 import { buildTodaySet } from './v3/ai.js';
+import { optionalAuth } from '../middleware/auth.js';
 
 const router = express.Router();
+router.use(optionalAuth);
+
+function accountId(req) {
+  return req.user?.id ? String(req.user.id) : '';
+}
+
+function denyUnlessOwner(req, res, session) {
+  const actor = accountId(req);
+  if (!actor || actor !== String(session.userId)) {
+    res.status(403).json({ error: '只能查看和提交自己的会话' });
+    return false;
+  }
+  return true;
+}
 
 function buildQuestionForCheck(snap) {
   return {
@@ -205,9 +221,24 @@ async function selectQuestionsByIds(questionIds) {
  */
 router.post('/session/start', async (req, res) => {
   try {
-    const { userId, size = 10, difficulty, node, bankId, subjectCode, questionIds } = req.body;
+    const userId = accountId(req);
     if (!userId) {
-      return res.status(400).json({ error: 'userId 是必填项' });
+      return res.status(401).json({ error: '请先登录后再开始会话' });
+    }
+    const { size = 10, difficulty, node, bankId, subjectCode, questionIds } = req.body || {};
+
+    try {
+      if (bankId) await assertBankQuestionAccess(userId, bankId);
+      if (Array.isArray(questionIds) && questionIds.length) {
+        const ids = questionIds.filter((id) => mongoose.Types.ObjectId.isValid(String(id)));
+        const picked = await Question.find({ _id: { $in: ids } }).select('bankId').lean();
+        await assertQuestionBanksAccessible(userId, picked);
+      }
+    } catch (err) {
+      if (err.status === 403) {
+        return res.status(403).json({ error: err.message, pricePoints: err.pricePoints });
+      }
+      throw err;
     }
 
     console.log('[Quiz] Creating session with params:', {
@@ -302,6 +333,7 @@ router.get('/session/:id', async (req, res) => {
     if (!session) {
       return res.status(404).json({ error: '会话不存在' });
     }
+    if (!denyUnlessOwner(req, res, session)) return;
 
     const needReveal = reveal === '1' || session.status === 'finished';
 
@@ -361,9 +393,12 @@ router.get('/session/:id', async (req, res) => {
  */
 router.get('/', async (req, res) => {
   try {
-    const { userId, status } = req.query;
-    const filter = {};
-    if (userId) filter.userId = userId;
+    const userId = accountId(req);
+    if (!userId) {
+      return res.json([]);
+    }
+    const { status } = req.query;
+    const filter = { userId };
     if (status) filter.status = status;
 
     const list = await QuizSession.find(filter)
@@ -395,12 +430,13 @@ router.get('/', async (req, res) => {
 router.post('/session/:id/answer', async (req, res) => {
   try {
     const { id } = req.params;
-    const { questionId, userId } = req.body;
+    const { questionId } = req.body;
 
     const session = await QuizSession.findById(id);
     if (!session) {
       return res.status(404).json({ error: '会话不存在' });
     }
+    if (!denyUnlessOwner(req, res, session)) return;
     if (session.status !== 'ongoing') {
       return res.status(400).json({ error: '会话已结束或已取消' });
     }
@@ -411,7 +447,7 @@ router.post('/session/:id/answer', async (req, res) => {
     }
     const { snap, resolvedAnswer, isCorrect, timeSpentMs: spentMs } = result;
     await session.save();
-    await persistAnswerRecord(session, snap, resolvedAnswer, isCorrect, spentMs, userId);
+    await persistAnswerRecord(session, snap, resolvedAnswer, isCorrect, spentMs, session.userId);
 
     res.json({ ok: true, isCorrect });
   } catch (e) {
@@ -427,7 +463,7 @@ router.post('/session/:id/answer', async (req, res) => {
 router.post('/session/:id/answers/batch', async (req, res) => {
   try {
     const { id } = req.params;
-    const { userId, answers } = req.body || {};
+    const { answers } = req.body || {};
     const list = Array.isArray(answers) ? answers : [];
     if (!list.length) {
       return res.json({ ok: true, submitted: 0 });
@@ -440,6 +476,7 @@ router.post('/session/:id/answers/batch', async (req, res) => {
     if (!session) {
       return res.status(404).json({ error: '会话不存在' });
     }
+    if (!denyUnlessOwner(req, res, session)) return;
     if (session.status !== 'ongoing') {
       return res.status(400).json({ error: '会话已结束或已取消' });
     }
@@ -451,7 +488,7 @@ router.post('/session/:id/answers/batch', async (req, res) => {
       const result = applyAnswerToSession(session, item.questionId, item);
       if (result.error) continue;
       const { snap, resolvedAnswer, isCorrect, timeSpentMs } = result;
-      await persistAnswerRecord(session, snap, resolvedAnswer, isCorrect, timeSpentMs, userId);
+      await persistAnswerRecord(session, snap, resolvedAnswer, isCorrect, timeSpentMs, session.userId);
       bonusEntries.push({
         questionId: String(snap.id),
         isCorrect,
@@ -462,7 +499,7 @@ router.post('/session/:id/answers/batch', async (req, res) => {
     }
     await session.save();
 
-    const recordUserId = userId || session.userId;
+    const recordUserId = String(session.userId);
     if (recordUserId && bonusEntries.length) {
       applyBatchBonusSideEffects(recordUserId, bonusEntries);
     }
@@ -485,6 +522,7 @@ router.post('/session/:id/finish', async (req, res) => {
     if (!session) {
       return res.status(404).json({ error: '会话不存在' });
     }
+    if (!denyUnlessOwner(req, res, session)) return;
 
     const totalQuestions = session.questions.length;
     const lastByQid = new Map();
@@ -539,6 +577,11 @@ router.post('/session/:id/finish', async (req, res) => {
 router.delete('/session/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    const session = await QuizSession.findById(id);
+    if (!session) {
+      return res.status(404).json({ error: '会话不存在' });
+    }
+    if (!denyUnlessOwner(req, res, session)) return;
     await QuizSession.findByIdAndDelete(id);
     res.json({ ok: true });
   } catch (e) {

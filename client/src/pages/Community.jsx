@@ -12,6 +12,7 @@ import SocialHubNav from '../components/SocialHubNav';
 import AuthorLink from '../components/AuthorLink';
 import { toast } from '../utils/toast';
 import { getDiscussions, createDiscussion } from '../api/v3/discussions';
+import { bountyText } from '../utils/bountyStatus';
 import LoginPrompt from '../components/common/LoginPrompt';
 
 export default function Community() {
@@ -222,9 +223,9 @@ export default function Community() {
                         已解决
                       </span>
                     )}
-                    {discussion.bountyPoints > 0 && (
-                      <span className="px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded">
-                        🏅 悬赏 {discussion.bountyPoints}
+                    {bountyText(discussion) && (
+                      <span className="px-2 py-1 bg-amber-100 text-amber-800 text-xs rounded">
+                        {bountyText(discussion)}
                       </span>
                     )}
                     <span className="text-xs text-slate-500">

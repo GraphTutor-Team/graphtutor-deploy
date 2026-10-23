@@ -50,6 +50,8 @@ router.get('/', requireAuth, async (req, res) => {
     }
     if (req.query.bountyOnly === 'true') {
       query.bountyPoints = { $gt: 0 };
+      query.isResolved = { $ne: true };
+      query.bountyStatus = { $ne: 'awarded' };
     }
 
     const skip = (validateInt(page, { min: 1, defaultValue: 1 }) - 1) * validateInt(limit, { min: 1, max: 100, defaultValue: 20 });
@@ -120,29 +122,42 @@ router.post('/', requireAuth, async (req, res) => {
     }
 
     const bountyPoints = Math.min(1000, Math.max(0, parseInt(rawBounty, 10) || 0));
+    let chargedPoints = 0;
     if (bountyPoints > 0) {
-      const user = await User.findById(userId).select('points').lean();
-      const currentPoints = user?.points ?? 100;
-      if (currentPoints < bountyPoints) {
+      const updated = await User.findOneAndUpdate(
+        { _id: userId, points: { $gte: bountyPoints } },
+        { $inc: { points: -bountyPoints } },
+        { new: true },
+      );
+      if (!updated) {
+        const user = await User.findById(userId).select('points').lean();
         return res.status(400).json({
           success: false,
-          message: `积分不足，当前 ${currentPoints}，需要 ${bountyPoints}`,
+          message: `积分不足，当前 ${user?.points ?? 0}，需要 ${bountyPoints}`,
         });
       }
-      const newPoints = Math.max(0, currentPoints - bountyPoints);
-      await User.findByIdAndUpdate(userId, { $set: { points: newPoints } });
+      chargedPoints = bountyPoints;
     }
 
-    const discussion = await Discussion.create({
-      userId,
-      type: type || 'general',
-      questionId: questionId || undefined,
-      knowledgeNodeId: knowledgeNodeId || undefined,
-      title: title.trim(),
-      content: content.trim(),
-      tags: Array.isArray(tags) ? tags : (tags ? tags.split(',').map(t => t.trim()).filter(t => t) : []),
-      bountyPoints,
-    });
+    let discussion;
+    try {
+      discussion = await Discussion.create({
+        userId,
+        type: type || 'general',
+        questionId: questionId || undefined,
+        knowledgeNodeId: knowledgeNodeId || undefined,
+        title: title.trim(),
+        content: content.trim(),
+        tags: Array.isArray(tags) ? tags : (tags ? tags.split(',').map(t => t.trim()).filter(t => t) : []),
+        bountyPoints,
+        bountyStatus: bountyPoints > 0 ? 'open' : 'none',
+      });
+    } catch (createErr) {
+      if (chargedPoints > 0) {
+        await User.findByIdAndUpdate(userId, { $inc: { points: chargedPoints } });
+      }
+      throw createErr;
+    }
 
     res.json({
       success: true,

@@ -17,6 +17,44 @@ import { toast } from '../utils/toast';
 import { getBanks } from '../api/v3/questionBanks';
 import { getSubjectTree } from '../api/v3/subjects';
 import { runJavaCode } from '../api/coding';
+import { batchCheckAnswers } from '../utils/questionScoring';
+
+function buildSessionResultState(questions, answers) {
+  const answersObj = {};
+  questions.forEach((question) => {
+    const key = question._id || question.id;
+    answersObj[key] = answers[question.id];
+  });
+  const result = batchCheckAnswers(questions, answersObj);
+  const perQuestion = result.details.map((detail, index) => {
+    const question = questions[index] || {};
+    return {
+      index: detail.index,
+      correctIndex: detail.details?.correctAnswer ?? detail.details?.correctAnswers ?? question.correctIndex ?? null,
+      userIndex: answers[question.id],
+      isCorrect: detail.isCorrect,
+      isEmpty: detail.isEmpty,
+      score: detail.score,
+      questionId: question.id || question._id || detail.questionId,
+      knowledgeNodeId: question.knowledgeNodeId || null,
+      questionType: question.type || 'single',
+    };
+  });
+  return {
+    stats: {
+      total: result.total,
+      correct: result.correct,
+      wrong: result.wrong,
+      empty: result.empty,
+      accuracy: result.accuracy,
+      durationSec: null,
+      perQuestion,
+    },
+    questions,
+    answers: questions.map((question) => answers[question.id]),
+    source: 'quiz',
+  };
+}
 
 export default function QuizSession() {
   const navigate = useNavigate();
@@ -816,7 +854,7 @@ export default function QuizSession() {
         <div className="bg-white p-6 rounded-lg border shadow-sm text-center space-y-4">
           <h2 className="text-2xl font-bold text-green-600">会话已完成</h2>
           <p className="text-slate-600">
-            已完成 {qs.length} 道题目，答对 {qs.filter(q => answers[q.id] === q.correctIndex).length} 道
+            已完成 {qs.length} 道题目，答对 {buildSessionResultState(qs, answers).stats.correct} 道
           </p>
           <div className="flex justify-center gap-2">
             <button
@@ -827,7 +865,7 @@ export default function QuizSession() {
             </button>
             <button
               className="btn btn-outline"
-              onClick={() => navigate('/result')}
+              onClick={() => navigate('/result', { state: buildSessionResultState(qs, answers) })}
             >
               查看详细结果
             </button>

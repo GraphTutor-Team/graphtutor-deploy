@@ -101,6 +101,13 @@ const QuestionBankSchema = new mongoose.Schema(
       index: true,
     },
 
+    // 解锁所需积分。0 表示免费。
+    pricePoints: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
     // 是否为官方题库（只有管理员可以创建和管理官方题库）
     isOfficial: {
       type: Boolean,

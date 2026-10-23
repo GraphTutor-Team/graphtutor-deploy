@@ -88,7 +88,14 @@ const UserSchema = new mongoose.Schema(
       ref: 'Question',
       default: [],
     },
-    // 积分（用于悬赏提问、成就商城兑换等）
+    // 开放接口密钥。只在生成时完整返回一次。
+    apiKey: {
+      type: String,
+      sparse: true,
+      unique: true,
+    },
+
+    // 积分（用于悬赏提问、成就商城兑换、付费题库和笔记）
     points: {
       type: Number,
       default: 100,

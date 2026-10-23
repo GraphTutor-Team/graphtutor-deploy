@@ -30,6 +30,22 @@ export default function CreateChallengeModal({ friends, onClose, onSuccess, init
     }
   }, [initialFriendId]);
 
+  const challengeFriend = (friend) => {
+    if (friend?.user1Id || friend?.user2Id) {
+      const mine = String(user?._id || user?.id || '');
+      const firstId = String(friend.user1Id?._id || friend.user1Id || '');
+      const other = firstId === mine ? friend.user2Id : friend.user1Id;
+      return {
+        id: String(other?._id || other || ''),
+        name: other?.name || other?.email || '未知用户',
+      };
+    }
+    return {
+      id: String(friend?._id || friend?.id || ''),
+      name: friend?.name || friend?.email || '未知用户',
+    };
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -157,10 +173,11 @@ export default function CreateChallengeModal({ friends, onClose, onSuccess, init
                 >
                   <option value="">请选择好友</option>
                   {friends.map((friend) => {
-                    const friendUser = friend.user1Id?._id === user?.id ? friend.user2Id : friend.user1Id;
+                    const person = challengeFriend(friend);
+                    if (!person.id) return null;
                     return (
-                      <option key={friend._id} value={friendUser?._id || friendUser}>
-                        {friendUser?.name || friendUser?.email || '未知用户'}
+                      <option key={person.id} value={person.id}>
+                        {person.name}
                       </option>
                     );
                   })}
@@ -219,7 +236,7 @@ export default function CreateChallengeModal({ friends, onClose, onSuccess, init
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    目标题数 <span className="text-red-500">*</span>
+                    目标题数（只计答对） <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="number"

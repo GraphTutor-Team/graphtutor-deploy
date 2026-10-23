@@ -43,7 +43,16 @@ router.post('/apply', requireAuth, async (req, res) => {
         return res.status(400).json({ success: false, message: '你们已是师徒关系' });
       }
       if (existing.status === 'rejected') {
-        return res.status(400).json({ success: false, message: '对方已拒绝，不可重复申请' });
+        const rel = await MentorRelation.findByIdAndUpdate(existing._id, {
+          status: 'pending',
+          appliedAt: new Date(),
+          respondedAt: null,
+        }, { new: true });
+        return res.json({
+          success: true,
+          data: rel,
+          message: '已再次发送申请，请等待对方接受',
+        });
       }
     }
     const rel = await MentorRelation.create({

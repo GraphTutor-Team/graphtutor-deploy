@@ -69,7 +69,7 @@ export default function SkillTree() {
     <div className="p-6 space-y-6">
       <PageHeader
         title="学科技能树"
-        subtitle="掌握知识点即可点亮节点（正确率≥70% 且 答题≥3）"
+        subtitle="正确率达到 70% 且至少做 3 题后可以点亮。有先修节点时，要等先修点亮。"
       />
 
       <div className="bg-white p-4 rounded-lg border flex flex-wrap items-center gap-4">
@@ -92,7 +92,6 @@ export default function SkillTree() {
         <div className="text-center py-12 text-slate-500">加载中...</div>
       ) : nodes.length === 0 ? (
         <div className="bg-white p-12 rounded-lg border text-center">
-          <div className="text-4xl mb-4">🌳</div>
           <div className="text-lg font-semibold text-slate-900 mb-2">该学科暂无知识点数据</div>
           <div className="text-sm text-slate-600">题目关联学科与知识点后，此处会显示技能树</div>
         </div>
@@ -108,33 +107,41 @@ export default function SkillTree() {
               <div
                 key={node.key}
                 className={`flex items-center gap-3 p-3 rounded-lg border ${
-                  node.lit ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200'
+                  node.lit
+                    ? 'bg-emerald-50 border-emerald-200'
+                    : node.blockedBy
+                      ? 'bg-amber-50 border-amber-200'
+                      : 'bg-slate-50 border-slate-200'
                 }`}
               >
                 <div
-                  className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg ${
+                  className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${
                     node.lit ? 'bg-emerald-500 text-white' : 'bg-slate-300 text-slate-600'
                   }`}
                 >
-                  {node.lit ? '✓' : '○'}
+                  {node.lit ? '亮' : node.depth ? `${node.depth + 1}` : '1'}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-medium truncate">{node.name || node.key}</div>
                   <div className="text-sm text-slate-600">
-                    {node.total > 0
-                      ? `正确率 ${node.accuracy}% · ${node.total} 题`
-                      : '未练习'}
+                    {node.blockedBy
+                      ? `先修「${node.blockedBy}」还没点亮`
+                      : node.total > 0
+                        ? `正确率 ${node.accuracy}% · ${node.total} 题`
+                        : '未练习'}
                   </div>
                 </div>
-                {node.total > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/quiz?knowledgeNodeId=${encodeURIComponent(node.key)}&nodeName=${encodeURIComponent(node.name || node.key)}`)}
-                    className="flex-shrink-0 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                  >
-                    去练习
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const key = node.blockedBy ? node.parentKey : node.key;
+                    const name = node.blockedBy ? node.parentName : (node.name || node.key);
+                    navigate(`/quiz?knowledgeNodeId=${encodeURIComponent(key)}&nodeName=${encodeURIComponent(name || key)}`);
+                  }}
+                  className="flex-shrink-0 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  {node.blockedBy ? '先练先修' : '去练习'}
+                </button>
               </div>
             ))}
           </div>

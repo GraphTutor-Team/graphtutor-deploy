@@ -15,6 +15,25 @@ import {
 import { toast } from '../utils/toast';
 import Icon from './common/Icon';
 
+function PersonChip({ person, name }) {
+  const avatarUrl = person && typeof person === 'object' && person.avatarUrl
+    ? person.avatarUrl
+    : null;
+  const label = name || '未知用户';
+  return (
+    <span className="inline-flex items-center gap-2 min-w-0 max-w-full">
+      {avatarUrl ? (
+        <img
+          src={avatarUrl}
+          alt=""
+          className="h-6 w-6 rounded-full object-cover flex-shrink-0"
+        />
+      ) : null}
+      <span className="truncate">{label}</span>
+    </span>
+  );
+}
+
 export default function FriendChallengeCard({ challenge, onUpdate }) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -102,9 +121,14 @@ export default function FriendChallengeCard({ challenge, onUpdate }) {
             </p>
           )}
           <div className="flex items-center space-x-4 text-xs text-slate-500 dark:text-slate-400 mt-2">
-            <span>目标：{challenge.target} 题</span>
+            <span>目标：答对 {challenge.target} 题</span>
             <span>类型：{challenge.type === 'daily' ? '每日' : challenge.type === 'weekly' ? '每周' : challenge.type === 'monthly' ? '每月' : '自定义'}</span>
             <span>结束：{new Date(challenge.endDate).toLocaleDateString('zh-CN')}</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 mt-3 text-sm text-slate-700 dark:text-slate-300">
+            <PersonChip person={challenge.creatorId} name={creatorName} />
+            <span className="text-xs text-slate-400">对</span>
+            <PersonChip person={challenge.participantId} name={participantName} />
           </div>
         </div>
         <div className="ml-4">

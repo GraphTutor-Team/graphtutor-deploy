@@ -15,6 +15,8 @@ import User from '../../models/User.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
 import { canModifyQuestion } from '../../middleware/permission.js';
 import { queryQuestions, getQuestionStats, findSimilarQuestions } from '../../services/questionQuery.js';
+import { attachSubjectNames } from '../../services/subjectNames.js';
+import { assertBankQuestionAccess } from '../../services/contentAccess.js';
 import {
   createVersion,
   getVersionHistory,
@@ -49,6 +51,7 @@ router.use('/', questionImportExportRoutes);
  */
 router.get('/', requireAuth, async (req, res) => {
   try {
+    await assertBankQuestionAccess(req.user.id, req.query.bankId);
     const result = await queryQuestions(req.query, {
       page: req.query.page,
       limit: req.query.limit,
@@ -67,6 +70,13 @@ router.get('/', requireAuth, async (req, res) => {
       },
     });
   } catch (err) {
+    if (err.status === 403) {
+      return res.status(403).json({
+        success: false,
+        message: err.message,
+        pricePoints: err.pricePoints,
+      });
+    }
     console.error('GET /api/v3/questions error:', err);
     res.status(500).json({
       success: false,
@@ -97,6 +107,55 @@ router.get('/stats', requireAuth, async (req, res) => {
 });
 
 /**
+ * GET /api/v3/questions/favorites
+ * 必须写在 /:id 前面，否则 favorites 会被当成题目编号。
+ */
+router.get('/favorites', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { page = '1', limit = '20' } = req.query;
+
+    const user = await User.findById(userId).populate('favorites');
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: '用户不存在',
+      });
+    }
+
+    const favorites = user.favorites || [];
+    const pageNum = validateInt(page, { min: 1, defaultValue: 1 });
+    const limitNum = validateInt(limit, { min: 1, max: 200, defaultValue: 50 });
+    const skip = (pageNum - 1) * limitNum;
+
+    const favoriteIds = favorites.map((f) => f._id || f);
+    const questions = await attachSubjectNames(await Question.find({ _id: { $in: favoriteIds } })
+      .populate('bankId', 'name')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum)
+      .lean());
+
+    res.json({
+      success: true,
+      data: questions,
+      meta: {
+        page: pageNum,
+        limit: limitNum,
+        total: favorites.length,
+        totalPages: Math.ceil(favorites.length / limitNum),
+      },
+    });
+  } catch (err) {
+    console.error('GET /api/v3/questions/favorites error:', err);
+    res.status(500).json({
+      success: false,
+      message: err.message || '获取收藏列表失败',
+    });
+  }
+});
+
+/**
  * GET /api/v3/questions/:id
  * 获取题目详情（支持_id、id、qid查询）
  */
@@ -111,7 +170,6 @@ router.get('/:id', requireAuth, async (req, res) => {
       question = await Question.findById(id)
         .populate('bankId', 'name subjectCode')
         .populate('managerId', 'name email')
-        .populate('subjectCode', 'code name')
         .populate('groupId', 'name code')
         .lean();
     } catch {
@@ -123,7 +181,6 @@ router.get('/:id', requireAuth, async (req, res) => {
       question = await Question.findOne({ id })
         .populate('bankId', 'name subjectCode')
         .populate('managerId', 'name email')
-        .populate('subjectCode', 'code name')
         .populate('groupId', 'name code')
         .lean();
     }
@@ -133,7 +190,6 @@ router.get('/:id', requireAuth, async (req, res) => {
       question = await Question.findOne({ qid: id })
         .populate('bankId', 'name subjectCode')
         .populate('managerId', 'name email')
-        .populate('subjectCode', 'code name')
         .lean();
     }
 
@@ -146,7 +202,7 @@ router.get('/:id', requireAuth, async (req, res) => {
 
     res.json({
       success: true,
-      data: question,
+      data: await attachSubjectNames(question),
     });
   } catch (err) {
     console.error('GET /api/v3/questions/:id error:', err);
@@ -1550,57 +1606,6 @@ router.delete('/:id/favorite', requireAuth, async (req, res) => {
     res.status(500).json({
       success: false,
       message: err.message || '取消收藏失败',
-    });
-  }
-});
-
-/**
- * GET /api/v3/questions/favorites
- * 获取收藏的题目列表
- */
-router.get('/favorites', requireAuth, async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { page = '1', limit = '20' } = req.query;
-
-    const user = await User.findById(userId).populate('favorites');
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: '用户不存在',
-      });
-    }
-
-    const favorites = user.favorites || [];
-    const pageNum = validateInt(page, { min: 1, defaultValue: 1 });
-    const limitNum = validateInt(limit, { min: 1, max: 200, defaultValue: 50 });
-    const skip = (pageNum - 1) * limitNum;
-
-    // 获取收藏题目的详细信息
-    const favoriteIds = favorites.map(f => f._id || f);
-    const questions = await Question.find({ _id: { $in: favoriteIds } })
-      .populate('bankId', 'name')
-      .populate('subjectCode', 'name code')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limitNum)
-      .lean();
-
-    res.json({
-      success: true,
-      data: questions,
-      meta: {
-        page: pageNum,
-        limit: limitNum,
-        total: favorites.length,
-        totalPages: Math.ceil(favorites.length / limitNum),
-      },
-    });
-  } catch (err) {
-    console.error('GET /api/v3/questions/favorites error:', err);
-    res.status(500).json({
-      success: false,
-      message: err.message || '获取收藏列表失败',
     });
   }
 });

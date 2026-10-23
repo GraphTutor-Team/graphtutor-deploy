@@ -18,7 +18,8 @@ import express from 'express';
 import mongoose from 'mongoose';
 import Question from '../models/Question.js';
 import { sanitizeSearchQuery, validatePagination, sanitizeString, validateInt } from '../middleware/validation.js';
-import { requireAuth } from '../middleware/auth.js';
+import { optionalAuth, requireAuth } from '../middleware/auth.js';
+import { assertBankQuestionAccess } from '../services/contentAccess.js';
 
 const router = express.Router();
 
@@ -31,7 +32,7 @@ function toInt(v, d = 0) {
  * GET /api/questions
  * 题目列表 + 分页 + 搜索
  */
-router.get('/', sanitizeSearchQuery('q'), validatePagination(), async (req, res) => {
+router.get('/', optionalAuth, sanitizeSearchQuery('q'), validatePagination(), async (req, res) => {
   try {
     const {
       q = '',
@@ -90,6 +91,14 @@ router.get('/', sanitizeSearchQuery('q'), validatePagination(), async (req, res)
         cond.bankId = new mongoose.Types.ObjectId(bankId);
       } catch {
         return res.status(400).json({ error: '无效的 bankId' });
+      }
+      try {
+        await assertBankQuestionAccess(req.user?.id, bankId);
+      } catch (err) {
+        if (err.status === 403) {
+          return res.status(403).json({ error: err.message, pricePoints: err.pricePoints });
+        }
+        throw err;
       }
     }
     

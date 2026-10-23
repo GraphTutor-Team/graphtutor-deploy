@@ -14,6 +14,7 @@
 
 import { BrowserRouter } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import { LanguageProvider } from "./context/LanguageContext";
 import { LearningDataProvider } from "./context/LearningDataContext";
 import { AppRoutes } from "./config/routes";
 
@@ -25,9 +26,11 @@ export default function App() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AuthProvider>
-        <LearningDataProvider>
-          <AppRoutes />
-        </LearningDataProvider>
+        <LanguageProvider>
+          <LearningDataProvider>
+            <AppRoutes />
+          </LearningDataProvider>
+        </LanguageProvider>
       </AuthProvider>
     </BrowserRouter>
   );

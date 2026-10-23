@@ -13,6 +13,7 @@ import PageHeader from '../components/PageHeader';
 import SocialHubNav from '../components/SocialHubNav';
 import MarkdownPreview from '../components/MarkdownPreview';
 import AuthorLink from '../components/AuthorLink';
+import { bountyIsOpen, bountyText } from '../utils/bountyStatus';
 
 export default function DiscussionDetail() {
   const { id } = useParams();
@@ -144,9 +145,9 @@ export default function DiscussionDetail() {
                   已解决
                 </span>
               )}
-              {discussion.bountyPoints > 0 && (
-                <span className="px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded">
-                  🏅 悬赏 {discussion.bountyPoints} 积分
+              {bountyText(discussion) && (
+                <span className="px-2 py-1 bg-amber-100 text-amber-800 text-xs rounded">
+                  {bountyText(discussion)}
                 </span>
               )}
             </div>
@@ -274,12 +275,13 @@ export default function DiscussionDetail() {
                   >
                     👍 {reply.likeCount || 0}{reply.likedByMe ? ' · 已赞' : ''}
                   </button>
-                  {(discussion.userId === user?.id || discussion.userId === user?._id) && !reply.isBestAnswer && (
+                  {(discussion.userId === user?.id || discussion.userId === user?._id) && !reply.isBestAnswer && discussion.bountyStatus !== 'awarded' && (
                     <button
                       onClick={async () => {
                         try {
-                          await markBestAnswer(id, reply._id);
-                          toast.success(discussion.bountyPoints > 0 ? `已采纳，回答者获得 ${discussion.bountyPoints} 积分` : '已标记为最佳答案');
+                          const result = await markBestAnswer(id, reply._id);
+                          const awarded = result?.data?.awardedPoints || 0;
+                          toast.success(awarded > 0 ? `已采纳，回答者获得 ${awarded} 积分` : '已标记为最佳答案');
                           loadDiscussion();
                         } catch (err) {
                           console.error('标记失败:', err);
@@ -288,7 +290,7 @@ export default function DiscussionDetail() {
                       }}
                       className="text-xs text-green-600 hover:underline"
                     >
-                      设为最佳答案{discussion.bountyPoints > 0 ? `（回答者将获得 ${discussion.bountyPoints} 积分）` : ''}
+                      设为最佳答案{bountyIsOpen(discussion) ? `（回答者将获得 ${discussion.bountyPoints} 积分）` : ''}
                     </button>
                   )}
                 </div>

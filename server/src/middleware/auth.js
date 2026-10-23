@@ -44,73 +44,77 @@ function getTokenFromReq(req) {
   return null;
 }
 
+async function attachUserFromToken(req) {
+  const token = getTokenFromReq(req);
+  if (!token) return { ok: false, reason: "missing" };
+
+  const payload = jwt.verify(token, JWT_SECRET);
+  const userId =
+    payload.id ||
+    payload._id ||
+    payload.userId ||
+    payload.sub ||
+    payload.uid;
+
+  let userDoc = null;
+  if (userId) {
+    try {
+      userDoc = await User.findById(userId).lean();
+    } catch (dbErr) {
+      console.error("数据库查询失败:", dbErr.message);
+    }
+  }
+
+  const baseUser = userDoc || payload || {};
+  let userRole = baseUser.role || payload.role || "student";
+  if (userRole === "user") {
+    userRole = "student";
+  }
+
+  req.user = {
+    id: baseUser._id?.toString?.() || baseUser.id || userId || null,
+    email: baseUser.email || payload.email || null,
+    role: userRole,
+    isAdmin:
+      baseUser.isAdmin === true ||
+      userRole === "admin" ||
+      payload.isAdmin === true,
+  };
+  return { ok: true };
+}
+
 /**
  * 认证中间件：验证 JWT，挂 req.user
  */
 export async function requireAuth(req, res, next) {
-  const token = getTokenFromReq(req);
-  if (!token) {
-    return res.status(401).json({ message: "未提供认证 token" });
-  }
-
   try {
-    const payload = jwt.verify(token, JWT_SECRET);
-
-    const userId =
-      payload.id ||
-      payload._id ||
-      payload.userId ||
-      payload.sub ||
-      payload.uid;
-
-    let userDoc = null;
-    if (userId) {
-      try {
-        userDoc = await User.findById(userId).lean();
-      } catch (dbErr) {
-        // 数据库查询失败，记录错误但继续使用 payload
-        console.error("数据库查询失败:", dbErr.message);
-        // 不抛出错误，使用 payload 作为兜底
-      }
+    const result = await attachUserFromToken(req);
+    if (!result.ok) {
+      return res.status(401).json({
+        message: result.reason === "missing" ? "未提供认证 token" : "token 无效或已过期",
+      });
     }
-
-    // 如果数据库查不到，就直接使用 payload 兜底
-    const baseUser = userDoc || payload || {};
-
-    // V3.0 角色映射：向后兼容
-    // 现有 "user" 角色自动映射为 "student"
-    let userRole = baseUser.role || payload.role || "student";
-    if (userRole === "user") {
-      userRole = "student"; // 向后兼容映射
-    }
-
-    const isAdminFlag =
-      baseUser.isAdmin === true ||
-      userRole === "admin" ||
-      payload.isAdmin === true;
-
-    req.user = {
-      id:
-        baseUser._id?.toString?.() ||
-        baseUser.id ||
-        userId ||
-        null,
-      email: baseUser.email || payload.email || null,
-      role: userRole,
-      isAdmin: isAdminFlag,
-    };
-
     return next();
   } catch (err) {
-    // JWT 验证失败
-    if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+    if (err.name === "JsonWebTokenError" || err.name === "TokenExpiredError") {
       console.error("JWT 验证失败:", err.message);
       return res.status(401).json({ message: "token 无效或已过期" });
     }
-    // 其他错误传递给错误处理中间件
     console.error("requireAuth 中间件错误:", err.message);
     return res.status(500).json({ message: "认证失败，请稍后重试" });
   }
+}
+
+/** 有合法登录就挂上 req.user；没有或无效时继续，由路由自己决定要不要拒绝。 */
+export async function optionalAuth(req, res, next) {
+  try {
+    await attachUserFromToken(req);
+  } catch (err) {
+    if (err.name !== "JsonWebTokenError" && err.name !== "TokenExpiredError") {
+      console.error("optionalAuth 中间件错误:", err.message);
+    }
+  }
+  return next();
 }
 
 /**

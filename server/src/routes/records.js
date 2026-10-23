@@ -18,8 +18,14 @@ import express from 'express';
 import Record from '../models/Record.js';
 import Question from '../models/Question.js';
 import { applySingleRecordSideEffects, applyBatchRecordSideEffects } from '../services/recordSideEffects.js';
+import { optionalAuth } from '../middleware/auth.js';
 
 const router = express.Router();
+router.use(optionalAuth);
+
+function accountId(req) {
+  return req.user?.id ? String(req.user.id) : '';
+}
 
 /**
  * POST /api/records
@@ -27,8 +33,11 @@ const router = express.Router();
  */
 router.post('/', async (req, res) => {
   try {
+    const userId = accountId(req);
+    if (!userId) {
+      return res.status(401).json({ error: '请先登录后再保存记录' });
+    }
     const {
-      userId,
       questionId,
       knowledgeNodeId,
       isCorrect,
@@ -38,9 +47,8 @@ router.post('/', async (req, res) => {
       timeSpentMs,
     } = req.body || {};
 
-    // 验证必填字段
-    if (!userId || !questionId) {
-      return res.status(400).json({ error: '缺少必要字段：userId 和 questionId 必填' });
+    if (!questionId) {
+      return res.status(400).json({ error: '缺少必要字段：questionId 必填' });
     }
 
     // 单选存下标；多选、填空、简答只保留对错
@@ -79,7 +87,10 @@ router.post('/', async (req, res) => {
         isCorrect: normalizedIsCorrect,
         timeSpentMs: timeSpentMs ? Number(timeSpentMs) : null,
         knowledgeNodeId: knowledgeNodeId ? String(knowledgeNodeId) : null,
-      }, question);
+      }, question, {
+        skipWrongBook: req.body?.isEmpty === true,
+        isEmpty: req.body?.isEmpty === true,
+      });
     }
 
     res.json({ ok: true, id: doc._id });
@@ -112,28 +123,35 @@ router.post('/', async (req, res) => {
  */
 router.post('/batch', async (req, res) => {
   try {
-    const { userId, sessionId, records } = req.body || {};
+    const userId = accountId(req);
+    const { sessionId, records } = req.body || {};
 
-    if (!userId || !Array.isArray(records) || records.length === 0) {
-      return res.status(400).json({ error: 'userId 和非空 records 数组是必填项' });
+    if (!userId) {
+      return res.status(401).json({ error: '请先登录后再保存记录' });
+    }
+    if (!Array.isArray(records) || records.length === 0) {
+      return res.status(400).json({ error: 'records 数组不能为空' });
     }
 
     const docs = records
-      .filter((r) => r && r.questionId != null)
+      .filter((r) => r && r.questionId != null && /^[a-f0-9]{24}$/i.test(String(r.questionId)))
       .map((r) => {
         // 单选存下标；多选、填空、简答只保留对错，避免整条记录被丢掉
         const normalizedAnswerIndex = typeof r.answerIndex === 'number' ? r.answerIndex : null;
         const normalizedCorrectIndex = typeof r.correctIndex === 'number' ? r.correctIndex : null;
-        
+
         return {
-          userId: String(userId),
-          questionId: String(r.questionId),
-          knowledgeNodeId: r.knowledgeNodeId ? String(r.knowledgeNodeId) : null,
-          isCorrect: r.isCorrect === true || r.isCorrect === false ? r.isCorrect : false,
-          answerIndex: normalizedAnswerIndex,
-          correctIndex: normalizedCorrectIndex,
-          sessionId: sessionId || r.sessionId ? String(sessionId || r.sessionId) : null,
-          timeSpentMs: r.timeSpentMs ? Number(r.timeSpentMs) : null,
+          isEmpty: r.isEmpty === true,
+          doc: {
+            userId: String(userId),
+            questionId: String(r.questionId),
+            knowledgeNodeId: r.knowledgeNodeId ? String(r.knowledgeNodeId) : null,
+            isCorrect: r.isCorrect === true || r.isCorrect === false ? r.isCorrect : false,
+            answerIndex: normalizedAnswerIndex,
+            correctIndex: normalizedCorrectIndex,
+            sessionId: sessionId || r.sessionId ? String(sessionId || r.sessionId) : null,
+            timeSpentMs: r.timeSpentMs ? Number(r.timeSpentMs) : null,
+          },
         };
       });
 
@@ -141,13 +159,14 @@ router.post('/batch', async (req, res) => {
       return res.status(400).json({ error: 'records 中没有有效的记录' });
     }
 
-    const result = await Record.insertMany(docs);
+    const result = await Record.insertMany(docs.map((item) => item.doc));
 
     if (userId) {
-      const entries = result.map((doc) => ({
+      const entries = result.map((doc, index) => ({
         recordId: doc._id,
         questionId: String(doc.questionId),
         isCorrect: doc.isCorrect === true,
+        isEmpty: docs[index]?.isEmpty === true,
         timeSpentMs: doc.timeSpentMs,
         knowledgeNodeId: doc.knowledgeNodeId,
       }));
@@ -171,9 +190,10 @@ router.post('/batch', async (req, res) => {
  */
 router.get('/', async (req, res) => {
   try {
-    const { userId, limit = 100 } = req.query;
+    const userId = accountId(req);
+    const { limit = 100 } = req.query;
     if (!userId) {
-      return res.status(400).json({ error: 'userId 是必填项' });
+      return res.status(401).json({ error: '请先登录后再查看记录' });
     }
 
     const list = await Record.find({ userId })
@@ -194,9 +214,10 @@ router.get('/', async (req, res) => {
  */
 router.get('/wrong', async (req, res) => {
   try {
-    const { userId, days = 30, limit = 50 } = req.query;
+    const userId = accountId(req);
+    const { days = 30, limit = 50 } = req.query;
     if (!userId) {
-      return res.status(400).json({ error: 'userId 是必填项' });
+      return res.status(401).json({ error: '请先登录后再查看记录' });
     }
 
     const since = new Date();

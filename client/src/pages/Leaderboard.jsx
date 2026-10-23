@@ -159,7 +159,16 @@ export default function Leaderboard() {
 
   return (
     <div className="p-6 space-y-6">
-      <PageHeader title="学习排行榜" subtitle="查看你的学习排名和成就" />
+      <PageHeader
+        title="学习排行榜"
+        subtitle={
+          mode === 'normal'
+            ? '按答题记录统计名次。换时间范围只是筛选，不会按赛季清零。'
+            : mode === 'league'
+              ? '按所选月份的答题记录算出名次。段位是名次比例，没有赛季结算。'
+              : '按你加入的群组，汇总这一周或这一个月的答题记录。'
+        }
+      />
 
       {/* 模式切换：普通排行 / 学科联赛 / 战队赛 */}
       <div className="flex gap-2 border-b pb-2">
@@ -279,7 +288,7 @@ export default function Leaderboard() {
                 </option>
               ))}
             </select>
-            <label className="font-medium text-slate-700">赛季</label>
+            <label className="font-medium text-slate-700">统计月份</label>
             <input
               type="month"
               value={leagueSeason || leagueData?.season || (() => {
@@ -290,7 +299,7 @@ export default function Leaderboard() {
               className="border rounded-lg px-3 py-2"
             />
             <span className="text-sm text-slate-500">
-              {leagueData?.season ? `${leagueData.season} 月赛` : '默认当月'}
+              {leagueData?.season ? `${leagueData.season} 的答题记录` : '默认看当月答题记录'}
             </span>
           </div>
 
@@ -306,7 +315,7 @@ export default function Leaderboard() {
             <div className="bg-white rounded-lg border overflow-hidden">
               <div className="p-4 bg-amber-50 border-b flex justify-between items-center">
                 <h3 className="font-semibold">
-                  {flatSubjects.find((s) => s.code === leagueData?.subjectCode)?.name || leagueData?.subjectCode} · {leagueData?.season || ''} 月赛
+                  {flatSubjects.find((s) => s.code === leagueData?.subjectCode)?.name || leagueData?.subjectCode} · {leagueData?.season || ''} 答题记录
                 </h3>
                 <div className="flex gap-2 text-xs">
                   <span className="px-2 py-1 bg-amber-200 rounded">前10% 黄金</span>

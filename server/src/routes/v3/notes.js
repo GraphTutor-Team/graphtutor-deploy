@@ -31,6 +31,7 @@ import {
 import { recommendRelatedNotes } from '../../services/contentRecommendation.js';
 import Note from '../../models/Note.js';
 import { validateInt } from '../../middleware/validation.js';
+import { priceOf, purchaseContent, redactLockedNote } from '../../services/contentAccess.js';
 import { sanitizeString } from '../../middleware/validation.js';
 
 const router = express.Router();
@@ -131,6 +132,11 @@ router.get('/public', async (req, res) => {
     };
 
     const result = await Note.getPublicNotes(options);
+    if (Array.isArray(result?.items)) {
+      result.items = result.items.map((note) => (
+        priceOf(note) > 0 ? redactLockedNote(note) : note
+      ));
+    }
 
     res.json({
       success: true,
@@ -194,6 +200,42 @@ router.get('/knowledge/:knowledgeNodeId', requireAuth, async (req, res) => {
 });
 
 /**
+ * GET /api/v3/notes/favorites
+ * 必须写在 /:id 前面，否则 favorites 会被当成笔记编号。
+ */
+router.get('/favorites', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const {
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+    } = req.query;
+
+    const options = {
+      page: validateInt(page, { min: 1, defaultValue: 1 }),
+      limit: validateInt(limit, { min: 1, max: 100, defaultValue: 20 }),
+      sortBy: sortBy || 'createdAt',
+      sortOrder: sortOrder || 'desc',
+    };
+
+    const result = await getFavoriteNotes(userId, options);
+
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (err) {
+    console.error('GET /api/v3/notes/favorites error:', err);
+    res.status(500).json({
+      success: false,
+      message: err.message || '获取收藏笔记失败',
+    });
+  }
+});
+
+/**
  * GET /api/v3/notes/:id
  * 获取笔记详情
  */
@@ -224,7 +266,7 @@ router.get('/:id', async (req, res) => {
 router.post('/', requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
-    const { type, questionId, knowledgeNodeId, title, content, summary, tags, isPublic, images, attachments } = req.body;
+    const { type, questionId, knowledgeNodeId, title, content, summary, tags, isPublic, images, attachments, pricePoints } = req.body;
 
     if (!type || !['question', 'knowledge', 'general'].includes(type)) {
       return res.status(400).json({
@@ -256,6 +298,7 @@ router.post('/', requireAuth, async (req, res) => {
       summary: summary != null ? sanitizeString(String(summary), { maxLength: 500 }) : undefined,
       tags: Array.isArray(tags) ? tags.map(t => sanitizeString(t, { maxLength: 50 })).filter(Boolean) : [],
       isPublic: isPublic || false,
+      pricePoints: validateInt(pricePoints, { min: 0, max: 100000, defaultValue: 0 }) || 0,
       images: Array.isArray(images) ? images : [],
       attachments: Array.isArray(attachments) ? attachments : [],
     });
@@ -280,6 +323,21 @@ router.post('/', requireAuth, async (req, res) => {
 });
 
 /**
+ * POST /api/v3/notes/:id/purchase
+ * 用积分解锁笔记正文。作者不需要购买。
+ */
+router.post('/:id/purchase', requireAuth, async (req, res) => {
+  try {
+    const result = await purchaseContent(req.user.id, 'note', req.params.id);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    const status = err.status || 500;
+    if (status === 500) console.error('POST /api/v3/notes/:id/purchase error:', err);
+    res.status(status).json({ success: false, message: err.message || '解锁失败' });
+  }
+});
+
+/**
  * PUT /api/v3/notes/:id
  * 更新笔记
  */
@@ -287,7 +345,7 @@ router.put('/:id', requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
     const { id } = req.params;
-    const { title, content, tags, isPublic, summary, images, attachments } = req.body;
+    const { title, content, tags, isPublic, summary, images, attachments, pricePoints } = req.body;
 
     const updates = {};
     if (title !== undefined) {
@@ -303,6 +361,9 @@ router.put('/:id', requireAuth, async (req, res) => {
     }
     if (isPublic !== undefined) {
       updates.isPublic = isPublic;
+    }
+    if (pricePoints !== undefined) {
+      updates.pricePoints = validateInt(pricePoints, { min: 0, max: 100000, defaultValue: 0 }) || 0;
     }
     if (summary !== undefined) {
       updates.summary = sanitizeString(summary, { maxLength: 500, allowEmpty: true });
@@ -451,42 +512,6 @@ router.delete('/:id/favorite', requireAuth, async (req, res) => {
     res.status(500).json({
       success: false,
       message: err.message || '取消收藏失败',
-    });
-  }
-});
-
-/**
- * GET /api/v3/notes/favorites
- * 获取用户收藏的笔记列表
- */
-router.get('/favorites', requireAuth, async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const {
-      page,
-      limit,
-      sortBy,
-      sortOrder,
-    } = req.query;
-
-    const options = {
-      page: validateInt(page, { min: 1, defaultValue: 1 }),
-      limit: validateInt(limit, { min: 1, max: 100, defaultValue: 20 }),
-      sortBy: sortBy || 'createdAt',
-      sortOrder: sortOrder || 'desc',
-    };
-
-    const result = await getFavoriteNotes(userId, options);
-
-    res.json({
-      success: true,
-      data: result,
-    });
-  } catch (err) {
-    console.error('GET /api/v3/notes/favorites error:', err);
-    res.status(500).json({
-      success: false,
-      message: err.message || '获取收藏笔记失败',
     });
   }
 });

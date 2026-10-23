@@ -39,6 +39,12 @@ export async function getBanks(params = {}) {
  * @param {string} id - 题库ID
  * @returns {Promise<Object>}
  */
+export async function purchaseBank(id) {
+  const res = await api.post(`/v3/banks/${id}/purchase`);
+  if (res.data?.success) return res.data.data;
+  throw new Error(res.data?.message || '解锁失败');
+}
+
 export async function getBank(id) {
   const res = await api.get(`/v3/banks/${id}`);
   return res.data?.data;

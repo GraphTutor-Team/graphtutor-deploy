@@ -13,11 +13,21 @@ import Nodes from "../../pages/Nodes.jsx";
 import Profile from "../../pages/Profile.jsx";
 import AccountLink from "../../pages/AccountLink.jsx";
 import Settings from "../../pages/Settings.jsx";
+import Organizations from "../../pages/Organizations.jsx";
 import GenFromFile from "../../pages/GenFromFile.jsx";
 import AIGenerator from "../../pages/AIGenerator.jsx";
 import { LazyNotifications, LazyShop } from "../../utils/lazyLoad.js";
 
 export const otherRoutes = [
+  <Route
+    key="organizations"
+    path="/organizations"
+    element={
+      <ProtectedRoute>
+        <Organizations />
+      </ProtectedRoute>
+    }
+  />,
   <Route
     key="graph"
     path="/graph"

@@ -13,6 +13,7 @@ import { canModifyBank } from '../../middleware/permission.js';
 import { sanitizeString, validateInt } from '../../middleware/validation.js';
 import { updateBankQuestionCount, batchUpdateBankQuestionCounts } from '../../services/bankStats.js';
 import { generateQuestionId } from '../../utils/questionIdService.js';
+import { attachSubjectNames } from '../../services/subjectNames.js';
 
 const router = express.Router();
 
@@ -462,11 +463,10 @@ router.get('/bank/:bankId/export', requireAuth, async (req, res) => {
     const userRole = req.user.role;
 
     // 验证题库是否存在
-    const bank = await QuestionBank.findById(bankId)
+    const bank = await attachSubjectNames(await QuestionBank.findById(bankId)
       .populate('ownerId', 'name email')
       .populate('managers', 'name email')
-      .populate('subjectCode', 'code name')
-      .lean();
+      .lean());
 
     if (!bank) {
       return res.status(404).json({

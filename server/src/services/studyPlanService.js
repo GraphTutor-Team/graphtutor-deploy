@@ -254,12 +254,12 @@ export async function checkIn(userId, planId, checkInData) {
 
   if (existing) {
     // 更新现有打卡记录
-    existing.studyDuration = studyDuration || existing.studyDuration;
-    existing.completedQuestions = completedQuestions || existing.completedQuestions;
-    existing.correctQuestions = correctQuestions || existing.correctQuestions;
-    existing.mood = mood || existing.mood;
-    existing.summary = summary || existing.summary;
-    existing.images = images || existing.images;
+    if (studyDuration != null) existing.studyDuration = studyDuration;
+    if (completedQuestions != null) existing.completedQuestions = completedQuestions;
+    if (correctQuestions != null) existing.correctQuestions = correctQuestions;
+    if (mood) existing.mood = mood;
+    if (summary != null) existing.summary = summary;
+    if (Array.isArray(images)) existing.images = images;
     await existing.save();
     return existing;
   }

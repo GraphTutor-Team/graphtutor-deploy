@@ -78,7 +78,7 @@ export default function GroupStudyRoomTab({ group, currentUserId, active }) {
   return (
     <div className="space-y-4">
       <p className="text-sm text-slate-600 dark:text-slate-400">
-        与组内成员一起自习，互相监督。进入后每 2 分钟自动刷新在线状态，5 分钟无活动将自动视为离开。
+        与组内成员一起自习。这里只显示谁在线，以及各自写下的今日目标。没有语音，也没有视频。进入后每 2 分钟刷新一次，5 分钟没有活动就视为离开。
       </p>
       {!isInStudyRoom ? (
         <div className="space-y-3">

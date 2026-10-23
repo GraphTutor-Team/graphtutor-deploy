@@ -21,6 +21,7 @@ import { NavLink, Outlet, useNavigate, useMatch, useLocation } from "react-route
 import { useState, useEffect } from "react";
 import logo from "../assets/logo.png";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useLanguage } from "../context/LanguageContext.jsx";
 import { isAdmin, isQuestionManager, getRoleName } from "../utils/role.js";
 import NotificationCenter from "../components/NotificationCenter.jsx";
 import SearchModal from "../components/SearchModal.jsx";
@@ -180,6 +181,7 @@ export default function AppLayout() {
         { to: '/learning-path', title: '学习路径' },
         { to: '/skill-tree', title: '技能树' },
         { to: '/goals', title: '学习目标' },
+        { to: '/organizations', title: '机构' },
         { to: '/achievements', title: '学习成就' },
       ],
     });
@@ -417,6 +419,7 @@ export default function AppLayout() {
 
 /* 可折叠菜单组 */
 function MenuGroup({ label, children, expand, isExpanded, onToggle }) {
+  const { t } = useLanguage();
   return (
     <div className="mb-2">
       <button
@@ -430,14 +433,14 @@ function MenuGroup({ label, children, expand, isExpanded, onToggle }) {
       >
         {expand ? (
           <>
-            <span className="text-xs font-semibold uppercase tracking-wider">{label}</span>
+            <span className="text-xs font-semibold uppercase tracking-wider">{t(label)}</span>
             <span className="text-slate-400 dark:text-slate-500 text-[10px] transition-transform duration-200">
               {isExpanded ? '▾' : '▸'}
             </span>
           </>
         ) : (
-          <span className="text-[10px] font-semibold uppercase tracking-wider truncate max-w-full" title={label}>
-            {label.slice(0, 2)}
+          <span className="text-[10px] font-semibold uppercase tracking-wider truncate max-w-full" title={t(label)}>
+            {t(label).slice(0, 2)}
           </span>
         )}
       </button>
@@ -447,7 +450,7 @@ function MenuGroup({ label, children, expand, isExpanded, onToggle }) {
             <SideItem
               key={child.to}
               to={child.to}
-              title={child.title}
+              title={t(child.title)}
               expand={expand}
               isSubItem={expand}
               badge={child.badge}

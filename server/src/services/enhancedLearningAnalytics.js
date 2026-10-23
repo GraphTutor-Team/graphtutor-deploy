@@ -9,6 +9,7 @@ import WrongQuestion from '../models/WrongQuestion.js';
 import Question from '../models/Question.js';
 import LearningGoal from '../models/LearningGoal.js';
 import KnowledgeNode from '../models/KnowledgeNode.js';
+import GraphNode from '../models/GraphNode.js';
 import User from '../models/User.js';
 import { getKnowledgeMastery, getLearningTrend } from './learningAnalytics.js';
 
@@ -890,6 +891,83 @@ export async function getPathRecommendations(userId, options = {}) {
 }
 
 /**
+ * 学科技能树：正确率达标后，还要先修节点已经点亮才会点亮。
+ * 先修来自图谱节点的父节点，并且父节点也在本学科这批知识点里。
+ */
+async function attachSkillParents(nodes) {
+  const keys = nodes.map((node) => node.key);
+  const graphNodes = keys.length
+    ? await GraphNode.find({ key: { $in: keys } }).select('key parentId').lean()
+    : [];
+  const parentIds = graphNodes.map((node) => node.parentId).filter(Boolean);
+  const parents = parentIds.length
+    ? await GraphNode.find({ _id: { $in: parentIds } }).select('key name').lean()
+    : [];
+  const parentById = new Map(parents.map((parent) => [String(parent._id), parent]));
+  const keySet = new Set(keys);
+  const parentByKey = new Map();
+  graphNodes.forEach((node) => {
+    const parent = node.parentId ? parentById.get(String(node.parentId)) : null;
+    if (!parent || !keySet.has(String(parent.key))) return;
+    parentByKey.set(String(node.key), {
+      key: String(parent.key),
+      name: parent.name || String(parent.key),
+    });
+  });
+  return nodes.map((node) => {
+    const parent = parentByKey.get(node.key);
+    return {
+      ...node,
+      parentKey: parent?.key || null,
+      parentName: parent?.name || null,
+    };
+  });
+}
+
+function lightSkillNodes(nodes) {
+  const byKey = new Map(nodes.map((node) => [node.key, node]));
+  const lit = new Map();
+  const waiting = new Set(nodes.map((node) => node.key));
+  let guard = 0;
+  while (waiting.size && guard <= nodes.length) {
+    guard += 1;
+    const ready = [];
+    waiting.forEach((key) => {
+      const parentKey = byKey.get(key)?.parentKey;
+      if (!parentKey || !waiting.has(parentKey)) ready.push(key);
+    });
+    if (!ready.length) break;
+    ready.forEach((key) => {
+      const node = byKey.get(key);
+      const parentReady = !node.parentKey || lit.get(node.parentKey) === true;
+      lit.set(key, Boolean(node.mastered) && parentReady);
+      waiting.delete(key);
+    });
+  }
+  waiting.forEach((key) => lit.set(key, Boolean(byKey.get(key)?.mastered)));
+
+  return nodes
+    .map((node) => {
+      const parentLit = !node.parentKey || lit.get(node.parentKey) === true;
+      return {
+        ...node,
+        lit: lit.get(node.key) === true,
+        blockedBy: parentLit ? null : node.parentName,
+        depth: skillDepth(node.key, byKey),
+      };
+    })
+    .sort((a, b) => a.depth - b.depth || (a.order ?? 0) - (b.order ?? 0) || a.name.localeCompare(b.name, 'zh'));
+}
+
+function skillDepth(key, byKey, seen = new Set()) {
+  if (seen.has(key)) return 0;
+  seen.add(key);
+  const parentKey = byKey.get(key)?.parentKey;
+  if (!parentKey || !byKey.has(parentKey)) return 0;
+  return 1 + skillDepth(parentKey, byKey, seen);
+}
+
+/**
  * 学科技能树：按学科返回知识点列表及当前用户掌握度，点亮规则：正确率≥70% 且 答题≥3
  * @param {string} userId
  * @param {Object} options - { subjectCode（必填）, days（默认 90） }
@@ -923,17 +1001,25 @@ export async function getSubjectSkillTree(userId, options = {}) {
   const result = nodes.map((n) => {
     const key = String(n.key);
     const m = masteryMap.get(key) || { accuracy: 0, total: 0 };
-    const lit = m.total >= LIT_MIN_TOTAL && m.accuracy >= LIT_MIN_ACCURACY;
+    const mastered = m.total >= LIT_MIN_TOTAL && m.accuracy >= LIT_MIN_ACCURACY;
     return {
       key,
       name: n.name || key,
       order: n.order ?? 0,
-      lit,
+      mastered,
+      lit: mastered,
       accuracy: Math.round(m.accuracy * 10) / 10,
       total: m.total,
+      parentKey: null,
+      parentName: null,
+      blockedBy: null,
     };
   });
-  return { subjectCode: String(subjectCode).trim(), nodes: result };
+  const withParents = await attachSkillParents(result);
+  return {
+    subjectCode: String(subjectCode).trim(),
+    nodes: lightSkillNodes(withParents),
+  };
 }
 
 /**
@@ -1105,18 +1191,40 @@ export async function getCompareReport(userId, options = {}) {
 
   let peerQuery = {};
   let groupLabel = '全部用户';
-  if (groupBy === 'school' && school) {
-    peerQuery.school = school;
+  const missingProfile = (groupBy === 'school' && !school) || (groupBy === 'grade' && !grade);
+  if (missingProfile) {
+    return {
+      groupBy,
+      groupLabel: groupBy === 'school' ? '同校' : '同年级',
+      days,
+      source: '答题记录',
+      missingProfile: true,
+      mine: {},
+      peer: {},
+      peerCount: 0,
+    };
+  }
+  if (groupBy === 'school') {
+    peerQuery = { school };
     groupLabel = `同校（${school}）`;
-  } else if (groupBy === 'grade' && grade) {
-    peerQuery.grade = grade;
+  } else {
+    peerQuery = { grade };
     groupLabel = `同年级（${grade}）`;
   }
   const peerUserIds = await User.find(peerQuery).distinct('_id').then((ids) => ids.map((id) => id.toString()));
 
-  const allUserIds = peerUserIds.length ? peerUserIds : await User.find({}).distinct('_id').then((ids) => ids.map((id) => id.toString()));
+  const allUserIds = peerUserIds;
   if (!allUserIds.length) {
-    return { groupBy, groupLabel, mine: {}, peer: {}, peerCount: 0 };
+    return {
+      groupBy,
+      groupLabel,
+      days,
+      source: '答题记录',
+      missingProfile: false,
+      mine: {},
+      peer: {},
+      peerCount: 0,
+    };
   }
 
   const pipeline = [
@@ -1155,6 +1263,9 @@ export async function getCompareReport(userId, options = {}) {
   return {
     groupBy,
     groupLabel,
+    days,
+    source: '答题记录',
+    missingProfile: false,
     mine: {
       totalQuestions: myStat.total,
       correct: myStat.correct,
@@ -1229,6 +1340,8 @@ export async function getAdvancementReport(userId, options = {}) {
 
   return {
     target,
+    days,
+    source: '答题记录',
     score,
     level,
     gaps: gaps.slice(0, 8),

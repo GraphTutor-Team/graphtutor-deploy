@@ -141,7 +141,7 @@ learningPostSchema.statics.getUserPosts = function (userId, options = {}) {
   if (visibility) query.visibility = visibility;
 
   return this.find(query)
-    .populate('authorId', 'name email avatar')
+    .populate('authorId', 'name email avatarUrl')
     .populate('relatedData.achievementId', 'name icon description')
     .populate('relatedData.challengeId', 'title target status')
     .sort({ createdAt: -1 })
@@ -165,7 +165,7 @@ learningPostSchema.statics.getFriendsPosts = function (userId, options = {}) {
   if (type) query.type = type;
 
   return this.find(query)
-    .populate('authorId', 'name email avatar')
+    .populate('authorId', 'name email avatarUrl')
     .populate('relatedData.achievementId', 'name icon description')
     .populate('relatedData.challengeId', 'title target status')
     .sort({ createdAt: -1 })

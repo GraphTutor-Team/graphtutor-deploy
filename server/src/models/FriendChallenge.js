@@ -118,8 +118,8 @@ friendChallengeSchema.statics.getUserChallenges = function (userId, options = {}
   if (status) query.status = status;
   if (type) query.type = type;
   return this.find(query)
-    .populate('creatorId', 'name email avatar')
-    .populate('participantId', 'name email avatar')
+    .populate('creatorId', 'name email avatarUrl')
+    .populate('participantId', 'name email avatarUrl')
     .populate('winner', 'name email')
     .sort({ createdAt: -1 });
 };
@@ -132,8 +132,8 @@ friendChallengeSchema.statics.getChallengesBetweenUsers = function (userId1, use
       { creatorId: userId2, participantId: userId1 },
     ],
   })
-    .populate('creatorId', 'name email avatar')
-    .populate('participantId', 'name email avatar')
+    .populate('creatorId', 'name email avatarUrl')
+    .populate('participantId', 'name email avatarUrl')
     .populate('winner', 'name email')
     .sort({ createdAt: -1 });
 };

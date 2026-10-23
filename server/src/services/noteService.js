@@ -7,6 +7,7 @@
 import Note from '../models/Note.js';
 import NoteLike from '../models/NoteLike.js';
 import NoteFavorite from '../models/NoteFavorite.js';
+import { hasContentAccess, redactLockedNote } from './contentAccess.js';
 import Question from '../models/Question.js';
 import crypto from 'crypto';
 
@@ -67,6 +68,9 @@ export async function createNote(userId, noteData) {
     summary: typeof summary === 'string' ? summary.slice(0, 500) : '',
     tags: Array.isArray(tags) ? tags : [],
     isPublic: isPublic || false,
+    pricePoints: Number.isFinite(Number(noteData.pricePoints))
+      ? Math.max(0, Math.floor(Number(noteData.pricePoints)))
+      : 0,
     images: Array.isArray(images) ? images : [],
     attachments: Array.isArray(attachments) ? attachments : [],
     lastEditedAt: new Date(),
@@ -96,6 +100,10 @@ export async function updateNote(userId, noteId, updates) {
   }
   if (updates.isPublic !== undefined) {
     note.isPublic = updates.isPublic;
+  }
+  if (updates.pricePoints !== undefined) {
+    const price = Number(updates.pricePoints);
+    note.pricePoints = Number.isFinite(price) ? Math.max(0, Math.floor(price)) : 0;
   }
   if (updates.summary !== undefined) {
     note.summary = typeof updates.summary === 'string' ? updates.summary.slice(0, 500) : '';
@@ -161,11 +169,13 @@ export async function getNoteDetail(noteId, userId = null) {
     isFavorited = !!favorite;
   }
 
-  return {
+  const visible = {
     ...note,
     isLiked,
     isFavorited,
   };
+  if (await hasContentAccess(userId, 'note', note)) return visible;
+  return redactLockedNote(visible);
 }
 
 /**

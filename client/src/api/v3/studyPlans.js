@@ -14,7 +14,7 @@ export async function getStudyStats(options = {}) {
   if (options.startDate) params.append('startDate', options.startDate);
   if (options.endDate) params.append('endDate', options.endDate);
 
-  const response = await api.get(`/api/v3/study-plans/stats?${params.toString()}`);
+  const response = await api.get(`/v3/study-plans/stats?${params.toString()}`);
   return response.data;
 }
 
@@ -27,7 +27,7 @@ export async function getStudyPlans(options = {}) {
   if (options.page) params.append('page', options.page);
   if (options.limit) params.append('limit', options.limit);
 
-  const response = await api.get(`/api/v3/study-plans?${params.toString()}`);
+  const response = await api.get(`/v3/study-plans?${params.toString()}`);
   return response.data;
 }
 
@@ -35,7 +35,7 @@ export async function getStudyPlans(options = {}) {
  * 获取学习计划详情
  */
 export async function getStudyPlanDetail(planId) {
-  const response = await api.get(`/api/v3/study-plans/${planId}`);
+  const response = await api.get(`/v3/study-plans/${planId}`);
   return response.data;
 }
 
@@ -43,7 +43,7 @@ export async function getStudyPlanDetail(planId) {
  * 创建学习计划
  */
 export async function createStudyPlan(data) {
-  const response = await api.post('/api/v3/study-plans', data);
+  const response = await api.post('/v3/study-plans', data);
   return response.data;
 }
 
@@ -51,7 +51,7 @@ export async function createStudyPlan(data) {
  * 更新学习计划
  */
 export async function updateStudyPlan(planId, data) {
-  const response = await api.put(`/api/v3/study-plans/${planId}`, data);
+  const response = await api.put(`/v3/study-plans/${planId}`, data);
   return response.data;
 }
 
@@ -59,7 +59,7 @@ export async function updateStudyPlan(planId, data) {
  * 删除学习计划
  */
 export async function deleteStudyPlan(planId) {
-  const response = await api.delete(`/api/v3/study-plans/${planId}`);
+  const response = await api.delete(`/v3/study-plans/${planId}`);
   return response.data;
 }
 
@@ -67,7 +67,7 @@ export async function deleteStudyPlan(planId) {
  * 获取某日的任务
  */
 export async function getDailyTask(planId, date) {
-  const response = await api.get(`/api/v3/study-plans/${planId}/tasks/${date}`);
+  const response = await api.get(`/v3/study-plans/${planId}/tasks/${date}`);
   return response.data;
 }
 
@@ -75,7 +75,7 @@ export async function getDailyTask(planId, date) {
  * 更新任务进度
  */
 export async function updateTaskProgress(planId, taskId, completedCount) {
-  const response = await api.put(`/api/v3/study-plans/${planId}/tasks/${taskId}`, {
+  const response = await api.put(`/v3/study-plans/${planId}/tasks/${taskId}`, {
     completedCount,
   });
   return response.data;
@@ -85,7 +85,7 @@ export async function updateTaskProgress(planId, taskId, completedCount) {
  * 打卡
  */
 export async function checkIn(planId, data) {
-  const response = await api.post(`/api/v3/study-plans/${planId}/check-in`, data);
+  const response = await api.post(`/v3/study-plans/${planId}/check-in`, data);
   return response.data;
 }
 
@@ -99,7 +99,7 @@ export async function getAllCheckIns(options = {}) {
   if (options.page) params.append('page', options.page);
   if (options.limit) params.append('limit', options.limit);
 
-  const response = await api.get(`/api/v3/study-plans/check-ins?${params.toString()}`);
+  const response = await api.get(`/v3/study-plans/check-ins?${params.toString()}`);
   return response.data;
 }
 
@@ -113,7 +113,7 @@ export async function getCheckIns(planId, options = {}) {
   if (options.page) params.append('page', options.page);
   if (options.limit) params.append('limit', options.limit);
 
-  const response = await api.get(`/api/v3/study-plans/${planId}/check-ins?${params.toString()}`);
+  const response = await api.get(`/v3/study-plans/${planId}/check-ins?${params.toString()}`);
   return response.data;
 }
 
@@ -121,7 +121,7 @@ export async function getCheckIns(planId, options = {}) {
  * 获取日历视图数据
  */
 export async function getCalendarView(planId, year, month) {
-  const response = await api.get(`/api/v3/study-plans/${planId}/calendar?year=${year}&month=${month}`);
+  const response = await api.get(`/v3/study-plans/${planId}/calendar?year=${year}&month=${month}`);
   return response.data;
 }
 

@@ -100,12 +100,22 @@ const DiscussionSchema = new mongoose.Schema(
       index: true,
     },
 
-    // 悬赏积分（仅提问时可设置，采纳答案后转给回答者）
+    // 悬赏积分。采纳后保留数额，用 bountyStatus 表示待采纳或已发放。
     bountyPoints: {
       type: Number,
       default: 0,
       min: 0,
       index: true,
+    },
+    bountyStatus: {
+      type: String,
+      enum: ['none', 'open', 'awarded'],
+      default: 'none',
+      index: true,
+    },
+    bountyAwardedTo: {
+      type: String,
+      default: '',
     },
 
     // 最后回复时间

@@ -78,6 +78,59 @@ router.get('/', requireAuth, async (req, res) => {
 });
 
 /**
+ * GET /api/v3/study-plans/check-ins
+ * 获取所有打卡记录。必须写在 /:id 前面，否则会被当成计划编号。
+ */
+router.get('/check-ins', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { startDate, endDate, page, limit } = req.query;
+
+    const StudyCheckIn = (await import('../../models/StudyCheckIn.js')).default;
+    const query = { userId };
+
+    if (startDate || endDate) {
+      query.date = {};
+      if (startDate) query.date.$gte = new Date(startDate);
+      if (endDate) query.date.$lte = new Date(endDate);
+    }
+
+    const pageNum = validateInt(page, { min: 1, defaultValue: 1 });
+    const limitNum = validateInt(limit, { min: 1, max: 100, defaultValue: 30 });
+    const skip = (pageNum - 1) * limitNum;
+
+    const [items, total] = await Promise.all([
+      StudyCheckIn.find(query)
+        .sort({ date: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .populate('planId', 'name')
+        .lean(),
+      StudyCheckIn.countDocuments(query),
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        items,
+        meta: {
+          page: pageNum,
+          limit: limitNum,
+          total,
+          totalPages: Math.ceil(total / limitNum),
+        },
+      },
+    });
+  } catch (err) {
+    console.error('GET /api/v3/study-plans/check-ins error:', err);
+    res.status(500).json({
+      success: false,
+      message: err.message || '获取打卡记录失败',
+    });
+  }
+});
+
+/**
  * GET /api/v3/study-plans/:id
  * 获取学习计划详情
  */
@@ -303,60 +356,6 @@ router.post('/:id/check-in', requireAuth, async (req, res) => {
     res.status(500).json({
       success: false,
       message: err.message || '打卡失败',
-    });
-  }
-});
-
-/**
- * GET /api/v3/study-plans/check-ins
- * 获取所有打卡记录（不依赖planId）
- */
-router.get('/check-ins', requireAuth, async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { startDate, endDate, page, limit } = req.query;
-
-    // 获取所有计划的打卡记录
-    const StudyCheckIn = (await import('../../models/StudyCheckIn.js')).default;
-    const query = { userId };
-    
-    if (startDate || endDate) {
-      query.date = {};
-      if (startDate) query.date.$gte = new Date(startDate);
-      if (endDate) query.date.$lte = new Date(endDate);
-    }
-
-    const pageNum = validateInt(page, { min: 1, defaultValue: 1 });
-    const limitNum = validateInt(limit, { min: 1, max: 100, defaultValue: 30 });
-    const skip = (pageNum - 1) * limitNum;
-
-    const [items, total] = await Promise.all([
-      StudyCheckIn.find(query)
-        .sort({ date: -1 })
-        .skip(skip)
-        .limit(limitNum)
-        .populate('planId', 'title')
-        .lean(),
-      StudyCheckIn.countDocuments(query),
-    ]);
-
-    res.json({
-      success: true,
-      data: {
-        items,
-        meta: {
-          page: pageNum,
-          limit: limitNum,
-          total,
-          totalPages: Math.ceil(total / limitNum),
-        },
-      },
-    });
-  } catch (err) {
-    console.error('GET /api/v3/study-plans/check-ins error:', err);
-    res.status(500).json({
-      success: false,
-      message: err.message || '获取打卡记录失败',
     });
   }
 });

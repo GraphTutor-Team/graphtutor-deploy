@@ -10,6 +10,7 @@ import PageHeader from "../components/PageHeader";
 import ProgressBar from "../components/ProgressBar";
 import TimerBadge from "../components/TimerBadge";
 import { useAuth } from "../context/AuthContext";
+import api from "../api/api.js";
 import { useLearningData } from "../context/LearningDataContext";
 import { useAIContext } from "../context/AIContext";
 import { buildQuestionBrief } from "../utils/aiBrief";
@@ -253,11 +254,21 @@ export default function Exam() {
       if (subjectCode) qs.set("subjectCode", subjectCode);
       if (bankId) qs.set("bankId", bankId);
 
-      const res = await fetch(`/api/questions?${qs.toString()}`);
-      if (!res.ok) {
-        throw new Error(`获取题库失败（${res.status}）`);
+      let json;
+      if (bankId) {
+        try {
+          const paid = await api.get(`/questions?${qs.toString()}`);
+          json = paid.data;
+        } catch (err) {
+          throw new Error(err.response?.data?.error || err.response?.data?.message || '需要先解锁这个题库');
+        }
+      } else {
+        const res = await fetch(`/api/questions?${qs.toString()}`);
+        if (!res.ok) {
+          throw new Error(`获取题库失败（${res.status}）`);
+        }
+        json = await res.json();
       }
-      const json = await res.json();
       const fromDb = json.items || json.data || json || [];
 
       dataQuestions = Array.isArray(fromDb) ? fromDb : [];
@@ -505,9 +516,10 @@ export default function Exam() {
           knowledgeNodeId: q.knowledgeNodeId || null,
           ...answerData,
           isCorrect: Boolean(q.isCorrect),
+          isEmpty: Boolean(q.isEmpty),
           score: typeof q.score === 'number' ? q.score : (q.isCorrect ? 1 : 0),
         };
-      }).filter(r => r.questionId); // 过滤掉无效的questionId
+      }).filter((r) => r.questionId && /^[a-f0-9]{24}$/i.test(r.questionId));
 
       if (records.length === 0) {
         console.warn("没有有效的记录可提交");
@@ -531,7 +543,12 @@ export default function Exam() {
           try {
             await api.post("/records", {
               userId: String(userId),
-              ...record,
+              questionId: record.questionId,
+              knowledgeNodeId: record.knowledgeNodeId,
+              answerIndex: record.answerIndex,
+              correctIndex: record.correctIndex,
+              isCorrect: record.isCorrect,
+              isEmpty: record.isEmpty,
             });
             successCount++;
           } catch (e) {

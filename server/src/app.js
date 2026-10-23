@@ -218,6 +218,9 @@ export async function createServer() {
   app.use("/api/v3/mentor", (await import("./routes/v3/mentor.js")).default);
   app.use("/api/v3/export", (await import("./routes/v3/export.js")).default);
   app.use("/api/v3/notifications", (await import("./routes/v3/notifications.js")).default);
+  app.use("/api/v3/organizations", (await import("./routes/v3/organizations.js")).default);
+  app.use("/api/v3/open-api", (await import("./routes/v3/openApiKeys.js")).default);
+  app.use("/api/open/v1", (await import("./routes/open/v1.js")).default);
   app.use("/api/v3/search", (await import("./routes/v3/search.js")).default);
   app.use("/api/v3/cache", (await import("./routes/v3/cache.js")).default);
 

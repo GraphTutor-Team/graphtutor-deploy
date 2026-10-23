@@ -28,6 +28,8 @@ export function applySingleRecordSideEffects(userId, {
   if (!userId || !questionId) return;
 
   const run = async () => {
+    if (options.isEmpty) return;
+
     const q = question || await loadQuestion(questionId);
     await updateLearningGoalsProgress(userId, {
       questionId: String(questionId),
@@ -88,11 +90,14 @@ export async function applyBatchRecordSideEffects(userId, entries) {
   });
 
   for (const entry of entries) {
-    applySingleRecordSideEffects(userId, entry, questionMap[String(entry.questionId)], { skipWrongBook: true });
+    applySingleRecordSideEffects(userId, entry, questionMap[String(entry.questionId)], {
+      skipWrongBook: true,
+      isEmpty: entry.isEmpty === true,
+    });
   }
 
   await Promise.all(entries.map(async (entry) => {
-    if (!entry.recordId || !entry.questionId) return;
+    if (!entry.recordId || !entry.questionId || entry.isEmpty) return;
     try {
       await addOrUpdateWrongQuestion(userId, entry.recordId, String(entry.questionId), !!entry.isCorrect);
     } catch (err) {

@@ -1109,7 +1109,7 @@ export default function Analytics() {
       <div className="surface !p-4">
         <h2 className="text-lg font-bold mb-2 text-slate-900 dark:text-slate-100">对比报告</h2>
         <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
-          与同校或同年级用户对比近期答题量、正确率、学习天数（请在个人中心完善学校/年级）。
+          用近 90 天的答题记录，和填写了相同学校或年级的其他人比较答题量、正确率和学习天数。没有填写时，不会拿全部用户来凑。
         </p>
         <div className="flex flex-wrap items-center gap-2 mb-3">
           <select
@@ -1128,8 +1128,18 @@ export default function Analytics() {
             {compareReportLoading ? '加载中…' : '查看对比'}
           </button>
         </div>
-        {compareReport && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+        {compareReport?.missingProfile && (
+          <p className="text-sm text-slate-700 dark:text-slate-300">
+            个人资料里还没有{compareGroupBy === 'school' ? '学校' : '年级'}，所以这次没有对照数据。可以先到个人中心补上。
+          </p>
+        )}
+        {compareReport && !compareReport.missingProfile && (
+          <div className="space-y-3">
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              近 {compareReport.days || 90} 天答题记录。对照范围是{compareReport.groupLabel}
+              {compareReport.peerCount > 0 ? `，其中有答题记录的其他人 ${compareReport.peerCount} 人。` : '，目前还没有其他有答题记录的人。'}
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50">
               <div className="text-slate-500 dark:text-slate-400">答题数（我 / {compareReport.groupLabel} 平均）</div>
               <div className="font-bold text-slate-900 dark:text-slate-100">{compareReport.mine?.totalQuestions ?? 0} / {compareReport.peer?.avgTotal ?? 0}</div>
@@ -1146,6 +1156,7 @@ export default function Analytics() {
               <div className="text-slate-500 dark:text-slate-400">对比人数</div>
               <div className="font-bold text-slate-900 dark:text-slate-100">{compareReport.peerCount ?? 0} 人</div>
             </div>
+            </div>
           </div>
         )}
       </div>
@@ -1154,7 +1165,7 @@ export default function Analytics() {
       <div className="surface !p-4">
         <h2 className="text-lg font-bold mb-2 text-slate-900 dark:text-slate-100">升学报告</h2>
         <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
-          基于近期学习数据评估竞争力，并给出差距诊断与备考建议（可在个人中心设置目标）。
+          用你自己近 90 天的答题记录估算竞争力。指数由正确率、题量和知识点数算出来，不是录取分数。目标可以在个人中心修改。
         </p>
         <div className="flex flex-wrap items-center gap-2 mb-3">
           <select
@@ -1183,7 +1194,7 @@ export default function Analytics() {
                 <span className="ml-2 px-2 py-0.5 rounded bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200 text-xs">{advancementReport.level}</span>
               </div>
               <div className="text-slate-600 dark:text-slate-400">
-                近期 {advancementReport.summary?.totalQuestions ?? 0} 题 · 正确率 {advancementReport.summary?.accuracy ?? 0}% · 涉及 {advancementReport.summary?.knowledgeNodeCount ?? 0} 个知识点
+                近 {advancementReport.days || 90} 天答题记录 · {advancementReport.summary?.totalQuestions ?? 0} 题 · 正确率 {advancementReport.summary?.accuracy ?? 0}% · 涉及 {advancementReport.summary?.knowledgeNodeCount ?? 0} 个知识点
               </div>
             </div>
             {advancementReport.gaps && advancementReport.gaps.length > 0 && (

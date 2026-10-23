@@ -9,6 +9,7 @@ import express from 'express';
 import Group from '../../models/Group.js';
 import QuestionBank from '../../models/QuestionBank.js';
 import Question from '../../models/Question.js';
+import { assertBankQuestionAccess, assertQuestionBanksAccessible } from '../../services/contentAccess.js';
 import Record from '../../models/Record.js';
 import User from '../../models/User.js';
 import WrongQuestion from '../../models/WrongQuestion.js';
@@ -341,6 +342,14 @@ router.post('/:id/shared-questions', requireAuth, getGroupAndCheckMember, async 
     if (!question) {
       return res.status(404).json({ success: false, message: '题目不存在' });
     }
+    try {
+      await assertQuestionBanksAccessible(userId, [question]);
+    } catch (err) {
+      if (err.status === 403) {
+        return res.status(403).json({ success: false, message: err.message, pricePoints: err.pricePoints });
+      }
+      throw err;
+    }
     const existing = await GroupSharedQuestion.findOne({ groupId, questionId });
     if (existing) {
       return res.status(400).json({ success: false, message: '该题已在小组题库中' });
@@ -430,6 +439,14 @@ router.post('/:id/practice', requireAuth, getGroupAndCheckMember, async (req, re
     const bank = await QuestionBank.findById(bankId);
     if (!bank) {
       return res.status(404).json({ success: false, message: '题库不存在' });
+    }
+    try {
+      await assertBankQuestionAccess(req.user.id, bankId);
+    } catch (err) {
+      if (err.status === 403) {
+        return res.status(403).json({ success: false, message: err.message, pricePoints: err.pricePoints });
+      }
+      throw err;
     }
 
     const questionIds = await Question.aggregate([
@@ -600,6 +617,14 @@ router.post('/:id/assignments', requireAuth, getGroupAndCheckMember, async (req,
     const dueDate = dueAt ? new Date(dueAt) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     if (Number.isNaN(dueDate.getTime())) {
       return res.status(400).json({ success: false, message: '截止时间格式无效' });
+    }
+    try {
+      await assertBankQuestionAccess(req.user.id, bankId);
+    } catch (err) {
+      if (err.status === 403) {
+        return res.status(403).json({ success: false, message: err.message, pricePoints: err.pricePoints });
+      }
+      throw err;
     }
     const assignment = await GroupAssignment.create({
       groupId: group._id,

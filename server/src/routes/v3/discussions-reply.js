@@ -94,39 +94,70 @@ router.put('/:replyId/best-answer', requireAuth, async (req, res) => {
       });
     }
 
-    // 取消其他回复的最佳答案标记
-    await DiscussionReply.updateMany(
-      { discussionId: id, _id: { $ne: replyId } },
-      { $set: { isBestAnswer: false } }
-    );
+    if (discussion.bountyStatus === 'awarded') {
+      return res.status(400).json({
+        success: false,
+        message: '悬赏已经发放，不能再改最佳答案',
+      });
+    }
 
-    // 标记当前回复为最佳答案
-    const reply = await DiscussionReply.findByIdAndUpdate(
-      replyId,
-      { $set: { isBestAnswer: true } },
-      { new: true }
-    ).lean();
-
-    if (!reply) {
+    const replyDoc = await DiscussionReply.findOne({ _id: replyId, discussionId: id }).lean();
+    if (!replyDoc) {
       return res.status(404).json({
         success: false,
         message: '回复不存在',
       });
     }
 
-    // 悬赏积分转给回答者（采纳后）
     const bountyPoints = Math.max(0, discussion.bountyPoints || 0);
-    if (bountyPoints > 0 && reply.userId) {
-      await User.findByIdAndUpdate(reply.userId, { $inc: { points: bountyPoints } });
-      await Discussion.findByIdAndUpdate(id, { $set: { bountyPoints: 0 } });
+    const bountyOpen = bountyPoints > 0 && discussion.bountyStatus !== 'awarded' && !discussion.isResolved;
+    if (bountyOpen && String(replyDoc.userId || '') === String(discussion.userId)) {
+      return res.status(400).json({
+        success: false,
+        message: '不能把悬赏发给自己',
+      });
     }
 
-    // 标记讨论为已解决
-    await Discussion.findByIdAndUpdate(id, { $set: { isResolved: true } });
+    // 取消其他回复的最佳答案标记
+    await DiscussionReply.updateMany(
+      { discussionId: id, _id: { $ne: replyId } },
+      { $set: { isBestAnswer: false } }
+    );
+
+    const reply = await DiscussionReply.findByIdAndUpdate(
+      replyId,
+      { $set: { isBestAnswer: true } },
+      { new: true }
+    ).lean();
+
+    let awardedPoints = 0;
+    if (bountyOpen && reply.userId) {
+      const claimed = await Discussion.findOneAndUpdate(
+        {
+          _id: id,
+          bountyPoints: { $gt: 0 },
+          isResolved: { $ne: true },
+          bountyStatus: { $ne: 'awarded' },
+        },
+        {
+          $set: {
+            bountyStatus: 'awarded',
+            bountyAwardedTo: String(reply.userId),
+            isResolved: true,
+          },
+        },
+      );
+      if (claimed) {
+        awardedPoints = bountyPoints;
+        await User.findByIdAndUpdate(reply.userId, { $inc: { points: bountyPoints } });
+      }
+    } else {
+      await Discussion.findByIdAndUpdate(id, { $set: { isResolved: true } });
+    }
 
     res.json({
       success: true,
-      data: { ...reply, awardedPoints: bountyPoints },
+      data: { ...reply, awardedPoints },
     });
   } catch (err) {
     console.error('PUT /api/v3/discussions/:id/replies/:replyId/best-answer error:', err);

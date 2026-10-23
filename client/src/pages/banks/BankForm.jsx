@@ -29,6 +29,7 @@ export default function BankForm() {
     subjectCode: '',
     description: '',
     isPublic: true,
+    pricePoints: 0,
     source: 'manual', // manual: 手动创建, import: 导入, official: 官方
     groupId: '', // 关联群组
     settings: {
@@ -98,6 +99,7 @@ export default function BankForm() {
         subjectCode: bank.subjectCode?.code || bank.subjectCode || '',
         description: bank.description || '',
         isPublic: bank.isPublic ?? true,
+        pricePoints: bank.pricePoints || 0,
         source: bank.source || 'manual',
         groupId: bank.groupId?._id || bank.groupId || '',
         settings: bank.settings || {
@@ -298,6 +300,16 @@ export default function BankForm() {
                   className="w-4 h-4"
                 />
                 <span className="text-sm text-slate-700">公开题库（所有用户可见）</span>
+              </label>
+              <label className="block text-sm mt-3">
+                解锁积分（0 表示免费）
+                <input
+                  type="number"
+                  min="0"
+                  value={formData.pricePoints}
+                  onChange={(e) => handleChange('pricePoints', Number(e.target.value) || 0)}
+                  className="mt-1 w-full px-3 py-2 border rounded-lg"
+                />
               </label>
               <div className="text-xs text-slate-500 mt-1 ml-6">
                 公开题库：所有用户都可以查看和使用

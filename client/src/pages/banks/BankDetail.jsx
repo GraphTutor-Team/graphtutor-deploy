@@ -12,7 +12,9 @@ import {
   getBankStats,
   getBankActivity,
   getBankDistribution,
+  purchaseBank,
 } from '../../api/v3/questionBanks';
+import { toast } from '../../utils/toast';
 import { getQuestions } from '../../api/v3/questions';
 import BatchQuestionGenerator from '../../components/BatchQuestionGenerator';
 
@@ -133,6 +135,29 @@ export default function BankDetail() {
             <div className="text-lg font-medium mt-1">
               {bank.subjectCode?.name || bank.subjectCode || '未分类'}
             </div>
+          </div>
+          <div className="bg-white p-4 rounded-lg border">
+            <div className="text-sm text-slate-600">解锁积分</div>
+            <div className="text-lg font-medium mt-1">
+              {bank.pricePoints > 0 ? `${bank.pricePoints} 积分` : '免费'}
+            </div>
+            {bank.pricePoints > 0 && bank.unlocked === false && (
+              <button
+                type="button"
+                className="mt-2 text-sm text-blue-600 hover:underline"
+                onClick={async () => {
+                  try {
+                    await purchaseBank(id);
+                    toast.success('题库已解锁');
+                    loadData();
+                  } catch (err) {
+                    toast.error(err.response?.data?.message || err.message || '解锁失败');
+                  }
+                }}
+              >
+                用积分解锁
+              </button>
+            )}
           </div>
           <div className="bg-white p-4 rounded-lg border">
             <div className="text-sm text-slate-600">状态</div>

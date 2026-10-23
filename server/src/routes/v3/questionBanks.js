@@ -8,6 +8,8 @@
 import express from 'express';
 import QuestionBank from '../../models/QuestionBank.js';
 import Question from '../../models/Question.js';
+import { attachSubjectNames } from '../../services/subjectNames.js';
+import { hasContentAccess, priceOf, purchaseContent } from '../../services/contentAccess.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
 import {
   canViewBank,
@@ -136,15 +138,14 @@ router.get('/', requireAuth, async (req, res) => {
 
     // 查询题库列表
     const [banks, total] = await Promise.all([
-      QuestionBank.find(cond)
+      attachSubjectNames(await QuestionBank.find(cond)
         .populate('ownerId', 'name email')
         .populate('managers', 'name email role')
-        .populate('subjectCode', 'code name icon')
         .populate('groupId', 'name code')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limitNum)
-        .lean(),
+        .lean()),
       QuestionBank.countDocuments(cond),
     ]);
 
@@ -180,9 +181,11 @@ router.get('/:id', requireAuth, loadBank, canViewBank, async (req, res) => {
       bank.questionCount = await updateBankQuestionCount(bank._id);
     }
 
+    const named = await attachSubjectNames(bank);
+    const unlocked = await hasContentAccess(req.user.id, 'bank', named);
     res.json({
       success: true,
-      data: bank,
+      data: { ...named, pricePoints: priceOf(named), unlocked },
     });
   } catch (err) {
     console.error('GET /api/v3/banks/:id error:', err);
@@ -190,6 +193,21 @@ router.get('/:id', requireAuth, loadBank, canViewBank, async (req, res) => {
       success: false,
       message: '获取题库详情失败',
     });
+  }
+});
+
+/**
+ * POST /api/v3/banks/:id/purchase
+ * 用积分解锁题库。创建者和管理员不需要购买。
+ */
+router.post('/:id/purchase', requireAuth, async (req, res) => {
+  try {
+    const result = await purchaseContent(req.user.id, 'bank', req.params.id);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    const status = err.status || 500;
+    if (status === 500) console.error('POST /api/v3/banks/:id/purchase error:', err);
+    res.status(status).json({ success: false, message: err.message || '解锁失败' });
   }
 });
 
@@ -221,6 +239,7 @@ router.post(
         settings,
         groupId,
         isOfficial = false, // 是否为官方题库
+        pricePoints,
       } = req.body;
 
       const userId = req.user.id;
@@ -278,6 +297,7 @@ router.post(
         },
         questionCount: 0,
         groupId: groupId || undefined,
+        pricePoints: validateInt(pricePoints, { min: 0, max: 100000, defaultValue: 0 }) || 0,
       });
 
       res.status(201).json({
@@ -310,6 +330,7 @@ router.put('/:id', requireAuth, canModifyBank, async (req, res) => {
       isPublic,
       managers,
       settings,
+      pricePoints,
     } = req.body;
 
     const userId = req.user.id;
@@ -345,6 +366,9 @@ router.put('/:id', requireAuth, canModifyBank, async (req, res) => {
     if (isPublic !== undefined && typeof isPublic === 'boolean') {
       updates.isPublic = isPublic;
     }
+    if (pricePoints !== undefined) {
+      updates.pricePoints = validateInt(pricePoints, { min: 0, max: 100000, defaultValue: 0 }) || 0;
+    }
     if (settings !== undefined) {
       updates.settings = settings;
     }
@@ -366,7 +390,7 @@ router.put('/:id', requireAuth, canModifyBank, async (req, res) => {
 
     res.json({
       success: true,
-      data: updated,
+      data: await attachSubjectNames(updated),
     });
   } catch (err) {
     console.error('PUT /api/v3/banks/:id error:', err);

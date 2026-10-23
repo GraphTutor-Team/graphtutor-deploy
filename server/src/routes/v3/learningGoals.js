@@ -7,8 +7,30 @@
 
 import express from 'express';
 import LearningGoal from '../../models/LearningGoal.js';
+import Subject from '../../models/Subject.js';
 import { requireAuth } from '../../middleware/auth.js';
 import { sanitizeString, validateInt } from '../../middleware/validation.js';
+
+async function attachSubjectNames(goals) {
+  const codes = [...new Set(
+    goals
+      .map((goal) => goal.subjectCode)
+      .filter((code) => typeof code === 'string' && code),
+  )];
+  if (codes.length === 0) return goals;
+
+  const subjects = await Subject.find({ code: { $in: codes } }).select('code name').lean();
+  const byCode = new Map(subjects.map((subject) => [subject.code, subject]));
+  return goals.map((goal) => {
+    if (typeof goal.subjectCode !== 'string' || !goal.subjectCode) return goal;
+    const subject = byCode.get(goal.subjectCode);
+    if (!subject) return goal;
+    return {
+      ...goal,
+      subjectCode: { code: subject.code, name: subject.name },
+    };
+  });
+}
 
 const router = express.Router();
 
@@ -29,11 +51,10 @@ router.get('/', requireAuth, async (req, res) => {
       query.type = type;
     }
 
-    const goals = await LearningGoal.find(query)
-      .populate('subjectCode', 'code name')
+    const goals = await attachSubjectNames(await LearningGoal.find(query)
       .populate('bankId', 'name')
       .sort({ createdAt: -1 })
-      .lean();
+      .lean());
 
     res.json({
       success: true,

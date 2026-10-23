@@ -237,8 +237,8 @@ router.get('/:id', requireAuth, async (req, res) => {
     const challengeId = req.params.id;
 
     const challenge = await FriendChallenge.findById(challengeId)
-      .populate('creatorId', 'name email avatar')
-      .populate('participantId', 'name email avatar')
+      .populate('creatorId', 'name email avatarUrl')
+      .populate('participantId', 'name email avatarUrl')
       .populate('winner', 'name email')
       .lean();
 

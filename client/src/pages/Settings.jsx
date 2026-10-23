@@ -21,6 +21,8 @@ import PageHeader from '../components/PageHeader';
 import ThemeToggle from '../components/ThemeToggle';
 import HelpTip from '../components/HelpTip';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
+import api from '../api/api.js';
 import { loadTheme, applyTheme } from '../utils/theme';
 import { toast } from '../utils/toast';
 import {
@@ -32,6 +34,8 @@ import {
 
 export default function Settings() {
   const { user } = useAuth();
+  const { lang, setLang } = useLanguage();
+  const [apiKey, setApiKey] = useState('');
   const navigate = useNavigate();
   const [{ theme, contrast }, setState] = useState({ theme: 'auto', contrast: 'off' });
   
@@ -122,6 +126,34 @@ export default function Settings() {
         <div className="font-semibold mb-4">外观设置</div>
         <div className="space-y-4">
           <ThemeToggle />
+          <div className="flex items-center gap-2 pt-2">
+            <span className="text-sm">界面语言</span>
+            <button type="button" className="px-3 py-1 border rounded" onClick={() => setLang('zh')}>中文</button>
+            <button type="button" className="px-3 py-1 border rounded" onClick={() => setLang('en')}>English</button>
+            <span className="text-xs text-slate-500">当前侧栏：{lang === 'en' ? 'English' : '中文'}</span>
+          </div>
+          <div className="pt-2 border-t border-slate-200">
+            <div className="text-sm mb-2">开放接口密钥</div>
+            <button
+              type="button"
+              className="px-3 py-1 border rounded"
+              onClick={async () => {
+                try {
+                  const res = await api.post('/v3/open-api/key');
+                  setApiKey(res.data?.data?.apiKey || '');
+                  toast.success('密钥已生成，请立即复制');
+                } catch (err) {
+                  toast.error(err.response?.data?.message || '生成失败');
+                }
+              }}
+            >
+              生成密钥
+            </button>
+            {apiKey && <p className="mt-2 text-xs break-all">{apiKey}</p>}
+            <p className="mt-2 text-xs text-slate-500">
+              请求头 Authorization: Bearer 密钥。只读接口：/api/open/v1/questions、/records、/wrong-questions。每分钟 60 次。
+            </p>
+          </div>
           <div className="text-xs text-slate-500 mt-2">
             注：高对比度仅预留类名（contrast），实际视觉由你 CSS 决定。
           </div>

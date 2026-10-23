@@ -79,7 +79,6 @@ export default function Result() {
   const [recapIds, setRecapIds] = useState([]);
   const [recapLoading, setRecapLoading] = useState(false);
   const [recapError, setRecapError] = useState("");
-  const [nextBusy, setNextBusy] = useState(false);
   const [predictBusy, setPredictBusy] = useState(false);
 
   const hasData = !!stats && Array.isArray(questions) && questions.length > 0;
@@ -169,9 +168,10 @@ export default function Result() {
   const wrongIds = useMemo(
     () =>
       perQuestion
-        .filter((item) => !item.isCorrect && item.questionId)
+        .filter((item) => !item.isCorrect && !item.isEmpty && item.questionId)
         .map((item) => String(item.questionId))
-        .slice(0, 20),
+        .filter((id) => /^[a-f0-9]{24}$/i.test(id))
+        .slice(0, 200),
     [perQuestion]
   );
 
@@ -244,19 +244,9 @@ export default function Result() {
     });
   }
 
-  async function practiceThisSession() {
-    if (!wrongIds.length || nextBusy) return;
-    setNextBusy(true);
-    const limit = Math.min(20, Math.max(8, wrongIds.length));
-    try {
-      const data = await getTodaySet(limit, wrongIds);
-      const ids = data?.practiceQuestionIds?.length ? data.practiceQuestionIds : wrongIds;
-      navigate("/quiz", { state: { practiceQuestionIds: ids, practiceSource: "ai" } });
-    } catch {
-      navigate("/quiz", { state: { practiceQuestionIds: wrongIds, practiceSource: "ai" } });
-    } finally {
-      setNextBusy(false);
-    }
+  function practiceThisSession() {
+    if (!wrongIds.length) return;
+    navigate("/quiz", { state: { practiceQuestionIds: wrongIds, practiceSource: "review" } });
   }
 
   async function generateRecap() {
@@ -400,9 +390,8 @@ export default function Result() {
                 type="button"
                 className="btn btn-primary"
                 onClick={practiceThisSession}
-                disabled={nextBusy}
               >
-                {nextBusy ? "组题中…" : `接着练这 ${wrongIds.length} 道错题`}
+                {`接着练这 ${wrongIds.length} 道错题`}
               </button>
             )}
             {wrongNodeIds.length > 0 && (

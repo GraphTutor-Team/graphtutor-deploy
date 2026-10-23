@@ -10,7 +10,7 @@ import api from '../api.js';
  * @returns {Promise<{ plan, tasks, summary }>}
  */
 export async function generatePersonalizedPath(params = {}) {
-  const res = await api.post('/api/v3/adaptive/personalized-path', params);
+  const res = await api.post('/v3/adaptive/personalized-path', params);
   if (res.data?.success) return res.data.data;
   throw new Error(res.data?.message || '生成个性化路径失败');
 }

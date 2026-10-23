@@ -7,6 +7,22 @@
 import FriendChallenge from '../models/FriendChallenge.js';
 import Friendship from '../models/Friendship.js';
 import Record from '../models/Record.js';
+import { createNotification } from './notificationService.js';
+
+async function notifyChallenge(userId, title, content, challengeId) {
+  try {
+    await createNotification({
+      userId: String(userId),
+      type: 'system',
+      title,
+      content,
+      relatedId: String(challengeId),
+      link: '/friend-challenges',
+    });
+  } catch (err) {
+    console.warn('好友挑战通知失败:', err.message);
+  }
+}
 
 /**
  * 创建好友挑战
@@ -37,9 +53,16 @@ export async function createFriendChallenge(creatorId, participantId, challengeD
   });
 
   await challenge.save();
-  return await challenge.populate('creatorId', 'name email avatar')
-    .populate('participantId', 'name email avatar')
-    .execPopulate();
+  await challenge.populate('creatorId', 'name email avatarUrl');
+  await challenge.populate('participantId', 'name email avatarUrl');
+  const creatorName = challenge.creatorId?.name || '好友';
+  await notifyChallenge(
+    participantId,
+    '收到好友挑战',
+    `${creatorName} 邀请你参加「${challenge.title}」，目标是答对 ${challenge.target} 题。到好友挑战页接受后才开始计进度。`,
+    challenge._id,
+  );
+  return challenge;
 }
 
 /**
@@ -63,9 +86,16 @@ export async function acceptChallenge(challengeId, userId) {
   challenge.startDate = new Date();
   await challenge.save();
 
-  return await challenge.populate('creatorId', 'name email avatar')
-    .populate('participantId', 'name email avatar')
-    .execPopulate();
+  await challenge.populate('creatorId', 'name email avatarUrl');
+  await challenge.populate('participantId', 'name email avatarUrl');
+  const participantName = challenge.participantId?.name || '好友';
+  await notifyChallenge(
+    challenge.creatorId?._id || challenge.creatorId,
+    '挑战已被接受',
+    `${participantName} 接受了「${challenge.title}」。从现在起，答对的题会计入进度。`,
+    challenge._id,
+  );
+  return challenge;
 }
 
 /**
@@ -112,8 +142,8 @@ export async function getUserChallenges(userId, options = {}) {
   const skip = (page - 1) * limit;
   const [challenges, total] = await Promise.all([
     FriendChallenge.find(query)
-      .populate('creatorId', 'name email avatar')
-      .populate('participantId', 'name email avatar')
+      .populate('creatorId', 'name email avatarUrl')
+      .populate('participantId', 'name email avatarUrl')
       .populate('winner', 'name email')
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -141,8 +171,8 @@ export async function getChallengesBetweenUsers(userId1, userId2) {
       { creatorId: userId2, participantId: userId1 },
     ],
   })
-    .populate('creatorId', 'name email avatar')
-    .populate('participantId', 'name email avatar')
+    .populate('creatorId', 'name email avatarUrl')
+    .populate('participantId', 'name email avatarUrl')
     .populate('winner', 'name email')
     .sort({ createdAt: -1 })
     .lean();
@@ -208,8 +238,8 @@ export async function updateChallengeProgress(challengeId, userId) {
   await challenge.save();
 
   return await FriendChallenge.findById(challenge._id)
-    .populate('creatorId', 'name email avatar')
-    .populate('participantId', 'name email avatar')
+    .populate('creatorId', 'name email avatarUrl')
+    .populate('participantId', 'name email avatarUrl')
     .populate('winner', 'name email')
     .lean();
 }
@@ -280,7 +310,7 @@ export async function getChallengeStats(userId) {
         { participantId: userId },
       ],
       status: 'completed',
-      winner: { $ne: userId, $ne: null },
+      winner: { $ne: userId, $nin: [null] },
     }),
   ]);
 

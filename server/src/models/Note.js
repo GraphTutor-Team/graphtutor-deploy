@@ -90,6 +90,13 @@ const NoteSchema = new mongoose.Schema(
       index: true,
     },
 
+    // 解锁所需积分。0 表示免费。仅对非作者生效。
+    pricePoints: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
     // 是否公开（其他用户可见）
     isPublic: {
       type: Boolean,

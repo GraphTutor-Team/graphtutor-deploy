@@ -84,6 +84,7 @@ export default function Notes() {
     summary: '',
     tags: [],
     isPublic: false,
+    pricePoints: 0,
     images: [],
     attachments: [],
   });
@@ -141,6 +142,7 @@ export default function Notes() {
       summary: noteForm.summary || '',
       tags: noteForm.tags || [],
       isPublic: noteForm.isPublic || false,
+      pricePoints: Number(noteForm.pricePoints) || 0,
       images: noteForm.images || [],
       attachments: noteForm.attachments || [],
     };
@@ -351,6 +353,7 @@ export default function Notes() {
       summary: note.summary || '',
       tags: note.tags || [],
       isPublic: note.isPublic || false,
+      pricePoints: note.pricePoints || 0,
       images: note.images || [],
       attachments: note.attachments || [],
     });
@@ -806,6 +809,7 @@ export default function Notes() {
 
       {viewingNote && activeTab === 'my' && (
         <NoteDetailPanel
+          key={viewingNote._id}
           note={viewingNote}
           onClose={() => setViewingNote(null)}
           onEdit={handleEditNote}
@@ -992,6 +996,16 @@ export default function Notes() {
                   公开笔记（其他用户可见）
                 </label>
               </div>
+              <label className="block text-sm">
+                解锁积分（0 表示免费，只限制其他用户看正文）
+                <input
+                  type="number"
+                  min="0"
+                  value={noteForm.pricePoints || 0}
+                  onChange={(e) => setNoteForm({ ...noteForm, pricePoints: Number(e.target.value) || 0 })}
+                  className="mt-1 w-full px-3 py-2 border rounded-lg"
+                />
+              </label>
 
               {editingNote && (editingNote.questionId || editingNote.knowledgeNodeId || noteForm.questionId || noteForm.knowledgeNodeId) && (
                 <div className="pt-4 border-t border-slate-200 dark:border-slate-600">

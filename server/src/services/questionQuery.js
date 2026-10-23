@@ -5,6 +5,7 @@
  */
 
 import Question from '../models/Question.js';
+import { attachSubjectNames } from './subjectNames.js';
 import { sanitizeString, validateInt } from '../middleware/validation.js';
 import { cachedQuery, cachedCount, cachedMongooseQuery, invalidateModelCache, invalidateDocumentCache } from './queryCache.js';
 import { generateCacheKey } from '../utils/cache.js';
@@ -183,15 +184,15 @@ export async function queryQuestions(params = {}, options = {}) {
           if (populate) {
             query = query
               .populate('bankId', 'name subjectCode')
-              .populate('managerId', 'name email')
-              .populate('subjectCode', 'code name');
+              .populate('managerId', 'name email');
           }
 
           // 执行查询
-          const [items, total] = await Promise.all([
+          const [rawItems, total] = await Promise.all([
             query.lean(),
             Question.countDocuments(cond),
           ]);
+          const items = populate ? await attachSubjectNames(rawItems) : rawItems;
 
           return {
             items,
@@ -220,12 +221,11 @@ export async function queryQuestions(params = {}, options = {}) {
     if (populate) {
       query = query
         .populate('bankId', 'name subjectCode')
-        .populate('managerId', 'name email')
-        .populate('subjectCode', 'code name');
+        .populate('managerId', 'name email');
     }
 
     // 执行查询（使用并行查询优化）
-    const [items, total] = await Promise.all([
+    const [rawItems, total] = await Promise.all([
       query.lean(),
       // 优化：使用缓存的计数查询
       useCache
@@ -233,6 +233,7 @@ export async function queryQuestions(params = {}, options = {}) {
         : Question.countDocuments(cond),
     ]);
 
+    const items = populate ? await attachSubjectNames(rawItems) : rawItems;
     const result = {
       items,
       total,
