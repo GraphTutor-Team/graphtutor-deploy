@@ -16,7 +16,6 @@ import { useAIContext } from "../context/AIContext";
 import { buildQuestionBrief } from "../utils/aiBrief";
 import { getBanks } from "../api/v3/questionBanks";
 import { getSubjectTree } from "../api/v3/subjects";
-import api from "../api/api";
 
 // 简单随机抽题
 function pickRandom(arr, count) {
