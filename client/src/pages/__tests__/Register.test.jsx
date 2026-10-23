@@ -7,6 +7,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import Register from '../Register';
 import { toast } from '../../utils/toast';
+import api from '../../api/api';
 
 // Mock依赖
 vi.mock('../../utils/toast', () => ({
@@ -24,8 +25,11 @@ vi.mock('../../utils/passwordValidation', () => ({
   getPasswordRequirements: vi.fn(),
 }));
 
-// Mock fetch
-global.fetch = vi.fn();
+vi.mock('../../api/api', () => ({
+  default: {
+    post: vi.fn(),
+  },
+}));
 
 // Mock useNavigate
 const mockNavigate = vi.fn();
@@ -124,9 +128,8 @@ describe('Register组件', () => {
     const { checkPasswordRequirements } = await import('../../utils/passwordValidation');
     checkPasswordRequirements.mockReturnValue({ valid: true });
 
-    global.fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ success: true, message: '注册成功' }),
+    api.post.mockResolvedValueOnce({
+      data: { success: true, message: '注册成功' },
     });
 
     renderRegister();
@@ -141,13 +144,10 @@ describe('Register组件', () => {
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(
-        '/api/auth/register',
-        expect.objectContaining({
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-        })
-      );
+      expect(api.post).toHaveBeenCalledWith('/auth/register', {
+        email: 'test@example.com',
+        password: 'password123',
+      });
       expect(toast.success).toHaveBeenCalledWith('注册成功');
       expect(mockNavigate).toHaveBeenCalledWith('/login');
     });
@@ -157,9 +157,8 @@ describe('Register组件', () => {
     const { checkPasswordRequirements } = await import('../../utils/passwordValidation');
     checkPasswordRequirements.mockReturnValue({ valid: true });
 
-    global.fetch.mockResolvedValueOnce({
-      ok: false,
-      json: async () => ({ success: false, message: '邮箱已存在' }),
+    api.post.mockRejectedValueOnce({
+      response: { data: { message: '邮箱已存在' } },
     });
 
     renderRegister();
@@ -182,7 +181,7 @@ describe('Register组件', () => {
     const { checkPasswordRequirements } = await import('../../utils/passwordValidation');
     checkPasswordRequirements.mockReturnValue({ valid: true });
 
-    global.fetch.mockRejectedValueOnce(new Error('Network error'));
+    api.post.mockRejectedValueOnce(new Error('Network error'));
 
     renderRegister();
     const emailInput = screen.getByPlaceholderText(/邮箱/i);

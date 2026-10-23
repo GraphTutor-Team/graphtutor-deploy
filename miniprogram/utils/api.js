@@ -401,6 +401,20 @@ function getLearningTrend(days) {
   }).then((res) => (res && res.success && res.data) || []);
 }
 
+function getNodeQuestions(node, limit) {
+  return request('/api/questions', {
+    method: 'GET',
+    data: cleanQuery({
+      node,
+      limit: limit || 10,
+      random: 'true',
+    }),
+  }).then((res) => {
+    const items = (res && (res.items || res.data)) || [];
+    return Array.isArray(items) ? items : [];
+  }).catch(() => []);
+}
+
 function getWrongQuestions(params) {
   const p = params || {};
   return request('/api/v3/wrong-questions', {
@@ -546,6 +560,7 @@ module.exports = {
   getTodayReviewQuestions,
   getComprehensiveAnalysis,
   getLearningTrend,
+  getNodeQuestions,
   getWrongQuestions,
   getWrongQuestionStats,
   getStudyPlans,

@@ -6,6 +6,18 @@ const toJSON = async (r) => {
   return r.json();
 };
 
+export async function findNodeName(key) {
+  if (!key) return "";
+  try {
+    const r = await fetch(`/api/graph/nodes?key=${encodeURIComponent(key)}&limit=1`);
+    const data = await toJSON(r);
+    const list = Array.isArray(data) ? data : data?.nodes || [];
+    return list.find((node) => String(node.key) === String(key))?.name || "";
+  } catch {
+    return "";
+  }
+}
+
 export async function listNodes({ parentId = "", q = "", tree = false } = {}) {
   const qs = new URLSearchParams({
     ...(parentId ? { parentId } : {}),

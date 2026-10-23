@@ -57,6 +57,7 @@ export default function Exam() {
   // ===== 流程控制 =====
   const [step, setStep] = useState("config"); // config | exam | result
   const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState("");
 
   // ===== 计时 =====
@@ -164,7 +165,16 @@ export default function Exam() {
           .map(([id, count]) => ({ id, count }))
           .sort((a, b) => b.count - a.count); // 按题目数量降序
 
-        setNodeOptions(opts);
+        let nameByKey = new Map();
+        try {
+          const { listNodes } = await import('../api/graph');
+          const all = await listNodes();
+          const list = Array.isArray(all) ? all : [];
+          nameByKey = new Map(list.map((node) => [String(node.key), node.name || '']));
+        } catch {
+          nameByKey = new Map();
+        }
+        setNodeOptions(opts.map((opt) => ({ ...opt, name: nameByKey.get(opt.id) || '' })));
       } catch (e) {
         console.error(e);
         setNodesErr(e.message || "加载知识点列表失败");
@@ -237,7 +247,7 @@ export default function Exam() {
       // 1) 先从题库拉题
       const qs = new URLSearchParams();
       qs.set("limit", count);
-      if (knowledgeNodeId) qs.set("knowledgeNodeId", knowledgeNodeId);
+      if (knowledgeNodeId) qs.set("node", knowledgeNodeId);
       if (difficulty) qs.set("difficulty", difficulty);
       if (subjectCode) qs.set("subjectCode", subjectCode);
       if (bankId) qs.set("bankId", bankId);
@@ -249,7 +259,39 @@ export default function Exam() {
       const json = await res.json();
       const fromDb = json.items || json.data || json || [];
 
-      dataQuestions = fromDb;
+      dataQuestions = Array.isArray(fromDb) ? fromDb : [];
+      let recentCount = 0;
+      try {
+        const { getTodaySet } = await import('../api/v3/ai');
+        const today = await getTodaySet(Math.min(20, Math.max(count, 8)));
+        const ids = (today?.practiceQuestionIds || []).map(String).filter(Boolean).slice(0, 20);
+        if (ids.length) {
+          const recentRes = await fetch(`/api/questions?ids=${ids.join(',')}`);
+          if (recentRes.ok) {
+            const recentJson = await recentRes.json();
+            const recentItems = recentJson.items || recentJson.data || [];
+            const recent = (Array.isArray(recentItems) ? recentItems : []).filter((question) => {
+              if (knowledgeNodeId && String(question.knowledgeNodeId || '') !== String(knowledgeNodeId)) return false;
+              if (bankId) {
+                const value = question.bankId?._id || question.bankId || '';
+                if (String(value) !== String(bankId)) return false;
+              }
+              if (subjectCode && question.subjectCode && String(question.subjectCode) !== String(subjectCode)) return false;
+              if (difficulty && Number(question.difficulty) !== Number(difficulty)) return false;
+              return true;
+            });
+            const seen = new Set(recent.map((question) => String(question._id || question.id)));
+            recentCount = recent.length;
+            dataQuestions = [
+              ...recent,
+              ...dataQuestions.filter((question) => !seen.has(String(question._id || question.id))),
+            ];
+          }
+        }
+      } catch {
+        recentCount = 0;
+        dataQuestions = Array.isArray(fromDb) ? fromDb : [];
+      }
 
       // 2) 题库不足且勾选 AI，就让 AI 补题
       if (useAi && dataQuestions.length < count) {
@@ -290,8 +332,9 @@ export default function Exam() {
         throw new Error("当前配置下没有可用题目，请检查知识点 / 难度 / 题库是否为空");
       }
 
-      // 3) 随机抽 count 道题
-      const picked = pickRandom(dataQuestions, count);
+      const head = dataQuestions.slice(0, recentCount);
+      const tail = pickRandom(dataQuestions.slice(recentCount), Math.max(0, count - head.length));
+      const picked = [...head, ...tail].slice(0, count);
       setQuestions(picked);
       setAnswers(new Array(picked.length).fill(null));
       setCurrentIndex(0);
@@ -365,8 +408,10 @@ export default function Exam() {
 
   // 交卷并统计（支持多种题型）
   async function handleSubmit() {
-    if (total === 0) return;
+    if (total === 0 || submitting) return;
+    setSubmitting(true);
 
+    try {
     // 使用统一的判分工具
     const { batchCheckAnswers } = await import('../utils/questionScoring');
     
@@ -406,15 +451,20 @@ export default function Exam() {
       totalScore: result.totalScore,
     });
 
-    setStep("result");
-
-    // 提交成绩到后端（含群组作业提交）
     const assignmentState = location.state?.assignmentId && location.state?.groupId
       ? { assignmentId: location.state.assignmentId, groupId: location.state.groupId }
       : null;
-    submitExamResults(perQuestion, elapsedSec, assignmentState).catch(err => {
+    try {
+      await submitExamResults(perQuestion, elapsedSec, assignmentState);
+    } catch (err) {
       console.error("提交考试结果失败:", err);
-    });
+    }
+    setStep("result");
+    } catch (err) {
+      console.error("交卷统计失败:", err);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   // 提交考试结果到后端（可选：同时提交群组作业）
@@ -545,7 +595,7 @@ export default function Exam() {
     <div className="page-shell !space-y-4">
       <PageHeader
         title="考试模式"
-        subtitle="按知识点 / 难度抽题进行模拟考试，支持答题卡与评分统计。"
+        subtitle="先放本周错过的题，再按知识点、题库和难度补齐。交卷后错题进入错题本。"
       />
 
       {/* ===== 使用说明卡片（带跳转） ===== */}
@@ -755,7 +805,7 @@ export default function Exam() {
                   <option value="">全部知识点</option>
                   {nodeOptions.map((opt) => (
                     <option key={opt.id} value={opt.id}>
-                      {opt.id}（{opt.count} 题）
+                      {opt.name || opt.id}（{opt.count} 题）
                     </option>
                   ))}
                 </select>
@@ -765,7 +815,7 @@ export default function Exam() {
               <p className="text-sm font-medium alert alert-success mt-2">
                 已从题库选中知识点：{" "}
                 <span className="font-mono bg-slate-50 px-2 py-1 rounded border-2 border-slate-300 font-semibold">
-                  {knowledgeNodeId}
+                  {nodeOptions.find((opt) => opt.id === knowledgeNodeId)?.name || knowledgeNodeId}
                 </span>
                 ，你可以直接调整题量 / 难度后开始考试。
               </p>
@@ -866,8 +916,9 @@ export default function Exam() {
                 type="button"
                 className="btn btn-ghost btn-sm"
                 onClick={handleSubmit}
+                disabled={submitting}
               >
-                交卷并评分
+                {submitting ? "交卷中…" : "交卷并评分"}
               </button>
             )}
             <button
@@ -1041,8 +1092,9 @@ export default function Exam() {
                       type="button"
                       className="btn btn-primary btn-sm"
                       onClick={handleSubmit}
+                      disabled={submitting}
                     >
-                      交卷
+                      {submitting ? "交卷中…" : "交卷"}
                     </button>
                   </div>
                 </div>

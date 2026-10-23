@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { generateQuestions, generateNoteSummary, getWrongReport } from '../../api/v3/ai';
+import { generateQuestions, generateNoteSummary, getWrongReport, getTodaySet } from '../../api/v3/ai';
 import { getExamPrediction, getForgettingCurve } from '../../api/v3/enhancedAnalytics';
 import MarkdownPreview from '../MarkdownPreview';
 import { batchCreateQuestions } from '../../api/v3/questions';
@@ -21,6 +21,7 @@ export function TodayPanel({ onClose }) {
   const navigate = useNavigate();
   const [topics, setTopics] = useState([]);
   const [questions, setQuestions] = useState([]);
+  const [practiceIds, setPracticeIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -28,14 +29,34 @@ export function TodayPanel({ onClose }) {
     let cancelled = false;
     (async () => {
       try {
-        const [curveRes, recommended] = await Promise.all([
+        const [curveRes, recommended, todaySet] = await Promise.all([
           getForgettingCurve(5).catch(() => null),
           getRecommendedQuestions({ strategy: 'weak_points', limit: 5, includeReasons: false }).catch(() => []),
+          getTodaySet(5).catch(() => null),
         ]);
         if (cancelled) return;
         const curve = Array.isArray(curveRes?.data) ? curveRes.data : [];
         setTopics(curve.filter((item) => item.suggestReviewToday !== false).slice(0, 3));
-        setQuestions(Array.isArray(recommended) ? recommended : []);
+        const recentIds = Array.isArray(todaySet?.practiceQuestionIds) ? todaySet.practiceQuestionIds.map(String) : [];
+        let recentQuestions = [];
+        if (recentIds.length) {
+          const res = await api.get('/questions', { params: { ids: recentIds.join(',') } });
+          const items = res.data?.items || res.data?.data || [];
+          const byId = new Map((Array.isArray(items) ? items : []).map((question) => [questionIdOf(question), question]));
+          recentQuestions = recentIds.map((id) => byId.get(id)).filter(Boolean);
+        }
+        const extra = (Array.isArray(recommended) ? recommended : [])
+          .filter((question) => !recentIds.includes(questionIdOf(question)));
+        const merged = [...recentQuestions, ...extra].slice(0, 5);
+        const ids = [];
+        const seen = new Set();
+        [...recentIds, ...merged.map(questionIdOf)].forEach((id) => {
+          if (!id || seen.has(id) || ids.length >= 5) return;
+          seen.add(id);
+          ids.push(id);
+        });
+        setQuestions(merged);
+        setPracticeIds(ids);
       } catch (err) {
         if (!cancelled) setError(err.message || '加载失败');
       } finally {
@@ -47,7 +68,7 @@ export function TodayPanel({ onClose }) {
     };
   }, []);
 
-  const ids = questions.map(questionIdOf).filter(Boolean);
+  const ids = practiceIds.length ? practiceIds : questions.map(questionIdOf).filter(Boolean);
 
   function start() {
     if (!ids.length) return;
@@ -60,7 +81,7 @@ export function TodayPanel({ onClose }) {
   return (
     <div className="space-y-3 text-sm">
       <p style={{ color: 'var(--color-text-secondary)' }}>
-        根据遗忘曲线和错题薄弱点选出，可直接开练。
+        先放本周刚错过的题，再用同知识点的新题和遗忘曲线补齐。
       </p>
       {error && <div className="text-rose-600">{error}</div>}
       {topics.length > 0 && (
@@ -68,7 +89,7 @@ export function TodayPanel({ onClose }) {
           <div className="font-medium">建议复习</div>
           {topics.map((item) => (
             <div key={item.knowledgeNodeId} style={{ color: 'var(--color-text-secondary)' }}>
-              已隔 {item.daysSinceLastPractice ?? '—'} 天 · 近期正确率 {item.recentAccuracy ?? '—'}%
+              {item.name || item.knowledgeNodeId || '未标注知识点'} · 已隔 {item.daysSinceLastPractice ?? '—'} 天 · 近期正确率 {item.recentAccuracy ?? '—'}%
             </div>
           ))}
         </div>
@@ -195,6 +216,7 @@ export function GeneratePanel({ onClose }) {
 export function PlansPanel({ onClose }) {
   const navigate = useNavigate();
   const [plans, setPlans] = useState([]);
+  const [weekNodes, setWeekNodes] = useState([]);
   const [name, setName] = useState('');
   const [days, setDays] = useState(7);
   const [dailyTarget, setDailyTarget] = useState(10);
@@ -209,7 +231,24 @@ export function PlansPanel({ onClose }) {
 
   useEffect(() => {
     load().catch(() => setPlans([]));
+    getTodaySet(8).then((data) => setWeekNodes(data?.weakNodes || [])).catch(() => setWeekNodes([]));
   }, []);
+
+  async function startPlan(plan) {
+    const limit = plan.dailyTarget || 10;
+    try {
+      const data = await getTodaySet(limit);
+      const questionIds = data?.practiceQuestionIds || [];
+      onClose?.();
+      if (questionIds.length) {
+        navigate('/quiz', { state: { practiceQuestionIds: questionIds, practiceSource: 'plan' } });
+        return;
+      }
+    } catch {
+      onClose?.();
+    }
+    navigate('/quiz', { state: { practiceCount: limit, practiceSource: 'plan' } });
+  }
 
   async function create() {
     if (!name.trim()) {
@@ -261,17 +300,14 @@ export function PlansPanel({ onClose }) {
             <div className="font-medium">今天：{plan.name}</div>
             <div style={{ color: 'var(--color-text-secondary)' }}>
               做 {plan.dailyTarget || 10} 题
-              {plan.goalText ? ` · ${plan.goalText}` : ''}
+              {weekNodes.length ? ` · 先练 ${weekNodes.slice(0, 2).map((node) => node.name || node.knowledgeNodeId).join('、')}` : ''}
               {plan.endDate ? ` · 至 ${String(plan.endDate).slice(0, 10)}` : ''}
             </div>
           </div>
           <button
             type="button"
             className="btn btn-primary w-full text-xs !py-1.5"
-            onClick={() => {
-              onClose?.();
-              navigate('/quiz', { state: { practiceCount: plan.dailyTarget || 10, practiceSource: 'plan' } });
-            }}
+            onClick={() => startPlan(plan)}
           >
             去做今天的 {plan.dailyTarget || 10} 题
           </button>
@@ -318,7 +354,8 @@ export function PlansPanel({ onClose }) {
   );
 }
 
-export function WrongReportPanel() {
+export function WrongReportPanel({ onClose }) {
+  const navigate = useNavigate();
   const [report, setReport] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -347,9 +384,35 @@ export function WrongReportPanel() {
       {report && (
         <div className="space-y-2">
           <div className="font-medium">本周错题 {report.wrongCount || 0} 道</div>
+          {Array.isArray(report.weakNodes) && report.weakNodes.length > 0 && (
+            <div className="space-y-1">
+              {report.weakNodes.map((node) => (
+                <div key={node.knowledgeNodeId} style={{ color: 'var(--color-text-secondary)' }}>
+                  {node.name || node.knowledgeNodeId} · 错 {node.count} 次
+                </div>
+              ))}
+            </div>
+          )}
           <div className="rounded-lg p-2" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
             <MarkdownPreview text={report.report || '暂无足够错题。'} />
           </div>
+          {Array.isArray(report.practiceQuestionIds) && report.practiceQuestionIds.length > 0 && (
+            <button
+              type="button"
+              className="btn btn-primary w-full"
+              onClick={() => {
+                onClose?.();
+                navigate('/quiz', {
+                  state: {
+                    practiceQuestionIds: report.practiceQuestionIds,
+                    practiceSource: 'ai',
+                  },
+                });
+              }}
+            >
+              练习这 {report.practiceQuestionIds.length} 道巩固题
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -399,7 +462,7 @@ export function PredictPanel({ onClose }) {
   return (
     <div className="space-y-3 text-sm">
       <p style={{ color: 'var(--color-text-secondary)' }}>
-        按近 30 天的薄弱知识点组一份预测卷。
+        按近 30 天的薄弱知识点组一份预测卷，每个知识点都会抽到题。
       </p>
       {error && <div className="text-rose-600">{error}</div>}
       {nodes.length === 0 && (
@@ -412,7 +475,7 @@ export function PredictPanel({ onClose }) {
           <div className="font-medium">约 {plan.targetQuestionCount || 10} 题，覆盖这些知识点</div>
           {nodes.slice(0, 6).map((node) => (
             <div key={node.knowledgeNodeId} className="rounded-lg p-2" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
-              <div className="font-medium">{node.knowledgeNodeId}</div>
+              <div className="font-medium">{node.name || node.knowledgeNodeId}</div>
               <div style={{ color: 'var(--color-text-secondary)' }}>
                 {node.plannedCount ? `${node.plannedCount} 题 · ` : ''}
                 {node.reason || `正确率 ${node.accuracy ?? '—'}%`}

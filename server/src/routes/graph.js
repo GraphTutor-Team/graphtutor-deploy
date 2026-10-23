@@ -26,7 +26,9 @@ router.get('/nodes', async (req, res) => {
       NODES_PAGE_LIMIT,
       Math.max(1, parseInt(req.query.limit, 10) || NODES_PAGE_LIMIT)
     );
-    const items = await KnowledgeNode.find()
+    const key = sanitizeString(req.query.key || '', { maxLength: 120 });
+    const query = key ? { key } : {};
+    const items = await KnowledgeNode.find(query)
       .sort({ order: 1, key: 1 })
       .limit(limit)
       .lean();

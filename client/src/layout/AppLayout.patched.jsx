@@ -33,7 +33,7 @@ export default function AppLayout() {
   const [expand, setExpand] = useState(true);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState(
-    () => new Set(['学习', '工具', '社交', '更多', '个人', '内容管理', '系统管理'])
+    () => new Set(['学习', '社交'])
   );
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -142,23 +142,10 @@ export default function AppLayout() {
       children: [
         { to: '/home', title: '首页' },
         { to: '/quiz', title: '练习' },
-        { to: '/exam', title: '考试' },
         { to: '/review', title: '错题复习' },
-        { to: '/graph', title: '知识图谱' },
         { to: '/analytics', title: '学习数据' },
-      ],
-    });
-
-    items.push({
-      type: 'group',
-      label: '工具',
-      roles: ['student', 'question_manager', 'admin'],
-      children: [
         { to: '/notes', title: '学习笔记' },
-        { to: '/favorites', title: '我的收藏' },
         { to: '/study-plans', title: '学习计划' },
-        { to: '/check-in', title: '每日打卡' },
-        { to: '/recommendations', title: '智能推荐' },
       ],
     });
 
@@ -169,9 +156,6 @@ export default function AppLayout() {
       children: [
         { to: '/messages', title: '消息', badge: unreadMessages },
         { to: '/friends', title: '好友' },
-        { to: '/friends/discover', title: '发现好友' },
-        { to: '/friend-challenges', title: '好友挑战' },
-        { to: '/learning-posts', title: '学习动态' },
         { to: '/groups', title: '群组' },
         { to: '/community', title: '社区' },
       ],
@@ -182,6 +166,14 @@ export default function AppLayout() {
       label: '更多',
       roles: ['student', 'question_manager', 'admin'],
       children: [
+        { to: '/exam', title: '考试' },
+        { to: '/graph', title: '知识图谱' },
+        { to: '/favorites', title: '我的收藏' },
+        { to: '/check-in', title: '每日打卡' },
+        { to: '/recommendations', title: '智能推荐' },
+        { to: '/friends/discover', title: '发现好友' },
+        { to: '/friend-challenges', title: '好友挑战' },
+        { to: '/learning-posts', title: '学习动态' },
         { to: '/review-plans', title: '复习计划' },
         { to: '/leaderboard', title: '排行榜' },
         { to: '/mentor', title: '师徒' },

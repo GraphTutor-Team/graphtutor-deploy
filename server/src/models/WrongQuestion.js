@@ -169,7 +169,7 @@ WrongQuestionSchema.index({ userId: 1, nextReviewAt: 1 });
 WrongQuestionSchema.index({ userId: 1, tags: 1 });
 
 // 实例方法：更新掌握度
-WrongQuestionSchema.methods.updateMastery = function (isCorrect) {
+WrongQuestionSchema.methods.updateMastery = function (isCorrect, options = {}) {
   if (isCorrect) {
     // 答对了，掌握度增加
     this.mastery = Math.min(100, this.mastery + 20);
@@ -187,7 +187,7 @@ WrongQuestionSchema.methods.updateMastery = function (isCorrect) {
   } else {
     // 答错了，掌握度降低
     this.mastery = Math.max(0, this.mastery - 10);
-    this.errorCount += 1;
+    if (!options.skipErrorIncrement) this.errorCount += 1;
     this.lastErrorAt = new Date();
     this.masteryStatus = 'unmastered';
     this.isMastered = false;

@@ -106,7 +106,8 @@ MessageSchema.index({ senderId: 1, receiverId: 1, isDeletedBySender: 1, isDelete
 
 // 静态方法：获取两个用户之间的消息
 MessageSchema.statics.getConversation = async function (userId1, userId2, options = {}) {
-  const { limit = 50, before = null } = options;
+  const limit = Math.min(100, Math.max(1, Number(options.limit) || 50));
+  const before = options.before || null;
   
   const query = {
     $or: [

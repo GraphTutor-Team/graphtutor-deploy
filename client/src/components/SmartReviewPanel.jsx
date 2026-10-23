@@ -84,7 +84,7 @@ export default function SmartReviewPanel() {
         <div>
           <h3 className="text-xl font-bold">智能复习</h3>
           <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-            基于SuperMemo算法的智能复习系统
+            先排本周刚错过的题，再排到了复习时间的旧错题。
           </p>
         </div>
         <div className="flex gap-2">
@@ -129,9 +129,10 @@ export default function SmartReviewPanel() {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="text-sm font-medium mb-1">
-                      {item.questionId?.content || item.question?.content || '题目内容'}
+                      {item.questionContent || item.questionId?.content || item.question?.content || '题目'}
                     </div>
                     <div className="flex items-center gap-4 text-xs text-slate-600 dark:text-slate-400">
+                      {item.justWrong && <span>本周刚错过</span>}
                       <span>错误次数: {item.errorCount || 0}</span>
                       <span>掌握度: {(item.mastery || 0).toFixed(0)}%</span>
                       {item.reviewPlan?.nextReviewDate && (
@@ -210,7 +211,7 @@ export default function SmartReviewPanel() {
                       <div className="flex flex-wrap gap-2">
                         {day.questions.map((q, qIndex) => (
                           <span key={qIndex} className="px-2 py-1 bg-white dark:bg-slate-600 rounded text-xs">
-                            题目 {qIndex + 1}
+                            {q.justWrong ? '本周刚错过 · ' : ''}{q.questionContent || `题目 ${qIndex + 1}`}
                           </span>
                         ))}
                       </div>

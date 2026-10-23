@@ -74,10 +74,7 @@ const QuizSessionSchema = new mongoose.Schema(
           hint: String,
         },
         difficulty: Number,
-        knowledgeNodeId: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: 'KnowledgeNode',
-        },
+        knowledgeNodeId: String,
       },
     ],
 

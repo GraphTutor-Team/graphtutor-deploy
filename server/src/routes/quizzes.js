@@ -21,6 +21,7 @@ import QuizSession from '../models/QuizSession.js';
 import Record from '../models/Record.js';
 import { checkAnswer, resolveUserAnswer } from '../utils/questionScoring.js';
 import { applySingleRecordSideEffects, applyBatchBonusSideEffects } from '../services/recordSideEffects.js';
+import { buildTodaySet } from './v3/ai.js';
 
 const router = express.Router();
 
@@ -66,7 +67,7 @@ async function persistAnswerRecord(session, snap, resolvedAnswer, isCorrect, tim
     sessionId: session._id,
     timeSpentMs,
   });
-  applySingleRecordSideEffects(recordUserId, {
+  await applySingleRecordSideEffects(recordUserId, {
     recordId: doc._id,
     questionId: String(snap.id),
     isCorrect,
@@ -117,7 +118,8 @@ function snapshotQuestion(q) {
 /**
  * 从题库中抽题（支持按知识点、难度、学科、题库）
  */
-async function selectQuestions({ size = 10, difficulty, node, bankId, subjectCode }) {
+async function selectQuestions({ size = 10, difficulty, node, bankId, subjectCode, excludeIds = [] }) {
+  if (size < 1) return [];
   const match = {};
   if (difficulty) match.difficulty = Number(difficulty);
   if (node) match.knowledgeNodeId = node;
@@ -129,10 +131,53 @@ async function selectQuestions({ size = 10, difficulty, node, bankId, subjectCod
       throw new Error('无效的 bankId');
     }
   }
+  const excluded = excludeIds
+    .map((id) => (mongoose.Types.ObjectId.isValid(String(id)) ? new mongoose.Types.ObjectId(String(id)) : null))
+    .filter(Boolean);
+  if (excluded.length) match._id = { $nin: excluded };
 
   const pipeline = [{ $match: match }, { $sample: { size } }];
   const docs = await Question.aggregate(pipeline).exec();
   return docs.map(snapshotQuestion);
+}
+
+function matchesSessionFilter(question, { difficulty, node, bankId, subjectCode }) {
+  if (node && String(question.knowledgeNodeId || '') !== String(node)) return false;
+  if (bankId && String(question.bankId || '') !== String(bankId)) return false;
+  if (subjectCode && question.subjectCode && String(question.subjectCode) !== String(subjectCode)) return false;
+  if (difficulty && Number(question.difficulty) !== Number(difficulty)) return false;
+  return true;
+}
+
+/** 本周错过的题在前，同知识点新题紧随其后，再按筛选条件补齐。 */
+async function selectSessionQuestions({ userId, size, difficulty, node, bankId, subjectCode, questionIds }) {
+  if (Array.isArray(questionIds) && questionIds.length > 0) {
+    return selectQuestionsByIds(questionIds.slice(0, 200));
+  }
+  const target = Math.min(200, Math.max(1, Number(size) || 10));
+  const filters = { difficulty, node, bankId, subjectCode };
+  let lead = [];
+  try {
+    const today = await buildTodaySet(userId, target);
+    const ids = (today?.practiceQuestionIds || []).filter((id) => mongoose.Types.ObjectId.isValid(String(id)));
+    if (ids.length) {
+      const docs = await Question.find({ _id: { $in: ids } }).lean();
+      const byId = new Map(docs.map((doc) => [String(doc._id), doc]));
+      lead = ids
+        .map((id) => byId.get(String(id)))
+        .filter((doc) => doc && matchesSessionFilter(doc, filters))
+        .map(snapshotQuestion);
+    }
+  } catch (err) {
+    console.warn('[Quiz] today set skipped:', err.message);
+    lead = [];
+  }
+  const rest = await selectQuestions({
+    size: target - lead.length,
+    ...filters,
+    excludeIds: lead.map((question) => question.id),
+  });
+  return [...lead, ...rest].slice(0, target);
 }
 
 async function selectQuestionsByIds(questionIds) {
@@ -169,15 +214,9 @@ router.post('/session/start', async (req, res) => {
       userId, size, difficulty, node, bankId, subjectCode, questionIds: questionIds?.length,
     });
 
-    let questions;
-    if (Array.isArray(questionIds) && questionIds.length > 0) {
-      const maxIds = Math.min(questionIds.length, 200);
-      questions = await selectQuestionsByIds(questionIds.slice(0, maxIds));
-    } else {
-      questions = await selectQuestions({
-        size, difficulty, node, bankId, subjectCode,
-      });
-    }
+    const questions = await selectSessionQuestions({
+      userId, size, difficulty, node, bankId, subjectCode, questionIds,
+    });
     console.log('[Quiz] Selected questions count:', questions.length);
     
     if (!questions.length) {
@@ -198,15 +237,7 @@ router.post('/session/start', async (req, res) => {
         }
       }
       
-      let knowledgeNodeId = q.knowledgeNodeId;
-      if (knowledgeNodeId && typeof knowledgeNodeId === 'string') {
-        try {
-          knowledgeNodeId = new mongoose.Types.ObjectId(knowledgeNodeId);
-        } catch (e) {
-          // knowledgeNodeId 可以为空，忽略转换错误
-          knowledgeNodeId = null;
-        }
-      }
+      const knowledgeNodeId = q.knowledgeNodeId ? String(q.knowledgeNodeId) : null;
       
       return {
         id: questionId,

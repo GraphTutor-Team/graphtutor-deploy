@@ -19,6 +19,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { validatePasswordFormat, checkPasswordRequirements, getPasswordRequirements } from '../utils/passwordValidation';
 import { toast } from '../utils/toast';
+import api from '../api/api';
 
 export default function Register(){
   const nav = useNavigate();
@@ -72,18 +73,18 @@ export default function Register(){
     }
     setBusy(true);
     try{
-      const r = await fetch('/api/auth/register', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email, password }) });
-      const data = await r.json();
-      if (r.ok && data.success){
+      const r = await api.post('/auth/register', { email, password });
+      const data = r.data || {};
+      if (data.success){
         toast.success('注册成功'); 
         nav('/login');
       } else {
-        // 显示后端返回的具体错误信息
-        setErr(data.message || '注册失败（接口未实现或邮箱已存在）');
+        setErr(data.message || data.error || '注册失败（接口未实现或邮箱已存在）');
       }
     }catch(e){
       console.error('注册错误:', e);
-      setErr('网络不可用或接口未实现');
+      const data = e.response?.data;
+      setErr(data?.message || data?.error || '网络不可用或接口未实现');
     }
     setBusy(false);
   }

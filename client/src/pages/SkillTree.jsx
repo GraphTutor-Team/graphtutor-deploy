@@ -129,7 +129,7 @@ export default function SkillTree() {
                 {node.total > 0 && (
                   <button
                     type="button"
-                    onClick={() => navigate(`/quiz?knowledgeNodeId=${encodeURIComponent(node.key)}`)}
+                    onClick={() => navigate(`/quiz?knowledgeNodeId=${encodeURIComponent(node.key)}&nodeName=${encodeURIComponent(node.name || node.key)}`)}
                     className="flex-shrink-0 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                   >
                     去练习

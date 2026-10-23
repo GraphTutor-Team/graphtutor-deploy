@@ -30,6 +30,7 @@ import {
   getFavoriteNotes,
 } from '../api/v3/notes';
 import { generateNoteSummary } from '../api/v3/ai';
+import { findNodeName } from '../api/graph';
 import { getRecommendedQuestions } from '../api/v3/recommendations';
 import { exportNoteToWord } from '../api/v3/export';
 import { exportNoteToPDF } from '../utils/pdfExport';
@@ -112,6 +113,21 @@ export default function Notes() {
 
   const filterKnowledgeNodeId = searchParams.get('knowledgeNodeId');
   const filterQuestionId = searchParams.get('questionId');
+  const [filterNodeName, setFilterNodeName] = useState('');
+
+  useEffect(() => {
+    if (!filterKnowledgeNodeId) {
+      setFilterNodeName('');
+      return undefined;
+    }
+    let cancelled = false;
+    findNodeName(filterKnowledgeNodeId).then((name) => {
+      if (!cancelled) setFilterNodeName(name || '');
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [filterKnowledgeNodeId]);
 
   const clearUrlFilters = () => {
     setViewingNote(null);
@@ -483,10 +499,19 @@ export default function Notes() {
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-100 bg-blue-50/80 px-4 py-3 text-sm text-blue-900 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-100">
           <span>
             当前筛选：
-            {filterKnowledgeNodeId && `知识点「${filterKnowledgeNodeId}」`}
+            {filterKnowledgeNodeId && `知识点「${filterNodeName || filterKnowledgeNodeId}」`}
             {filterQuestionId && `题目「${filterQuestionId}」`}
           </span>
           <div className="flex gap-2">
+            {filterKnowledgeNodeId && (
+              <button
+                type="button"
+                onClick={() => navigate(`/quiz?knowledgeNodeId=${encodeURIComponent(filterKnowledgeNodeId)}&nodeName=${encodeURIComponent(filterNodeName || filterKnowledgeNodeId)}`)}
+                className="px-3 py-1 rounded-lg border border-blue-200 hover:bg-white"
+              >
+                练这个知识点
+              </button>
+            )}
             <button
               type="button"
               onClick={() => {

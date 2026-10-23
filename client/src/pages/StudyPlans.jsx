@@ -23,6 +23,7 @@ import {
   getCalendarView,
 } from '../api/v3/studyPlans';
 import { toast } from '../utils/toast';
+import { getTodaySet } from '../api/v3/ai';
 import { usePageAI } from '../hooks/usePageAI';
 
 export default function StudyPlans() {
@@ -30,6 +31,7 @@ export default function StudyPlans() {
   const { user } = useAuth();
 
   const [plans, setPlans] = useState([]);
+  const [weekNodes, setWeekNodes] = useState([]);
 
   const plansBrief = useMemo(() => {
     const titles = (Array.isArray(plans) ? plans : [])
@@ -40,6 +42,22 @@ export default function StudyPlans() {
   }, [plans]);
 
   usePageAI({ pageType: 'plans', brief: plansBrief });
+
+  useEffect(() => {
+    if (!user) return undefined;
+    let cancelled = false;
+    getTodaySet(5)
+      .then((data) => {
+        if (!cancelled) setWeekNodes(data?.weakNodes || []);
+      })
+      .catch(() => {
+        if (!cancelled) setWeekNodes([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -66,6 +84,21 @@ export default function StudyPlans() {
     summary: '',
   });
   const [todayCheckIn, setTodayCheckIn] = useState(null);
+
+  async function startTodayFromPlan(plan) {
+    const limit = plan?.dailyTarget || 10;
+    try {
+      const data = await getTodaySet(limit);
+      const questionIds = data?.practiceQuestionIds || [];
+      if (questionIds.length) {
+        navigate('/quiz', { state: { practiceQuestionIds: questionIds, practiceSource: 'plan' } });
+        return;
+      }
+    } catch (err) {
+      toast.error(err.message || '先按每日题量开练');
+    }
+    navigate('/quiz', { state: { practiceCount: limit, practiceSource: 'plan' } });
+  }
 
   useEffect(() => {
     if (user) {
@@ -513,6 +546,18 @@ export default function StudyPlans() {
                     <div>
                       <div className="text-sm text-slate-600">每日目标</div>
                       <div className="font-medium">{selectedPlan.dailyTarget} 题</div>
+                      <button
+                        type="button"
+                        className="mt-1 text-sm text-blue-600 hover:underline"
+                        onClick={() => startTodayFromPlan(selectedPlan)}
+                      >
+                        做今天的 {selectedPlan.dailyTarget || 10} 题
+                      </button>
+                      {weekNodes.length > 0 && (
+                        <div className="mt-1 text-xs text-slate-500">
+                          本周先练 {weekNodes.slice(0, 2).map((node) => node.name || node.knowledgeNodeId).join('、')}
+                        </div>
+                      )}
                     </div>
                     <div>
                       <div className="text-sm text-slate-600">状态</div>

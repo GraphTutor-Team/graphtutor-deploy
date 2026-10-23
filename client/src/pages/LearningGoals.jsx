@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   getLearningGoals,
@@ -16,12 +17,14 @@ import {
 import { getBanks } from '../api/v3/questionBanks';
 import { getSubjectTree } from '../api/v3/subjects';
 import { toast } from '../utils/toast';
+import { getTodaySet } from '../api/v3/ai';
 import { usePageAI } from '../hooks/usePageAI';
 import PageHeader from '../components/PageHeader';
 import PlanHubNav from '../components/PlanHubNav';
 
 export default function LearningGoals() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [goals, setGoals] = useState([]);
   const [stats, setStats] = useState(null);
 
@@ -62,6 +65,28 @@ export default function LearningGoals() {
     loadData();
     loadOptions();
   }, [filterStatus]);
+
+  function todayLimit(goal) {
+    if (goal?.type === 'daily' && goal?.targetType === 'questions') {
+      return Math.min(20, Math.max(1, Number(goal.targetValue) || 10));
+    }
+    return 8;
+  }
+
+  async function startGoalPractice(goal) {
+    const limit = todayLimit(goal);
+    try {
+      const data = await getTodaySet(limit);
+      const questionIds = data?.practiceQuestionIds || [];
+      if (questionIds.length) {
+        navigate('/quiz', { state: { practiceQuestionIds: questionIds, practiceSource: 'plan' } });
+        return;
+      }
+    } catch (err) {
+      toast.error(err.message || '先按题量开练');
+    }
+    navigate('/quiz', { state: { practiceCount: limit, practiceSource: 'plan' } });
+  }
 
   const loadData = async () => {
     try {
@@ -315,6 +340,15 @@ export default function LearningGoals() {
                 <div className="text-xs text-slate-500">
                   <div>开始：{new Date(goal.startDate).toLocaleDateString('zh-CN')}</div>
                   <div>截止：{new Date(goal.endDate).toLocaleDateString('zh-CN')}</div>
+                  {goal.status === 'active' && !isCompleted && !isExpired && (
+                    <button
+                      type="button"
+                      className="mt-2 text-sm text-blue-600 hover:underline"
+                      onClick={() => startGoalPractice(goal)}
+                    >
+                      去做今天的 {todayLimit(goal)} 题
+                    </button>
+                  )}
                   {goal.subjectCode && (
                     <div>学科：{goal.subjectCode?.name || goal.subjectCode}</div>
                   )}

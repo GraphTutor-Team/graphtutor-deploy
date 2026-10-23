@@ -20,6 +20,7 @@
 import {
   createContext,
   useContext,
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -34,6 +35,59 @@ import {
 } from "../utils/tokenRefresh";
 
 const AuthContext = createContext(null);
+const USER_CACHE_KEY = "user";
+
+function idOf(value, depth = 0) {
+  if (value == null || value === "" || depth > 2) return "";
+  if (typeof value === "object") {
+    if (value.id || value._id) return idOf(value.id || value._id, depth + 1);
+    const text = typeof value.toString === "function" ? value.toString() : "";
+    return text && text !== "[object Object]" ? text : "";
+  }
+  return String(value);
+}
+
+function normalizeAuthUser(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const id = idOf(raw.id || raw._id || raw.userId);
+  if (!id) return null;
+  const { password, passwordHash, type, exp, iat, ...rest } = raw;
+  return { ...rest, id, _id: id };
+}
+
+function readCachedUser() {
+  if (typeof window === "undefined") return null;
+  try {
+    return normalizeAuthUser(JSON.parse(window.localStorage.getItem(USER_CACHE_KEY) || "null"));
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedUser(user) {
+  const normalized = normalizeAuthUser(user);
+  if (!normalized || typeof window === "undefined") return normalized;
+  window.localStorage.setItem(USER_CACHE_KEY, JSON.stringify(normalized));
+  return normalized;
+}
+
+function clearCachedUser() {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(USER_CACHE_KEY);
+}
+
+function userFromAccessToken(token) {
+  try {
+    const part = String(token || "").split(".")[1];
+    if (!part) return null;
+    const padded = part.replace(/-/g, "+").replace(/_/g, "/");
+    const binary = atob(padded.padEnd(Math.ceil(padded.length / 4) * 4, "="));
+    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+    return normalizeAuthUser(JSON.parse(new TextDecoder().decode(bytes)));
+  } catch {
+    return null;
+  }
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -47,6 +101,7 @@ export function AuthProvider({ children }) {
     // 监听token过期事件
     const handleTokenExpired = () => {
       clearAllTokens();
+      clearCachedUser();
       setUser(null);
       setToken(null);
     };
@@ -100,8 +155,8 @@ export function AuthProvider({ children }) {
         
         const data = res.data || {};
         // 后端返回格式为 { success: true, user: {...} }
-        const userData = data.user || data;
-        if (!cancelled) {
+        const userData = writeCachedUser(data.user || data) || userFromAccessToken(t);
+        if (!cancelled && userData) {
           setUser(userData);
           // 确保token同步
           const currentToken = getStoredToken();
@@ -113,22 +168,17 @@ export function AuthProvider({ children }) {
         }
       } catch (err) {
         if (timeoutId) clearTimeout(timeoutId);
-        console.warn("/auth/me 失败，清除本地登录状态:", err?.message || err?.response?.status);
-        // 超时或网络错误时，不清除token，允许用户继续使用（可能是后端暂时不可用）
-        if (err?.message === '请求超时' || err?.code === 'ECONNABORTED') {
-          console.warn("后端响应超时，但保留本地token，允许继续使用");
-          // 如果有token，保留它，但不设置user（让用户以游客身份继续）
-          if (!cancelled) {
-            setUser(null);
-            // 保留token，不清除
-          }
-        } else {
-          // 其他错误（如401），清除登录状态
+        const status = err?.response?.status;
+        console.warn("/auth/me 失败:", err?.message || status);
+        if (status === 401) {
           if (!cancelled) {
             setStoredToken(null);
+            clearCachedUser();
             setUser(null);
             setToken(null);
           }
+        } else if (!cancelled) {
+          setUser(readCachedUser() || userFromAccessToken(t));
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -194,9 +244,10 @@ export function AuthProvider({ children }) {
       setStoredRefreshToken(rt);
     }
     setToken(t);
-    setUser(u);
+    const remembered = writeCachedUser(u);
+    setUser(remembered);
 
-    return u;
+    return remembered;
   }
 
   // 手机号验证码登录
@@ -212,8 +263,9 @@ export function AuthProvider({ children }) {
     setStoredToken(t);
     if (rt) setStoredRefreshToken(rt);
     setToken(t);
-    setUser(u);
-    return u;
+    const remembered = writeCachedUser(u);
+    setUser(remembered);
+    return remembered;
   }
 
   // 注册（如果你项目在用）
@@ -227,7 +279,9 @@ export function AuthProvider({ children }) {
         setStoredRefreshToken(rt);
       }
       setToken(t);
-      setUser(u);
+      const remembered = writeCachedUser(u);
+      setUser(remembered);
+      return remembered;
     }
 
     return u;
@@ -246,9 +300,30 @@ export function AuthProvider({ children }) {
 
     // 清除所有token和用户信息
     clearAllTokens();
+    clearCachedUser();
     setToken(null);
     setUser(null);
   }
+
+  const updateUser = useCallback((next) => {
+    if (typeof next === "function") {
+      setUser((prev) => {
+        const resolved = next(prev);
+        if (!resolved) {
+          clearCachedUser();
+          return null;
+        }
+        return writeCachedUser(resolved);
+      });
+      return;
+    }
+    if (!next) {
+      clearCachedUser();
+      setUser(null);
+      return;
+    }
+    setUser(writeCachedUser(next));
+  }, []);
 
   const value = useMemo(
     () => ({
@@ -260,9 +335,9 @@ export function AuthProvider({ children }) {
       loginWithSms,
       register,
       logout,
-      setUser,
+      setUser: updateUser,
     }),
-    [user, token, loading]
+    [user, token, loading, updateUser]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -212,7 +212,7 @@ export default function Favorites() {
     }
 
     navigate('/quiz', {
-      state: { questionIds },
+      state: { questionIds, practiceSource: 'saved' },
     });
   };
 
@@ -459,7 +459,7 @@ export default function Favorites() {
                                 <button
                                   onClick={() => {
                                     navigate('/quiz', {
-                                      state: { questionIds: [favorite.questionId] },
+                                      state: { questionIds: [favorite.questionId], practiceSource: 'saved' },
                                     });
                                   }}
                                   className="px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"

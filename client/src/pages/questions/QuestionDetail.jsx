@@ -14,6 +14,7 @@ import { getRecommendedQuestions } from '../../api/v3/recommendations';
 import { checkFavorite, addFavorite, removeFavorite, getFavoriteFolders } from '../../api/v3/favorites';
 import { getQuestionNote, createNote, updateNote, getNotes } from '../../api/v3/notes';
 import { generateExplanation } from '../../api/v3/ai';
+import { findNodeName } from '../../api/graph';
 import { toast } from '../../utils/toast';
 import MarkdownPreview from '../../components/MarkdownPreview';
 
@@ -26,6 +27,7 @@ export default function QuestionDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [question, setQuestion] = useState(null);
+  const [nodeName, setNodeName] = useState('');
   const [versions, setVersions] = useState([]);
   const [activeTab, setActiveTab] = useState('detail'); // detail, versions, related, note
   const [isFavorited, setIsFavorited] = useState(false);
@@ -91,6 +93,25 @@ export default function QuestionDetail() {
     })();
     return () => { cancelled = true; };
   }, [question?.knowledgeNodeId]);
+
+  useEffect(() => {
+    if (!question?.knowledgeNodeId) {
+      setNodeName('');
+      return undefined;
+    }
+    let cancelled = false;
+    findNodeName(question.knowledgeNodeId).then((name) => {
+      if (!cancelled) setNodeName(name || '');
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [question?.knowledgeNodeId]);
+
+  function practiceNode(nodeId, name) {
+    if (!nodeId) return;
+    navigate(`/quiz?knowledgeNodeId=${encodeURIComponent(nodeId)}&nodeName=${encodeURIComponent(name || nodeName || nodeId)}`);
+  }
 
   const loadQuestion = async () => {
     try {
@@ -666,7 +687,15 @@ export default function QuestionDetail() {
               <div>
                 <div className="text-sm text-slate-600">知识点</div>
                 <div className="font-medium mt-1">
-                  {question.knowledgeNodeId || '-'}
+                  {question.knowledgeNodeId ? (
+                    <button
+                      type="button"
+                      className="text-blue-600 hover:underline"
+                      onClick={() => practiceNode(question.knowledgeNodeId, nodeName)}
+                    >
+                      {nodeName || question.knowledgeNodeId}
+                    </button>
+                  ) : '-'}
                 </div>
               </div>
               {question.tags && question.tags.length > 0 && (
@@ -822,9 +851,16 @@ export default function QuestionDetail() {
                         {q.content || '（无题干）'}
                       </h3>
                       {q.knowledgeNodeId && (
-                        <div className="text-sm text-slate-600 mb-2">
-                          知识点：{q.knowledgeNodeId}
-                        </div>
+                        <button
+                          type="button"
+                          className="text-sm text-blue-600 hover:underline mb-2"
+                          onClick={() => practiceNode(
+                            q.knowledgeNodeId,
+                            q.knowledgeNodeId === question.knowledgeNodeId ? nodeName : q.knowledgeNodeName
+                          )}
+                        >
+                          知识点：{q.knowledgeNodeName || (q.knowledgeNodeId === question.knowledgeNodeId ? nodeName : '') || q.knowledgeNodeId}
+                        </button>
                       )}
                     </div>
                   </div>
@@ -841,6 +877,7 @@ export default function QuestionDetail() {
                         navigate('/quiz', {
                           state: {
                             questionIds: [q._id || q.id],
+                            practiceSource: 'ai',
                           },
                         });
                       }}

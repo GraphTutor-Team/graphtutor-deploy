@@ -72,11 +72,22 @@ export async function getTodayReviewQuestions(userId, options = {}) {
       includeMastered = false,
     } = options;
 
+    const cap = Math.min(limit, 100);
+    const masteredFilter = includeMastered ? {} : { masteryStatus: { $ne: 'mastered' } };
+    const since = new Date();
+    since.setDate(since.getDate() - 7);
+    const recent = await WrongQuestion.find({
+      userId: String(userId),
+      lastErrorAt: { $gte: since },
+      ...masteredFilter,
+    }).sort({ lastErrorAt: -1 }).limit(cap).lean();
+
     const tomorrow = new Date();
     tomorrow.setHours(23, 59, 59, 999);
 
-    const query = {
+    const due = await WrongQuestion.find({
       userId: String(userId),
+      ...masteredFilter,
       $or: [
         { 'reviewPlan.nextReviewDate': { $lte: tomorrow } },
         { nextReviewAt: { $lte: tomorrow } },
@@ -87,33 +98,53 @@ export async function getTodayReviewQuestions(userId, options = {}) {
           ],
         },
       ],
-    };
-
-    if (!includeMastered) {
-      query.masteryStatus = { $ne: 'mastered' };
-    }
-
-    const wrongQuestions = await WrongQuestion.find(query)
+    })
       .sort({
         'reviewPlan.nextReviewDate': 1,
         nextReviewAt: 1,
         errorCount: -1,
         mastery: 1,
       })
-      .limit(Math.min(limit, 100))
+      .limit(cap)
       .lean();
 
-    const questionsWithPriority = wrongQuestions.map((q) => ({
-      ...q,
-      priority: calculatePriority(q),
-    }));
-
-    questionsWithPriority.sort((a, b) => b.priority - a.priority);
-    return questionsWithPriority;
+    due.sort((a, b) => calculatePriority(b) - calculatePriority(a));
+    const recentIds = new Set(recent.map((row) => String(row._id)));
+    const merged = [];
+    const seen = new Set();
+    [...recent, ...due].forEach((row) => {
+      const key = String(row.questionId || row._id);
+      if (!key || seen.has(key) || merged.length >= cap) return;
+      seen.add(key);
+      merged.push({
+        ...row,
+        justWrong: recentIds.has(String(row._id)),
+        priority: calculatePriority(row),
+      });
+    });
+    await attachQuestionContent(merged);
+    return merged;
   } catch (error) {
     console.error('getTodayReviewQuestions error:', error);
     return [];
   }
+}
+
+/**
+ * 给错题附上题干摘要。questionId 是字符串，不能用 populate。
+ */
+async function attachQuestionContent(rows) {
+  const ids = [...new Set(rows.map((row) => String(row.questionId || '')).filter((id) => /^[a-f\d]{24}$/i.test(id)))];
+  if (!ids.length) return;
+  const questions = await Question.find({ _id: { $in: ids } }).select('content').lean();
+  const byId = new Map(questions.map((question) => [
+    String(question._id),
+    String(question.content || '').replace(/\s+/g, ' ').slice(0, 80),
+  ]));
+  rows.forEach((row) => {
+    const text = byId.get(String(row.questionId || ''));
+    if (text) row.questionContent = text;
+  });
 }
 
 /**
@@ -229,20 +260,23 @@ export async function generateReviewPlan(userId, options = {}) {
 
   // 获取所有未掌握的错题
   const wrongQuestions = await WrongQuestion.find({
-    userId,
-    isMastered: false,
-  })
-    .populate('questionId')
-    .lean();
+    userId: String(userId),
+    isMastered: { $ne: true },
+    masteryStatus: { $ne: 'mastered' },
+  }).lean();
+  await attachQuestionContent(wrongQuestions);
 
-  // 计算每个错题的优先级
-  const questionsWithPriority = wrongQuestions.map(q => ({
+  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const questionsWithPriority = wrongQuestions.map((q) => ({
     ...q,
     priority: calculatePriority(q),
+    justWrong: q.lastErrorAt && new Date(q.lastErrorAt).getTime() >= weekAgo,
   }));
 
-  // 按优先级排序
-  questionsWithPriority.sort((a, b) => b.priority - a.priority);
+  questionsWithPriority.sort((a, b) => {
+    if (Boolean(a.justWrong) !== Boolean(b.justWrong)) return a.justWrong ? -1 : 1;
+    return b.priority - a.priority;
+  });
 
   // 生成每日计划
   const plan = [];
@@ -262,8 +296,10 @@ export async function generateReviewPlan(userId, options = {}) {
         wrongQuestionId: question._id.toString(),
         questionId: question.questionId?._id || question.questionId,
         knowledgeNodeId: question.knowledgeNodeId,
+        questionContent: question.questionContent || '',
         priority: question.priority,
         mastery: question.mastery,
+        justWrong: Boolean(question.justWrong),
       });
       questionIndex++;
     }

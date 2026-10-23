@@ -24,7 +24,7 @@ export function applySingleRecordSideEffects(userId, {
   isCorrect,
   timeSpentMs,
   knowledgeNodeId,
-}, question = null) {
+}, question = null, options = {}) {
   if (!userId || !questionId) return;
 
   const run = async () => {
@@ -47,14 +47,14 @@ export function applySingleRecordSideEffects(userId, {
       console.error('检查成就失败:', err);
     });
 
-    if (recordId) {
+    if (recordId && !options.skipWrongBook) {
       await addOrUpdateWrongQuestion(userId, recordId, String(questionId), !!isCorrect).catch((err) => {
         console.error('更新错题本失败:', err);
       });
     }
   };
 
-  run().catch((err) => {
+  return run().catch((err) => {
     console.error('applySingleRecordSideEffects error:', err);
   });
 }
@@ -67,14 +67,19 @@ export async function applyBatchRecordSideEffects(userId, entries) {
   if (!userId || !entries?.length) return;
 
   const uniqueQuestionIds = [...new Set(entries.map((e) => String(e.questionId)).filter(Boolean))];
-  const questions = uniqueQuestionIds.length
-    ? await Question.find({
-      $or: [
-        { _id: { $in: uniqueQuestionIds } },
-        { id: { $in: uniqueQuestionIds } },
-      ],
-    }).lean()
-    : [];
+  let questions = [];
+  try {
+    questions = uniqueQuestionIds.length
+      ? await Question.find({
+        $or: [
+          { _id: { $in: uniqueQuestionIds } },
+          { id: { $in: uniqueQuestionIds } },
+        ],
+      }).lean()
+      : [];
+  } catch (err) {
+    console.error('加载题目失败:', err);
+  }
 
   const questionMap = {};
   questions.forEach((q) => {
@@ -83,8 +88,17 @@ export async function applyBatchRecordSideEffects(userId, entries) {
   });
 
   for (const entry of entries) {
-    applySingleRecordSideEffects(userId, entry, questionMap[String(entry.questionId)]);
+    applySingleRecordSideEffects(userId, entry, questionMap[String(entry.questionId)], { skipWrongBook: true });
   }
+
+  await Promise.all(entries.map(async (entry) => {
+    if (!entry.recordId || !entry.questionId) return;
+    try {
+      await addOrUpdateWrongQuestion(userId, entry.recordId, String(entry.questionId), !!entry.isCorrect);
+    } catch (err) {
+      console.error('更新错题本失败:', err);
+    }
+  }));
 
   const allCorrect = entries.every((e) => e.isCorrect === true);
   const correctCount = entries.filter((e) => e.isCorrect).length;

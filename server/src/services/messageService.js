@@ -348,7 +348,8 @@ export async function recallMessage(userId, messageId) {
  * @returns {Promise<Array>} 搜索结果
  */
 export async function searchMessages(userId, keyword, options = {}) {
-  const { limit = 50, offset = 0 } = options;
+  const limit = Math.min(100, Math.max(1, Number(options.limit) || 50));
+  const offset = Math.max(0, Number(options.offset) || 0);
 
   if (!keyword || keyword.trim().length === 0) {
     throw new Error('搜索关键词不能为空');

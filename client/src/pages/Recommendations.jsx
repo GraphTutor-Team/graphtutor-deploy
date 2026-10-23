@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getRecommendedQuestions } from '../api/v3/recommendations';
 import { getSubjectTree } from '../api/v3/subjects';
@@ -16,6 +16,8 @@ import { usePageAI } from '../hooks/usePageAI';
 export default function Recommendations() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const strategyFromQuery = new URLSearchParams(location.search).get('strategy');
   const [loading, setLoading] = useState(true);
   const [questions, setQuestions] = useState([]);
 
@@ -33,7 +35,7 @@ export default function Recommendations() {
 
   // 筛选条件
   const [filters, setFilters] = useState({
-    strategy: 'adaptive',
+    strategy: strategyFromQuery === 'weak_points' || strategyFromQuery === 'goal_based' ? strategyFromQuery : 'adaptive',
     subjectCode: '',
     bankId: '',
     limit: 10,
@@ -245,9 +247,13 @@ export default function Recommendations() {
                     {question.content || '（无题干）'}
                   </h3>
                   {question.knowledgeNodeId && (
-                    <div className="text-sm text-slate-600 mb-2">
-                      知识点：{question.knowledgeNodeId}
-                    </div>
+                    <button
+                      type="button"
+                      className="text-sm text-blue-600 hover:underline mb-2"
+                      onClick={() => navigate(`/quiz?knowledgeNodeId=${encodeURIComponent(question.knowledgeNodeId)}&nodeName=${encodeURIComponent(question.knowledgeNodeName || question.knowledgeNodeId)}`)}
+                    >
+                      知识点：{question.knowledgeNodeName || question.knowledgeNodeId}
+                    </button>
                   )}
                 </div>
               </div>
@@ -277,6 +283,7 @@ export default function Recommendations() {
                       navigate('/quiz', {
                         state: {
                           questionIds: [question._id || question.id],
+                          practiceSource: 'ai',
                         },
                       });
                     }}
@@ -303,7 +310,7 @@ export default function Recommendations() {
                 if (questions.length > 0) {
                   const questionIds = questions.map(q => q._id || q.id).filter(Boolean);
                   navigate('/quiz', {
-                    state: { questionIds },
+                    state: { questionIds, practiceSource: 'ai' },
                   });
                 }
               }}

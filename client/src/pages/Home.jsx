@@ -229,7 +229,7 @@ export default function Home() {
             <div className="min-w-0">
               <h2 className="text-xl sm:text-2xl font-bold tracking-tight mb-1">立即开始练习</h2>
               <p className="text-white/75 text-sm">
-                选择题库即可做题；错题会进入错题本，方便复习
+                先做本周错过的题，再按题库补新题
               </p>
             </div>
             <div className="flex flex-wrap gap-2 shrink-0">
@@ -253,7 +253,9 @@ export default function Home() {
                   try {
                     const data = await getDailyChallenge();
                     if (data?.questionIds?.length) {
-                      navigate('/quiz', { state: { groupPracticeQuestionIds: data.questionIds } });
+                      navigate('/quiz', {
+                        state: { practiceQuestionIds: data.questionIds, practiceSource: 'daily' },
+                      });
                     } else {
                       window.alert('暂无题目，请稍后再试或联系管理员导入题库。');
                     }
@@ -300,10 +302,13 @@ export default function Home() {
                     {forgettingCurve.slice(0, 3).map((item) => (
                       <li key={item.knowledgeNodeId} className="flex items-center gap-2 text-sm">
                         <span className="truncate flex-1 text-slate-800 dark:text-slate-100" title={item.knowledgeNodeId}>
-                          {item.knowledgeNodeId}
+                          {item.name || item.knowledgeNodeId}
                         </span>
-                        <Link to="/review" className="text-xs text-blue-600 dark:text-blue-400 hover:underline shrink-0">
-                          去复习
+                        <Link
+                          to={`/quiz?knowledgeNodeId=${encodeURIComponent(item.knowledgeNodeId)}&nodeName=${encodeURIComponent(item.name || item.knowledgeNodeId)}`}
+                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline shrink-0"
+                        >
+                          去练习
                         </Link>
                       </li>
                     ))}
@@ -317,7 +322,13 @@ export default function Home() {
                     {guessYouWant.slice(0, 3).map((q) => (
                       <li key={q._id || q.id}>
                         <Link
-                          to={`/questions/${q._id || q.id}/detail`}
+                          to={q.knowledgeNodeId
+                            ? `/quiz?knowledgeNodeId=${encodeURIComponent(q.knowledgeNodeId)}&nodeName=${encodeURIComponent(q.knowledgeNodeName || q.knowledgeNodeId)}`
+                            : '/quiz'}
+                          state={q.knowledgeNodeId ? undefined : {
+                            questionIds: [q._id || q.id].filter(Boolean),
+                            practiceSource: 'ai',
+                          }}
                           className="text-sm text-slate-800 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400 line-clamp-1"
                         >
                           {((q.content || '').replace(/<[^>]+>/g, '').trim().slice(0, 36) || '题目')}

@@ -110,7 +110,7 @@ router.get('/conversation/:userId', requireAuth, async (req, res) => {
   try {
     const currentUserId = req.user.id;
     const targetUserId = req.params.userId;
-    const limit = validateInt(req.query.limit, 50);
+    const limit = validateInt(req.query.limit, { min: 1, max: 100, defaultValue: 50 });
     const before = req.query.before || null;
 
     const messages = await getConversation(currentUserId, targetUserId, {
@@ -285,8 +285,8 @@ router.get('/search', requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
     const keyword = req.query.keyword;
-    const limit = validateInt(req.query.limit, 50);
-    const offset = validateInt(req.query.offset, 0);
+    const limit = validateInt(req.query.limit, { min: 1, max: 100, defaultValue: 50 });
+    const offset = validateInt(req.query.offset, { min: 0, defaultValue: 0 });
 
     if (!keyword) {
       return res.status(400).json({

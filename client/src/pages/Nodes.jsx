@@ -260,6 +260,13 @@ export default function Nodes(){
                           <td className="px-6 py-4 text-slate-900 font-semibold">{x.name||'-'}</td>
                           <td className="px-6 py-4">
                             <div className="flex gap-2">
+                              <button
+                                type="button"
+                                className="text-sm text-blue-600 hover:underline"
+                                onClick={() => navigate(`/quiz?knowledgeNodeId=${encodeURIComponent(x.key)}&nodeName=${encodeURIComponent(x.name || x.key)}`)}
+                              >
+                                去练习
+                              </button>
                               <button 
                                 className="btn btn-sm btn-outline text-xs opacity-0 group-hover:opacity-100 transition-all flex items-center gap-1" 
                                 onClick={() => toggleNodeExpanded(x.key)}

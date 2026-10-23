@@ -254,7 +254,7 @@ export default function LearningPath() {
                   </div>
                   <div className="flex flex-col gap-1 ml-2">
                     <Link
-                      to={`/quiz?knowledgeNodeId=${item.key}`}
+                      to={`/quiz?knowledgeNodeId=${encodeURIComponent(item.key)}&nodeName=${encodeURIComponent(displayedName || item.key)}`}
                       className="px-2 py-1 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700"
                     >
                       去练习
@@ -354,7 +354,7 @@ export default function LearningPath() {
                   </div>
                   <div className="flex gap-2">
                     <Link
-                      to={`/quiz?knowledgeNodeId=${item.node.key}`}
+                      to={`/quiz?knowledgeNodeId=${encodeURIComponent(item.node.key)}&nodeName=${encodeURIComponent(item.node.name || item.node.key)}`}
                       className="px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                     >
                       开始练习

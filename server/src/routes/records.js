@@ -43,14 +43,9 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: '缺少必要字段：userId 和 questionId 必填' });
     }
 
-    // answerIndex 可以是 number 或 null（表示未答题）
-    if (answerIndex !== null && answerIndex !== undefined && typeof answerIndex !== 'number') {
-      return res.status(400).json({ error: 'answerIndex 必须是数字或 null' });
-    }
-
-    // 确保 answerIndex 和 correctIndex 是 number 或 null
-    const normalizedAnswerIndex = answerIndex != null && answerIndex !== '' ? Number(answerIndex) : null;
-    const normalizedCorrectIndex = correctIndex != null && correctIndex !== '' ? Number(correctIndex) : null;
+    // 单选存下标；多选、填空、简答只保留对错
+    const normalizedAnswerIndex = typeof answerIndex === 'number' ? answerIndex : null;
+    const normalizedCorrectIndex = typeof correctIndex === 'number' ? correctIndex : null;
     
     // 确保 isCorrect 有默认值
     const normalizedIsCorrect = isCorrect === true || isCorrect === false ? isCorrect : false;
@@ -78,7 +73,7 @@ router.post('/', async (req, res) => {
         // 忽略错误
       }
 
-      applySingleRecordSideEffects(userId, {
+      await applySingleRecordSideEffects(userId, {
         recordId: doc._id,
         questionId: String(questionId),
         isCorrect: normalizedIsCorrect,
@@ -124,16 +119,11 @@ router.post('/batch', async (req, res) => {
     }
 
     const docs = records
-      .filter((r) => {
-        // 过滤有效记录：必须有 questionId，answerIndex 可以是 number 或 null
-        return r && 
-               r.questionId != null && 
-               (r.answerIndex === null || r.answerIndex === undefined || typeof r.answerIndex === 'number');
-      })
+      .filter((r) => r && r.questionId != null)
       .map((r) => {
-        // 规范化数据类型，确保兼容性
-        const normalizedAnswerIndex = r.answerIndex != null && r.answerIndex !== '' ? Number(r.answerIndex) : null;
-        const normalizedCorrectIndex = r.correctIndex != null && r.correctIndex !== '' ? Number(r.correctIndex) : null;
+        // 单选存下标；多选、填空、简答只保留对错，避免整条记录被丢掉
+        const normalizedAnswerIndex = typeof r.answerIndex === 'number' ? r.answerIndex : null;
+        const normalizedCorrectIndex = typeof r.correctIndex === 'number' ? r.correctIndex : null;
         
         return {
           userId: String(userId),
@@ -161,9 +151,11 @@ router.post('/batch', async (req, res) => {
         timeSpentMs: doc.timeSpentMs,
         knowledgeNodeId: doc.knowledgeNodeId,
       }));
-      applyBatchRecordSideEffects(userId, entries).catch((err) => {
+      try {
+        await applyBatchRecordSideEffects(userId, entries);
+      } catch (err) {
         console.error('批量记录 side effects 失败:', err);
-      });
+      }
     }
 
     res.json({ ok: true, inserted: result.length });

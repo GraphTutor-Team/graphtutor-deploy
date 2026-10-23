@@ -645,12 +645,23 @@ export default function Analytics() {
       {/* 知识点掌握度 */}
       {knowledgeNodes && knowledgeNodes.length > 0 && (
         <div className="surface">
-          <h2 className="text-lg font-bold mb-4">知识点掌握度</h2>
+          <h2 className="text-lg font-bold mb-1">知识点掌握度</h2>
+          <p className="text-sm text-slate-500 mb-4">点名称开始这个知识点的练习，先做本周错过的题。</p>
           <div className="space-y-3">
             {knowledgeNodes.slice(0, 10).map((node, idx) => (
               <div key={node.knowledgeNodeId || idx} className="space-y-1">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium">{node.knowledgeNodeId || '未标注'}</span>
+                <div className="flex items-center justify-between text-sm gap-3">
+                  {node.knowledgeNodeId ? (
+                    <button
+                      type="button"
+                      className="font-medium text-left text-blue-700 hover:underline"
+                      onClick={() => navigate(`/quiz?knowledgeNodeId=${encodeURIComponent(node.knowledgeNodeId)}&nodeName=${encodeURIComponent(node.name || node.knowledgeNodeId)}`)}
+                    >
+                      {node.name || node.knowledgeNodeId}
+                    </button>
+                  ) : (
+                    <span className="font-medium">未标注</span>
+                  )}
                   <span className="text-slate-600">
                     {node.correct}/{node.total} ({node.accuracy?.toFixed(1)}%)
                   </span>
@@ -792,7 +803,26 @@ export default function Analytics() {
             <div className="text-xs text-slate-500 dark:text-slate-400 mb-2">
               {wrongReportPeriod === 'week' ? '本周' : '本月'}错题数：{wrongReport.wrongCount}
             </div>
+            {Array.isArray(wrongReport.weakNodes) && wrongReport.weakNodes.length > 0 && (
+              <div className="mb-2 text-xs text-slate-500 dark:text-slate-400">
+                {wrongReport.weakNodes.map((node) => `${node.name || node.knowledgeNodeId} · 错 ${node.count} 次`).join('　')}
+              </div>
+            )}
             {wrongReport.report}
+            {Array.isArray(wrongReport.practiceQuestionIds) && wrongReport.practiceQuestionIds.length > 0 && (
+              <button
+                type="button"
+                className="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                onClick={() => navigate('/quiz', {
+                  state: {
+                    practiceQuestionIds: wrongReport.practiceQuestionIds,
+                    practiceSource: 'ai',
+                  },
+                })}
+              >
+                练习这 {wrongReport.practiceQuestionIds.length} 道巩固题
+              </button>
+            )}
           </div>
         )}
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">生成报告后会在通知中心收到提醒，可前往查看。</p>
@@ -989,7 +1019,7 @@ export default function Analytics() {
                   className="flex flex-wrap items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700"
                 >
                   <span className="font-medium text-slate-900 dark:text-slate-100">
-                    {n.knowledgeNodeId}
+                    {n.name || n.knowledgeNodeId}
                   </span>
                   <span className="text-xs text-slate-500 dark:text-slate-400">
                     正确率 {n.accuracy?.toFixed?.(1) ?? n.accuracy ?? 0}% · 已做 {n.total || 0} 题 · 错 {n.wrong || 0} 题

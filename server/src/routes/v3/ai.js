@@ -24,6 +24,10 @@ import {
 } from '../../services/ai/taskQueue.js';
 import { validateInt } from '../../middleware/validation.js';
 import { createNotification } from '../../services/notificationService.js';
+import mongoose from 'mongoose';
+import WrongQuestion from '../../models/WrongQuestion.js';
+import Question from '../../models/Question.js';
+import KnowledgeNode from '../../models/KnowledgeNode.js';
 
 const router = express.Router();
 
@@ -386,7 +390,7 @@ function isPracticeRecommendIntent(text = '') {
 }
 
 /**
- * 根据错题选出可练习的题目：优先同知识点新题，不足时回退到错题本身
+ * 根据错题选出可练习的题目：先放错过的题，再用同知识点新题补齐。
  */
 async function resolveRecommendedQuestionIds(wrongIds, count = 5) {
   const ids = [...new Set((wrongIds || []).map(String).filter(Boolean))].slice(0, 20);
@@ -397,32 +401,39 @@ async function resolveRecommendedQuestionIds(wrongIds, count = 5) {
     const wrongQs = await Question.find({ _id: { $in: ids } })
       .select('_id knowledgeNodeId')
       .lean();
+    const validIds = new Set(wrongQs.map((question) => String(question._id)));
+    const orderedWrongs = ids.filter((id) => validIds.has(id));
     const nodeIds = [
       ...new Set(
         wrongQs
-          .map((q) => q.knowledgeNodeId)
+          .map((question) => question.knowledgeNodeId)
           .filter(Boolean)
           .map(String)
       ),
     ];
 
     const picked = [];
-    if (nodeIds.length > 0) {
+    const used = new Set();
+    orderedWrongs.forEach((id) => {
+      if (picked.length >= count || used.has(id)) return;
+      used.add(id);
+      picked.push(id);
+    });
+    if (picked.length < count && nodeIds.length > 0) {
       const related = await Question.find({
         knowledgeNodeId: { $in: nodeIds },
-        _id: { $nin: ids },
+        _id: { $nin: orderedWrongs },
       })
         .select('_id')
-        .limit(count * 3)
+        .limit(Math.max(count * 3, 10))
         .lean();
-      for (const q of related) {
-        if (picked.length >= count) break;
-        picked.push(String(q._id));
-      }
-    }
-    for (const id of ids) {
-      if (picked.length >= count) break;
-      if (!picked.includes(id)) picked.push(id);
+      related.forEach((question) => {
+        if (picked.length >= count) return;
+        const id = String(question._id || '');
+        if (!id || used.has(id)) return;
+        used.add(id);
+        picked.push(id);
+      });
     }
     return picked.slice(0, count);
   } catch (err) {
@@ -555,6 +566,133 @@ router.post('/note-summary', requireAuth, async (req, res) => {
   }
 });
 
+export async function buildTodaySet(userId, limit, seedIds = []) {
+  const since = new Date();
+  since.setDate(since.getDate() - 7);
+  const wrongs = await WrongQuestion.find({
+    userId: String(userId),
+    lastErrorAt: { $gte: since },
+  }).sort({ lastErrorAt: -1 }).limit(50).select('questionId knowledgeNodeId').lean();
+
+  const ordered = [];
+  const seen = new Set();
+  const nodeCount = new Map();
+  const pushId = (id) => {
+    const key = id ? String(id) : '';
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    ordered.push(key);
+  };
+  seedIds.forEach(pushId);
+  wrongs.forEach((wrong) => {
+    pushId(wrong.questionId);
+    if (wrong.knowledgeNodeId) {
+      const key = String(wrong.knowledgeNodeId);
+      nodeCount.set(key, (nodeCount.get(key) || 0) + 1);
+    }
+  });
+
+  const validSeed = seedIds.filter((id) => mongoose.Types.ObjectId.isValid(String(id)));
+  if (validSeed.length) {
+    const seedQuestions = await Question.find({ _id: { $in: validSeed.slice(0, 20) } })
+      .select('knowledgeNodeId')
+      .lean();
+    seedQuestions.forEach((question) => {
+      if (!question.knowledgeNodeId) return;
+      const key = String(question.knowledgeNodeId);
+      nodeCount.set(key, (nodeCount.get(key) || 0) + 1);
+    });
+  }
+
+  const nodeKeys = [...nodeCount.keys()];
+  const named = nodeKeys.length
+    ? await KnowledgeNode.find({ key: { $in: nodeKeys } }).select('key name').lean()
+    : [];
+  const nameByKey = new Map(named.map((node) => [String(node.key), node.name || '']));
+  const weakNodes = [...nodeCount.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([knowledgeNodeId, count]) => ({
+      knowledgeNodeId,
+      name: nameByKey.get(knowledgeNodeId) || '',
+      count,
+    }));
+
+  const fresh = ordered.length
+    ? await resolveRecommendedQuestionIds(ordered.slice(0, 20), limit)
+    : [];
+  const practiceQuestionIds = [];
+  const used = new Set();
+  [...ordered, ...fresh].forEach((id) => {
+    if (!id || used.has(id) || practiceQuestionIds.length >= limit) return;
+    used.add(id);
+    practiceQuestionIds.push(id);
+  });
+  return { practiceQuestionIds, weakNodes };
+}
+
+/**
+ * GET /api/v3/ai/today-set
+ * 按近 7 天错题组一套今日练习：先放刚错过的题，再补同知识点新题
+ * query: limit
+ */
+router.get('/today-set', requireAuth, async (req, res) => {
+  try {
+    const limit = Math.min(20, Math.max(1, parseInt(req.query.limit, 10) || 8));
+    const data = await buildTodaySet(req.user.id, limit);
+    res.json({ success: true, data });
+  } catch (err) {
+    console.error('GET /api/v3/ai/today-set error:', err);
+    res.status(500).json({ success: false, message: err.message || '获取今日练习失败' });
+  }
+});
+
+/**
+ * POST /api/v3/ai/today-set
+ * 用本次答错的题号组下一套：这些题排在前面，再补同知识点和本周其他错题
+ * body: { limit, questionIds }
+ */
+router.post('/today-set', requireAuth, async (req, res) => {
+  try {
+    const limit = Math.min(20, Math.max(1, parseInt(req.body?.limit, 10) || 8));
+    const questionIds = Array.isArray(req.body?.questionIds)
+      ? req.body.questionIds.map(String).filter(Boolean).slice(0, 20)
+      : [];
+    const data = await buildTodaySet(req.user.id, limit, questionIds);
+    res.json({ success: true, data });
+  } catch (err) {
+    console.error('POST /api/v3/ai/today-set error:', err);
+    res.status(500).json({ success: false, message: err.message || '获取今日练习失败' });
+  }
+});
+
+function summarizeWrongSet(wrongs, qMap) {
+  const topicList = [];
+  const nodeCount = new Map();
+  const sourceIds = [];
+  const seen = new Set();
+  for (const wrong of wrongs) {
+    const id = wrong.questionId?.toString();
+    const question = id ? qMap.get(id) : null;
+    if (id && !seen.has(id)) {
+      seen.add(id);
+      sourceIds.push(id);
+    }
+    if (question?.knowledgeNodeId) {
+      const key = String(question.knowledgeNodeId);
+      nodeCount.set(key, (nodeCount.get(key) || 0) + 1);
+    }
+    if (question?.content && topicList.length < 30) {
+      topicList.push(String(question.content).replace(/\s+/g, ' ').slice(0, 80));
+    }
+  }
+  const weakNodes = [...nodeCount.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([knowledgeNodeId, count]) => ({ knowledgeNodeId, count }));
+  return { topicList, weakNodes, sourceIds };
+}
+
 /**
  * GET /api/v3/ai/wrong-report
  * 错题分析报告（Phase 1.5），按周/月聚合后由 AI 生成分析与复习建议
@@ -587,31 +725,45 @@ router.get('/wrong-report', requireAuth, async (req, res) => {
       .lean();
     const qMap = new Map(questions.map((q) => [q._id.toString(), q]));
 
-    const topicList = wrongs.slice(0, 30).map((w) => {
-      const q = qMap.get(w.questionId?.toString());
-      return q ? (q.content || '').replace(/\s+/g, ' ').slice(0, 80) : '';
-    }).filter(Boolean);
+    const summarized = summarizeWrongSet(wrongs, qMap);
+    const { topicList, sourceIds } = summarized;
+    const nodeKeys = summarized.weakNodes.map((node) => node.knowledgeNodeId);
+    const namedRows = nodeKeys.length
+      ? await KnowledgeNode.find({ key: { $in: nodeKeys } }).select('key name').lean()
+      : [];
+    const nameByKey = new Map(namedRows.map((node) => [String(node.key), node.name || '']));
+    const weakNodes = summarized.weakNodes.map((node) => ({
+      ...node,
+      name: nameByKey.get(node.knowledgeNodeId) || '',
+    }));
+    const practiceQuestionIds = sourceIds.length
+      ? await resolveRecommendedQuestionIds(sourceIds.slice(0, 20), 8)
+      : [];
 
-    const prompt = `根据以下用户在${period === 'week' ? '本周' : '本月'}的错题摘要，生成一段「错题分析 + 复习建议」（200–400 字）。\n错题摘要（前若干题）：\n${topicList.join('\n')}\n请直接输出分析正文，包含：1）薄弱点概括；2）复习建议。`;
-    const messages = [
-      { role: 'system', content: '你是学习助手，根据用户错题数据给出简明分析和复习建议。' },
-      { role: 'user', content: prompt },
-    ];
-    const report = await chatCompletion(messages, { temperature: 0.5 }, userId);
-    const reportText = report || '暂无足够错题数据生成报告。';
+    let reportText = '最近还没有错题。先去做一套练习，做错的题会出现在这里。';
+    if (topicList.length > 0) {
+      const nodeLines = weakNodes.map((node) => `${node.name || node.knowledgeNodeId}（${node.count}次）`).join('、');
+      const prompt = `根据用户${period === 'week' ? '本周' : '本月'}错题写一段复习说明（150–250字）。\n出错较多的知识点：${nodeLines || '未标注'}\n错题题干：\n${topicList.join('\n')}\n必须点名上面的知识点，说明今天先练哪一块。不要输出题目 ID。`;
+      const messages = [
+        { role: 'system', content: '你是学习教练。只根据给出的错题和知识点写建议，不要编造没出现的章节。' },
+        { role: 'user', content: prompt },
+      ];
+      reportText = (await chatCompletion(messages, { temperature: 0.4 }, userId)) || reportText;
+    }
 
-    // 推送到通知中心：生成后写入一条系统通知，便于用户在通知中心看到
-    try {
-      await createNotification({
-        userId,
-        type: 'system',
-        title: period === 'week' ? '本周错题分析已生成' : '本月错题分析已生成',
-        content: wrongs.length > 0 ? `共 ${wrongs.length} 道错题，已生成分析与复习建议。点击查看详情。` : '暂无足够错题数据。',
-        link: '/analytics',
-        priority: 4,
-      });
-    } catch (notifyErr) {
-      console.warn('wrong-report: createNotification failed', notifyErr);
+    if (wrongs.length > 0) {
+      try {
+        await createNotification({
+          userId,
+          type: 'system',
+          title: period === 'week' ? '本周错题分析已生成' : '本月错题分析已生成',
+          content: `共 ${wrongs.length} 道错题，已生成分析，并可直接练习 ${practiceQuestionIds.length} 道巩固题。`,
+          link: '/analytics',
+          priority: 4,
+        });
+      } catch (notifyErr) {
+        console.warn('wrong-report: createNotification failed', notifyErr);
+      }
     }
 
     res.json({
@@ -620,6 +772,8 @@ router.get('/wrong-report', requireAuth, async (req, res) => {
         period,
         wrongCount: wrongs.length,
         report: reportText,
+        weakNodes,
+        practiceQuestionIds,
       },
     });
   } catch (err) {

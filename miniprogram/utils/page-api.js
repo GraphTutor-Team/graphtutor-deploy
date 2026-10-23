@@ -118,7 +118,7 @@ function fetchPracticeSummary() {
   return api.ensureValidAccessToken().then(() => Promise.allSettled([
     api.getComprehensiveAnalysis(7),
     api.getTodayReviewQuestions({ limit: 100 }),
-    api.getRecommendedQuestions({ limit: 3, includeReasons: false }),
+    api.getRecommendedQuestions({ limit: 3, strategy: 'weak_points', includeReasons: false }),
   ])).then(([analysisRes, reviewRes, recRes]) => {
     const analysis = analysisRes.status === 'fulfilled' ? analysisRes.value : null;
     const efficiency = analysis && analysis.efficiency;

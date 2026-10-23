@@ -8,6 +8,8 @@ import mongoose from 'mongoose';
 import Question from '../models/Question.js';
 import Record from '../models/Record.js';
 import LearningGoal from '../models/LearningGoal.js';
+import WrongQuestion from '../models/WrongQuestion.js';
+import KnowledgeNode from '../models/KnowledgeNode.js';
 import { getKnowledgeMastery } from './learningAnalytics.js';
 
 /**
@@ -112,67 +114,96 @@ export async function getRecommendedQuestions(userId, options = {}) {
  */
 async function recommendByWeakPoints(userId, options = {}) {
   const { limit = 10, subjectCode, bankId } = options;
-
-  // 获取用户薄弱知识点（正确率低的知识点）
   const mastery = await getKnowledgeMastery(userId, {
     days: 30,
     subjectCode,
-    minQuestions: 2,
+    minQuestions: 0,
   });
 
-  // 找出正确率低于60%的知识点
-  const weakNodes = (mastery.knowledgeNodes || [])
-    .filter(node => node.accuracy < 60)
-    .slice(0, 5)
-    .map(node => node.knowledgeNodeId)
-    .filter(Boolean);
+  const since = new Date();
+  since.setDate(since.getDate() - 7);
+  const recentWrongs = await WrongQuestion.find({
+    userId: String(userId),
+    lastErrorAt: { $gte: since },
+    knowledgeNodeId: { $exists: true, $nin: [null, ''] },
+  }).select('questionId knowledgeNodeId').sort({ lastErrorAt: -1 }).limit(40).lean();
 
-  if (weakNodes.length === 0) {
-    return [];
-  }
-
-  // 获取用户已答过的题目ID（避免重复推荐）
-  const answeredQuestionIds = await Record.distinct('questionId', { userId });
-
-  // 查询薄弱知识点相关的题目
-  const query = {
-    knowledgeNodeId: { $in: weakNodes },
-    _id: { $nin: answeredQuestionIds },
-  };
-
-  if (subjectCode) {
-    query.subjectCode = subjectCode;
-  }
-  if (bankId) {
-    query.bankId = bankId;
-  }
-
-  const questions = await Question.find(query)
-    .limit(limit * 2) // 多查一些，后面会随机选择
-    .lean();
-
-  // 按知识点分组，每个知识点推荐1-2道题
-  const questionsByNode = {};
-  questions.forEach(q => {
-    const nodeId = q.knowledgeNodeId?.toString();
-    if (nodeId) {
-      if (!questionsByNode[nodeId]) {
-        questionsByNode[nodeId] = [];
-      }
-      questionsByNode[nodeId].push(q);
-    }
+  const recentNodes = [];
+  const recentSeen = new Set();
+  recentWrongs.forEach((row) => {
+    const nodeId = String(row.knowledgeNodeId);
+    if (recentSeen.has(nodeId)) return;
+    recentSeen.add(nodeId);
+    recentNodes.push(nodeId);
   });
 
-  // 从每个薄弱知识点中随机选择题目
+  const lowAccuracy = (mastery.knowledgeNodes || [])
+    .filter((node) => node.knowledgeNodeId && Number(node.accuracy) < 60 && Number(node.total) >= 2)
+    .map((node) => String(node.knowledgeNodeId));
+
+  const weakNodes = [...recentNodes];
+  lowAccuracy.forEach((nodeId) => {
+    if (!weakNodes.includes(nodeId) && weakNodes.length < 8) weakNodes.push(nodeId);
+  });
+  if (!weakNodes.length) return [];
+
+  const answeredQuestionIds = await Record.distinct('questionId', { userId: String(userId) });
+  const answered = new Set(answeredQuestionIds.map(String));
+  const query = { knowledgeNodeId: { $in: weakNodes } };
+  if (subjectCode) query.subjectCode = subjectCode;
+  if (bankId) query.bankId = bankId;
+
+  const retryObjectIds = recentWrongs
+    .map((row) => String(row.questionId || ''))
+    .filter((id) => mongoose.Types.ObjectId.isValid(id));
+  const retryQuery = { _id: { $in: retryObjectIds } };
+  if (subjectCode) retryQuery.subjectCode = subjectCode;
+  if (bankId) retryQuery.bankId = bankId;
+  const [retryDocs, questions, nameRows] = await Promise.all([
+    retryObjectIds.length ? Question.find(retryQuery).lean() : [],
+    Question.find(query).limit(Math.max(limit * 4, 20)).lean(),
+    KnowledgeNode.find({ key: { $in: weakNodes } }).select('key name').lean(),
+  ]);
+  const nameByKey = new Map(nameRows.map((node) => [String(node.key), node.name || '']));
+  const byNode = new Map();
+  const seenInPool = new Set();
+  [...retryDocs, ...questions].forEach((question) => {
+    const id = String(question?._id || '');
+    const nodeId = String(question?.knowledgeNodeId || '');
+    if (!id || !nodeId || seenInPool.has(id) || !weakNodes.includes(nodeId)) return;
+    seenInPool.add(id);
+    if (!byNode.has(nodeId)) byNode.set(nodeId, []);
+    byNode.get(nodeId).push(question);
+  });
+
   const recommended = [];
-  for (const nodeId of weakNodes) {
-    const nodeQuestions = questionsByNode[nodeId] || [];
-    if (nodeQuestions.length > 0) {
-      const randomIndex = Math.floor(Math.random() * nodeQuestions.length);
-      recommended.push(nodeQuestions[randomIndex]);
-      if (recommended.length >= limit) break;
-    }
-  }
+  const used = new Set();
+  weakNodes.forEach((nodeId) => {
+    if (recommended.length >= limit) return;
+    const pool = byNode.get(nodeId) || [];
+    const retryId = recentWrongs.find((row) => String(row.knowledgeNodeId) === nodeId)?.questionId;
+    const retry = retryId
+      ? pool.find((question) => String(question._id) === String(retryId))
+      : null;
+    const fresh = pool.find((question) => {
+      const id = String(question._id);
+      return !answered.has(id) && id !== String(retryId || '');
+    });
+    const picked = retry || fresh || pool[0];
+    if (!picked) return;
+    const id = String(picked._id || '');
+    if (!id || used.has(id)) return;
+    used.add(id);
+    const justWrong = recentSeen.has(nodeId);
+    const retried = Boolean(retry) && id === String(retry._id);
+    recommended.push({
+      ...picked,
+      knowledgeNodeName: nameByKey.get(nodeId) || '',
+      recommendationReason: justWrong
+        ? (retried ? '本周刚错过，再练一次' : '本周刚错过，接着练一道新题')
+        : '这个知识点正确率偏低',
+    });
+  });
 
   return recommended;
 }

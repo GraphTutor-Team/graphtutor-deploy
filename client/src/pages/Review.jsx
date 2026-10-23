@@ -431,10 +431,10 @@ export default function Review() {
             {forgettingCurveList.map((item) => (
               <Link
                 key={item.knowledgeNodeId}
-                to={`/quiz?knowledgeNodeId=${encodeURIComponent(item.knowledgeNodeId)}`}
+                to={`/quiz?knowledgeNodeId=${encodeURIComponent(item.knowledgeNodeId)}&nodeName=${encodeURIComponent(item.name || item.knowledgeNodeId)}`}
                 className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-rose-200/80 dark:border-rose-800 text-sm text-rose-700 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors"
               >
-                <span className="truncate max-w-[120px]">{item.knowledgeNodeId}</span>
+                <span className="truncate max-w-[120px]">{item.name || item.knowledgeNodeId}</span>
                 <span className="text-rose-500 text-xs">约 {item.forgetProbability7d}%</span>
               </Link>
             ))}

@@ -7,7 +7,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useAIContext } from '../../context/AIContext';
-import { chat } from '../../api/v3/ai';
+import { chat, getTodaySet } from '../../api/v3/ai';
 import { getPageGuide, askForPage } from './pageGuides';
 import { GeneratePanel, PlansPanel, TodayPanel, WrongReportPanel, PredictPanel, NoteSummaryPanel } from './AssistantTools';
 import { getWrongQuestions } from '../../api/v3/wrongQuestions';
@@ -144,10 +144,30 @@ export default function AIAssistantFab() {
     { label: '今日该练', run: () => setPanel('today') },
     { label: '生成题目', run: () => setPanel('generate') },
     { label: '学习计划', run: () => setPanel('plans') },
-    { label: '本周错题', run: () => setPanel('report') },
-    { label: '考前预测', run: () => setPanel('predict') },
-    { label: '笔记摘要', run: () => setPanel('note') },
   ];
+  if (pathType === 'analytics' || pathType === 'review') {
+    suggestions.push(
+      { label: '本周错题', run: () => setPanel('report') },
+      { label: '考前预测', run: () => setPanel('predict') },
+    );
+  }
+  if (pathType === 'notes') {
+    suggestions.push({ label: '笔记摘要', run: () => setPanel('note') });
+  }
+  if (pathType === 'result' && contextWrongIds?.length) {
+    suggestions.push({
+      label: '接着练错题',
+      run: async () => {
+        try {
+          const data = await getTodaySet(8, contextWrongIds);
+          const ids = data?.practiceQuestionIds?.length ? data.practiceQuestionIds : contextWrongIds;
+          startPractice(ids);
+        } catch {
+          startPractice(contextWrongIds);
+        }
+      },
+    });
+  }
 
   return (
     <>
@@ -193,7 +213,7 @@ export default function AIAssistantFab() {
               <div className="space-y-2">
                 <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
                   {user
-                    ? '可以问这一页、看今天该练什么、生成题目，或把计划说成今天的任务。本周错题、考前预测和笔记摘要也在下面。'
+                    ? '问这一页、看今天该练什么、生成题目，或查看今天的任务。在学习数据和笔记页，还会出现错题报告、预测卷和摘要。'
                     : '请先登录后使用 AI 助手。'}
                 </p>
               </div>
@@ -201,7 +221,7 @@ export default function AIAssistantFab() {
             {panel === 'today' && <TodayPanel onClose={() => setOpen(false)} />}
             {panel === 'generate' && <GeneratePanel onClose={() => setOpen(false)} />}
             {panel === 'plans' && <PlansPanel onClose={() => setOpen(false)} />}
-            {panel === 'report' && <WrongReportPanel />}
+            {panel === 'report' && <WrongReportPanel onClose={() => setOpen(false)} />}
             {panel === 'predict' && <PredictPanel onClose={() => setOpen(false)} />}
             {panel === 'note' && (
               <NoteSummaryPanel noteContent={contextMatchesPage && pathType === 'notes' ? noteContent : ''} />

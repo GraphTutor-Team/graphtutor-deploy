@@ -17,6 +17,12 @@ import Friendship from '../models/Friendship.js';
 import User from '../models/User.js';
 import { getUserLearningStats } from './userStats.js';
 
+function pageWindow(page, limit, fallbackLimit) {
+  const size = Math.min(100, Math.max(1, Number(limit) || fallbackLimit));
+  const current = Math.max(1, Number(page) || 1);
+  return { page: current, limit: size, skip: (current - 1) * size };
+}
+
 /**
  * 发送好友请求
  * @param {string} fromUserId - 发送者ID
@@ -169,8 +175,8 @@ export async function cancelFriendRequest(requestId, userId) {
  * @returns {Promise<Object>} 好友列表
  */
 export async function getFriendsList(userId, options = {}) {
-  const { page = 1, limit = 20, status = 'active' } = options;
-  const skip = (page - 1) * limit;
+  const { status = 'active' } = options;
+  const { page, limit, skip } = pageWindow(options.page, options.limit, 20);
 
   const friendships = await Friendship.find({
     $or: [
@@ -223,8 +229,8 @@ export async function getFriendsList(userId, options = {}) {
  * @returns {Promise<Object>} 请求列表
  */
 export async function getFriendRequests(userId, type = 'received', options = {}) {
-  const { page = 1, limit = 20, status = 'pending' } = options;
-  const skip = (page - 1) * limit;
+  const { status = 'pending' } = options;
+  const { page, limit, skip } = pageWindow(options.page, options.limit, 20);
 
   const query = { status };
   if (type === 'received') {
@@ -353,8 +359,7 @@ export async function getMutualFriends(userId1, userId2) {
  * @returns {Promise<Object>} 搜索结果
  */
 export async function searchUsers(userId, keyword, options = {}) {
-  const { page = 1, limit = 20 } = options;
-  const skip = (page - 1) * limit;
+  const { page, limit, skip } = pageWindow(options.page, options.limit, 20);
 
   if (!keyword || keyword.trim().length === 0) {
     return { items: [], total: 0, page, limit, totalPages: 0 };

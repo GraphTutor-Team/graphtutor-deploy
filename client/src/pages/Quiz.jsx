@@ -26,6 +26,91 @@ import { buildQuestionBrief } from "../utils/aiBrief";
 import { getSubjectTree } from "../api/v3/subjects";
 import { runJavaCode } from "../api/coding";
 
+function shuffleQuestions(list) {
+  const shuffled = [...list];
+  for (let i = shuffled.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+async function fetchRecentQuestions() {
+  try {
+    const { getTodaySet } = await import('../api/v3/ai');
+    const today = await getTodaySet(20);
+    const ids = (today?.practiceQuestionIds || []).map(String).filter(Boolean).slice(0, 20);
+    if (!ids.length) return [];
+    const res = await api.get('/questions', { params: { ids: ids.join(',') } });
+    const items = res.data?.items || res.data?.data || [];
+    return Array.isArray(items) ? items : [];
+  } catch {
+    return [];
+  }
+}
+
+function belongsToBank(question, bank) {
+  const value = question?.bankId?._id || question?.bankId || '';
+  return String(value) === String(bank);
+}
+
+async function fetchNodeQuestions(nodeId, limit) {
+  if (!nodeId || limit < 1) return [];
+  const res = await api.get('/questions', { params: { node: nodeId, limit, random: 'true' } });
+  const data = res.data || {};
+  const items = data.items || data.data || [];
+  return Array.isArray(items) ? items : [];
+}
+
+function leadCount(ordered, recentQuestions) {
+  const ids = new Set(
+    (recentQuestions || []).map((question) => String(question?._id || question?.id || '')).filter(Boolean)
+  );
+  let count = 0;
+  for (const question of ordered) {
+    const id = String(question?._id || question?.id || '');
+    if (!id || !ids.has(id)) break;
+    count += 1;
+  }
+  return count;
+}
+
+function takeUnique(groups, total) {
+  const seen = new Set();
+  const merged = [];
+  groups.flat().forEach((question) => {
+    const id = String(question?._id || question?.id || '');
+    if (!id || seen.has(id) || merged.length >= total) return;
+    seen.add(id);
+    merged.push(question);
+  });
+  return merged;
+}
+
+/** 预测卷先放这些知识点里本周错过的题，再补新题。补上的新题可以打乱，错题顺序保持不变。 */
+async function loadPredictionSet(plan, fallbackCount) {
+  const nodeIds = [...new Set((plan.nodes || []).map((id) => String(id).trim()).filter(Boolean))].slice(0, 8);
+  const total = Math.min(50, Math.max(1, Number(plan.totalQuestions) || fallbackCount || 10));
+  if (!nodeIds.length) return { questions: [], recent: [] };
+  const nodeSet = new Set(nodeIds);
+  const recent = (await fetchRecentQuestions()).filter((question) => (
+    nodeSet.has(String(question.knowledgeNodeId || ''))
+  ));
+  const base = Math.max(1, Math.floor(total / nodeIds.length));
+  const extra = total - base * nodeIds.length;
+  const first = await Promise.all(nodeIds.map((nodeId, index) => (
+    fetchNodeQuestions(nodeId, base + (index < extra ? 1 : 0))
+  )));
+  let merged = takeUnique([recent, ...first], total);
+  if (merged.length < total) {
+    const more = await Promise.all(nodeIds.map((nodeId) => fetchNodeQuestions(nodeId, base + 3)));
+    merged = takeUnique([merged, ...more], total);
+  }
+  const lead = leadCount(merged, recent);
+  const questions = [...merged.slice(0, lead), ...shuffleQuestions(merged.slice(lead))].slice(0, total);
+  return { questions, recent };
+}
+
 function OptionItem({ index, text, selected, onSelect, multiple = false }) {
   const label = String.fromCharCode(65 + index); // A/B/C/D...
   return (
@@ -79,6 +164,7 @@ export default function Quiz() {
   const [submitErr, setSubmitErr] = useState("");
   const [finished, setFinished] = useState(false);
   const [score, setScore] = useState(null);
+  const [recentLead, setRecentLead] = useState(0);
   const requestedCount = Number(location.state?.practiceCount);
   const [questionCount, setQuestionCount] = useState(() => {
     if (Number.isFinite(requestedCount) && requestedCount >= 1) {
@@ -106,6 +192,10 @@ export default function Quiz() {
   const groupPracticeQuestionIds = practiceQuestionIds; // 兼容后续固定题号开练逻辑
   const predictionPlan = location.state?.predictionPlan || null; // Phase 2.6 考前预测计划：{ nodes: string[], totalQuestions }
   const predictionKey = predictionPlan?.nodes?.join('|') || '';
+  const focusQuery = new URLSearchParams(location.search);
+  const focusNodeId = focusQuery.get('knowledgeNodeId') || '';
+  const focusNodeName = focusQuery.get('nodeName') || '';
+  const focusBankId = focusQuery.get('bankId') || '';
   // Phase 2.3 动态难度：根据近期正确率与作答时间调整下一题难度
   const [adaptiveMode, setAdaptiveMode] = useState(false);
   const [visitedOrder, setVisitedOrder] = useState([]); // 已做题目索引顺序
@@ -137,6 +227,10 @@ export default function Quiz() {
     loadBanks();
   }, []);
 
+  useEffect(() => {
+    if (focusBankId) setBankId(focusBankId);
+  }, [focusBankId]);
+
   // 从题库拉一批题（或按群组共同练习的固定题号拉题）
   useEffect(() => {
     let cancelled = false;
@@ -145,42 +239,46 @@ export default function Quiz() {
       setErr("");
       try {
         const params = {};
+        let ordered;
+        let recentQuestions = [];
         if (groupPracticeQuestionIds?.length) {
           params.ids = groupPracticeQuestionIds.slice(0, 200).join(',');
+          const res = await api.get("/questions", { params });
+          const data = res.data || {};
+          const items = data.items || data.data || data || [];
+          const list = Array.isArray(items) ? items : [];
+          const byId = new Map(list.map((q) => [String(q._id || q.id), q]));
+          const preferred = groupPracticeQuestionIds
+            .map((id) => byId.get(String(id)))
+            .filter(Boolean);
+          ordered = preferred.length > 0 ? preferred : list;
         } else if (predictionPlan?.nodes?.length) {
-          // 预测卷模式：按高风险知识点抽题
-          params.limit = predictionPlan.totalQuestions || questionCount;
-          params.random = 'true';
-          // 简化：目前只支持单知识点 or 多知识点随机混合
-          // 后端 questions.js 支持 knowledgeNodeId 通过 node 查询
-          // 这里先只传第一个知识点，避免接口大改；后续可扩展为多次请求合并
-          params.node = predictionPlan.nodes[0];
+          const loaded = await loadPredictionSet(predictionPlan, questionCount);
+          ordered = loaded.questions;
+          recentQuestions = loaded.recent;
+        } else if (focusNodeId) {
+          const target = 8;
+          recentQuestions = (await fetchRecentQuestions())
+            .filter((question) => String(question.knowledgeNodeId || '') === focusNodeId);
+          const more = await fetchNodeQuestions(focusNodeId, target);
+          ordered = takeUnique([recentQuestions, more], target);
         } else {
           params.limit = adaptiveMode ? Math.max(questionCount, 80) : questionCount;
           params.random = 'true';
           if (subjectCode) params.subjectCode = subjectCode;
           if (bankId) params.bankId = bankId;
+          const res = await api.get("/questions", { params });
+          const data = res.data || {};
+          const items = data.items || data.data || data || [];
+          const list = Array.isArray(items) ? items : [];
+          const shuffled = shuffleQuestions(Array.isArray(list) ? list : []);
+          recentQuestions = (await fetchRecentQuestions()).filter((question) => {
+            if (bankId && !belongsToBank(question, bankId)) return false;
+            if (subjectCode && question.subjectCode && String(question.subjectCode) !== String(subjectCode)) return false;
+            return true;
+          });
+          ordered = takeUnique([recentQuestions, shuffled], params.limit);
         }
-        const res = await api.get("/questions", { params });
-        const data = res.data || {};
-        const items = data.items || data.data || data || [];
-        const list = Array.isArray(items) ? items : [];
-        const ordered = groupPracticeQuestionIds?.length
-          ? (() => {
-              const byId = new Map(list.map((q) => [String(q._id || q.id), q]));
-              const preferred = groupPracticeQuestionIds
-                .map((id) => byId.get(String(id)))
-                .filter(Boolean);
-              return preferred.length > 0 ? preferred : list;
-            })()
-          : (() => {
-          const shuffled = [...list];
-          for (let i = shuffled.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-          }
-          return shuffled;
-        })();
         if (!cancelled) {
           setQuestions(ordered);
           setAnswers({});
@@ -189,7 +287,9 @@ export default function Quiz() {
           setVisitedOrder([]);
           setRecentResults([]);
           setCurrentTargetDifficulty(3);
-          if (adaptiveMode && ordered.length > 0) {
+          const lead = leadCount(ordered, recentQuestions);
+          setRecentLead(lead);
+          if (adaptiveMode && ordered.length > 0 && lead === 0) {
             const usedSet = new Set();
             const firstIdx = ordered.map((q, i) => ({ i, d: typeof q.difficulty === 'number' ? q.difficulty : 1 }))
               .filter(({ i }) => !usedSet.has(i))
@@ -216,7 +316,7 @@ export default function Quiz() {
       cancelled = true;
       window.removeEventListener('reload-questions', handleReload);
     };
-  }, [groupPracticeQuestionIds?.join(','), questionCount, subjectCode, bankId, adaptiveMode, predictionKey, predictionPlan?.totalQuestions]);
+  }, [groupPracticeQuestionIds?.join(','), questionCount, subjectCode, bankId, adaptiveMode, predictionKey, predictionPlan?.totalQuestions, focusNodeId]);
 
   useEffect(() => {
     const count = Number(location.state?.practiceCount);
@@ -243,10 +343,15 @@ export default function Quiz() {
       mode: 'practice',
       questionId: qid,
       knowledgeNodeId: current.knowledgeNodeId ?? current.knowledgeNode ?? null,
-      brief: buildQuestionBrief(current, qid ? answers[qid] : undefined),
+      brief: [
+        predictionPlan?.nodes?.length
+          ? `这是考前预测卷，覆盖知识点：${(predictionPlan.nodeLabels?.length ? predictionPlan.nodeLabels : predictionPlan.nodes).slice(0, 8).join('、')}。先给提示，不要直接公布答案。`
+          : '',
+        buildQuestionBrief(current, qid ? answers[qid] : undefined),
+      ].filter(Boolean).join('\n'),
     });
     return () => setAIContext({ questionId: null, knowledgeNodeId: null, brief: '', mode: 'browse' });
-  }, [idx, current, answers, setAIContext]);
+  }, [idx, current, answers, predictionPlan, setAIContext]);
 
   // 每次切题时记录开始时间（用于自适应难度的作答时间）
   useEffect(() => {
@@ -382,7 +487,14 @@ export default function Quiz() {
       const nextVisited = [...visitedOrder, idx];
       setVisitedOrder(nextVisited);
       const usedSet = new Set(nextVisited);
-      const nextIdx = pickNextByDifficulty(questions, usedSet, newTarget);
+      let nextIdx = null;
+      for (let i = 0; i < recentLead; i += 1) {
+        if (!usedSet.has(i)) {
+          nextIdx = i;
+          break;
+        }
+      }
+      if (nextIdx === null) nextIdx = pickNextByDifficulty(questions, usedSet, newTarget);
       if (nextIdx === null) {
         const order = nextVisited;
         const qList = order.map((i) => questions[i]);
@@ -607,7 +719,15 @@ export default function Quiz() {
     <div className="page-shell !space-y-4">
       <PageHeader
         title={
-          practiceSource === 'ai'
+          predictionPlan?.nodes?.length
+            ? '考前预测卷'
+            : focusNodeId
+            ? '知识点练习'
+            : practiceSource === 'daily'
+            ? '今日挑战'
+            : practiceSource === 'saved'
+            ? '收藏练习'
+            : practiceSource === 'ai'
             ? 'AI 推荐练习'
             : practiceSource === 'review'
               ? '今日复习'
@@ -616,13 +736,25 @@ export default function Quiz() {
                 : '练习模式'
         }
         subtitle={
-          practiceSource === 'ai'
+          predictionPlan?.nodes?.length
+            ? `先做这些知识点里本周错过的题，再按 ${predictionPlan.nodes.length} 个薄弱点补新题。`
+            : focusNodeId
+            ? `先练${focusNodeName || focusNodeId}里本周错过的题，再补这个知识点的新题。`
+            : bankId
+            ? '先练这个题库里本周错过的题，再补题库里的其他题。'
+            : practiceSource === 'daily'
+            ? '先做本周错过的题，再用今天固定的题目补满 10 道。'
+            : practiceSource === 'saved'
+            ? '练习收藏的题目，做错的会进入错题本。'
+            : practiceSource === 'ai'
             ? '根据错题薄弱点推荐，做完后错题会继续进入错题本。'
             : practiceSource === 'review'
               ? '按智能复习计划今日题目练习，错题会继续进入错题本。'
               : groupPracticeQuestionIds?.length
                 ? '群组共同练习，错题会自动进入错题本。'
-                : '选择题库与题目数量后开始练习；错题会自动进入错题本，便于复习。'
+                : isAuthenticated
+                  ? '先做本周错过的题，再按题库和数量补新题。做错的会进入错题本。'
+                  : '选择题库与题目数量后开始练习；登录后错题会进入错题本。'
         }
       />
 

@@ -159,9 +159,25 @@ export async function generateNoteSummary(content) {
 }
 
 /**
- * 错题分析报告（Phase 1.5）
+ * 按近 7 天错题组今日练习
+ * @param {number} limit
+ * @returns {Promise<{ practiceQuestionIds: string[], weakNodes: Array }>}
+ */
+export async function getTodaySet(limit = 8, questionIds = []) {
+  const ids = (Array.isArray(questionIds) ? questionIds : []).map(String).filter(Boolean);
+  const res = ids.length
+    ? await api.post('/v3/ai/today-set', { limit, questionIds: ids })
+    : await api.get(`/v3/ai/today-set?limit=${limit}`);
+  if (res.data?.success) {
+    return res.data.data;
+  }
+  throw new Error(res.data?.message || '获取今日练习失败');
+}
+
+/**
+ * 错题分析报告
  * @param {'week'|'month'} period
- * @returns {Promise<{ period, wrongCount, report }>}
+ * @returns {Promise<{ period, wrongCount, report, weakNodes, practiceQuestionIds }>}
  */
 export async function getWrongReport(period = 'week') {
   const res = await api.get(`/v3/ai/wrong-report?period=${period}`);

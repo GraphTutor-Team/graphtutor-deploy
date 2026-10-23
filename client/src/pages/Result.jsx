@@ -8,7 +8,8 @@ import PageHeader from "../components/PageHeader";
 import { formatAnswerDisplay, formatCorrectAnswerDisplay } from "../utils/questionScoring";
 import QuizResultInsights from "../components/QuizResultInsights";
 import { useAIContext } from "../context/AIContext";
-import { chat } from "../api/v3/ai";
+import { chat, getTodaySet } from "../api/v3/ai";
+import { getExamPrediction } from "../api/v3/enhancedAnalytics";
 
 function StatCard({ label, value, suffix, hint }) {
   const display =
@@ -78,6 +79,8 @@ export default function Result() {
   const [recapIds, setRecapIds] = useState([]);
   const [recapLoading, setRecapLoading] = useState(false);
   const [recapError, setRecapError] = useState("");
+  const [nextBusy, setNextBusy] = useState(false);
+  const [predictBusy, setPredictBusy] = useState(false);
 
   const hasData = !!stats && Array.isArray(questions) && questions.length > 0;
 
@@ -172,6 +175,21 @@ export default function Result() {
     [perQuestion]
   );
 
+  const wrongNodeIds = useMemo(() => {
+    const seen = new Set();
+    const ids = [];
+    perQuestion.forEach((item) => {
+      if (item.isCorrect) return;
+      const nodeId = questions[item.index]?.knowledgeNodeId;
+      if (!nodeId) return;
+      const key = String(nodeId);
+      if (seen.has(key)) return;
+      seen.add(key);
+      ids.push(key);
+    });
+    return ids.slice(0, 8);
+  }, [perQuestion, questions]);
+
   useEffect(() => {
     if (!hasData) {
       setAIContext({ pageType: "other", mode: "browse", brief: "", questionId: null });
@@ -195,13 +213,71 @@ export default function Result() {
       });
   }, [hasData, sessionBrief, wrongIds, setAIContext]);
 
+  async function startSessionPrediction() {
+    if (!wrongNodeIds.length || predictBusy) return;
+    setPredictBusy(true);
+    const nodes = [...wrongNodeIds];
+    const labels = new Map();
+    try {
+      const res = await getExamPrediction(30, 10);
+      const plan = res?.data?.nodes ? res.data : res;
+      (plan?.nodes || []).forEach((node) => {
+        const id = node?.knowledgeNodeId ? String(node.knowledgeNodeId) : "";
+        if (!id) return;
+        if (node.name) labels.set(id, node.name);
+        if (!nodes.includes(id) && nodes.length < 8) nodes.push(id);
+      });
+    } catch {
+      // 本周预测暂时取不到时，仍用这次答错的知识点组卷
+    } finally {
+      setPredictBusy(false);
+    }
+    navigate("/quiz", {
+      state: {
+        predictionPlan: {
+          nodes,
+          nodeLabels: nodes.map((id) => labels.get(id) || id),
+          totalQuestions: Math.min(20, Math.max(6, nodes.length * 2)),
+        },
+        practiceSource: "ai",
+      },
+    });
+  }
+
+  async function practiceThisSession() {
+    if (!wrongIds.length || nextBusy) return;
+    setNextBusy(true);
+    const limit = Math.min(20, Math.max(8, wrongIds.length));
+    try {
+      const data = await getTodaySet(limit, wrongIds);
+      const ids = data?.practiceQuestionIds?.length ? data.practiceQuestionIds : wrongIds;
+      navigate("/quiz", { state: { practiceQuestionIds: ids, practiceSource: "ai" } });
+    } catch {
+      navigate("/quiz", { state: { practiceQuestionIds: wrongIds, practiceSource: "ai" } });
+    } finally {
+      setNextBusy(false);
+    }
+  }
+
   async function generateRecap() {
     if (!sessionBrief || recapLoading) return;
     setRecapLoading(true);
     setRecapError("");
     try {
+      let nodeLine = "";
+      if (wrongIds.length) {
+        try {
+          const today = await getTodaySet(8, wrongIds);
+          const names = (today?.weakNodes || [])
+            .map((node) => node.name || node.knowledgeNodeId)
+            .filter(Boolean);
+          if (names.length) nodeLine = `相关知识点：${names.join("、")}。`;
+        } catch {
+          nodeLine = "";
+        }
+      }
       const data = await chat(
-        [{ role: "user", content: "根据这次错题复盘错因，并推荐练习题。不要输出题目 ID。" }],
+        [{ role: "user", content: `${nodeLine}请用三句话说明这次答错的原因，并指出先看哪个知识点。不要输出题号。` }],
         {
           pageType: "result",
           mode: "review_session",
@@ -210,7 +286,7 @@ export default function Result() {
         }
       );
       setRecap(data?.content || "");
-      setRecapIds(Array.isArray(data?.recommendedQuestionIds) ? data.recommendedQuestionIds : []);
+      setRecapIds([]);
     } catch (err) {
       setRecapError(err.message || "复盘生成失败");
     } finally {
@@ -312,16 +388,37 @@ export default function Result() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="text-base font-bold text-slate-900">AI 复盘</div>
-            <div className="text-sm text-slate-600 mt-1">根据这次错题概括薄弱点，并给出下一步练习建议。</div>
+            <div className="text-sm text-slate-600 mt-1">
+              {wrongIds.length
+                ? "这次答错的题可以马上再练。复盘用来看错因，不练也可以先生成。"
+                : "这次没有答错的题。"}
+            </div>
           </div>
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={generateRecap}
-            disabled={recapLoading}
-          >
-            {recapLoading ? "生成中…" : "生成复盘"}
-          </button>
+          <div className="flex flex-wrap gap-2">
+            {wrongIds.length > 0 && (
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={practiceThisSession}
+                disabled={nextBusy}
+              >
+                {nextBusy ? "组题中…" : `接着练这 ${wrongIds.length} 道错题`}
+              </button>
+            )}
+            {wrongNodeIds.length > 0 && (
+              <button type="button" className="btn" onClick={startSessionPrediction} disabled={predictBusy}>
+                {predictBusy ? "组卷中…" : "按这次和本周薄弱点出预测卷"}
+              </button>
+            )}
+            <button
+              type="button"
+              className="btn"
+              onClick={generateRecap}
+              disabled={recapLoading}
+            >
+              {recapLoading ? "生成中…" : "生成复盘"}
+            </button>
+          </div>
         </div>
         {recapError && <div className="text-sm text-rose-600">{recapError}</div>}
         {recap && <div className="text-sm text-slate-700 whitespace-pre-wrap">{recap}</div>}
@@ -644,7 +741,7 @@ export default function Result() {
           to="/review"
           className="px-3 py-1.5 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50"
         >
-          去错题本（后续可实现）
+          去错题本
         </Link>
       </section>
     </div>

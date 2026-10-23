@@ -6,6 +6,7 @@
 
 import Record from '../models/Record.js';
 import Question from '../models/Question.js';
+import KnowledgeNode from '../models/KnowledgeNode.js';
 
 /**
  * 获取用户知识点掌握度详细分析
@@ -76,6 +77,16 @@ export async function getKnowledgeMastery(userId, options = {}) {
       { $match: { total: { $gte: minQuestions } } },
       { $sort: { accuracy: 1, total: -1 } }, // 正确率从低到高，找出薄弱点
     ]);
+
+    const nodeKeys = nodeStats.map((node) => node.knowledgeNodeId).filter(Boolean).map(String);
+    const namedNodes = nodeKeys.length
+      ? await KnowledgeNode.find({ key: { $in: nodeKeys } }).select('key name').lean()
+      : [];
+    const nameByKey = new Map(namedNodes.map((node) => [String(node.key), node.name || '']));
+    const knowledgeNodes = nodeStats.map((node) => ({
+      ...node,
+      name: nameByKey.get(String(node.knowledgeNodeId || '')) || '',
+    }));
 
     // 按学科统计知识点掌握度
     const subjectStats = await Record.aggregate([
@@ -224,7 +235,7 @@ export async function getKnowledgeMastery(userId, options = {}) {
 
     return {
       overall: overallStats[0] || { total: 0, correct: 0, wrong: 0, accuracy: 0, avgTimeSpent: 0 },
-      knowledgeNodes: nodeStats,
+      knowledgeNodes,
       bySubject: subjectStats,
       byDifficulty: difficultyStats,
       byType: typeStats,

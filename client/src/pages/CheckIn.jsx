@@ -5,12 +5,13 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getAllCheckIns, getCheckIns, checkIn } from '../api/v3/studyPlans';
 import { getStudyPlans } from '../api/v3/studyPlans';
 import { getEquipment } from '../api/v3/equipment';
 import { toast } from '../utils/toast';
+import { getTodaySet } from '../api/v3/ai';
 import PageHeader from '../components/PageHeader';
 import PlanHubNav from '../components/PlanHubNav';
 import LoginPrompt from '../components/common/LoginPrompt';
@@ -24,6 +25,7 @@ const MOOD_OPTIONS = [
 
 export default function CheckIn() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [plans, setPlans] = useState([]);
   const [selectedPlanId, setSelectedPlanId] = useState('');
   const [loading, setLoading] = useState(true);
@@ -191,6 +193,21 @@ export default function CheckIn() {
     }
   };
 
+  async function startPlanPractice(plan) {
+    const limit = Math.min(20, Math.max(1, Number(plan?.dailyTarget) || 10));
+    try {
+      const data = await getTodaySet(limit);
+      const questionIds = data?.practiceQuestionIds || [];
+      if (questionIds.length) {
+        navigate('/quiz', { state: { practiceQuestionIds: questionIds, practiceSource: 'plan' } });
+        return;
+      }
+    } catch (err) {
+      toast.error(err.message || '先按每日题量开练');
+    }
+    navigate('/quiz', { state: { practiceCount: limit, practiceSource: 'plan' } });
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedPlanId) {
@@ -346,6 +363,16 @@ export default function CheckIn() {
             ))}
           </select>
         </div>
+
+        {selectedPlan && (
+          <button
+            type="button"
+            className="mb-4 text-sm text-blue-600 hover:underline"
+            onClick={() => startPlanPractice(selectedPlan)}
+          >
+            先去做今天的 {selectedPlan.dailyTarget || 10} 题，再回来打卡
+          </button>
+        )}
 
         {selectedPlan && (
           <form onSubmit={handleSubmit} className="space-y-4">

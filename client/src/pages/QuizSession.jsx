@@ -112,10 +112,8 @@ export default function QuizSession() {
       // 后端会话失败，使用本地模式
       try {
         const params = { skip: 0, limit: size };
-        if (node) params.knowledgeNodeId = node;
+        if (node) params.node = node;
         if (difficulty) params.difficulty = difficulty;
-        if (bankId) params.bankId = bankId;
-        if (subjectCode) params.subjectCode = subjectCode;
 
         const data = await listQuestions(params);
         const items = (data.items || data.data || []).map(x => ({
@@ -136,13 +134,52 @@ export default function QuizSession() {
           return;
         }
 
+        let ordered = items;
+        try {
+          const { getTodaySet } = await import('../api/v3/ai');
+          const today = await getTodaySet(Math.min(20, Math.max(1, Number(size) || 10)));
+          const ids = (today?.practiceQuestionIds || []).map(String).filter(Boolean);
+          if (ids.length) {
+            const api = (await import('../api/api')).default;
+            const res = await api.get('/questions', { params: { ids: ids.join(',') } });
+            const raw = res.data?.items || res.data?.data || [];
+            const byId = new Map((Array.isArray(raw) ? raw : []).map((question) => [String(question._id || question.id), question]));
+            const recent = ids.map((id) => byId.get(id)).filter((question) => {
+              if (!question) return false;
+              if (node && String(question.knowledgeNodeId || '') !== String(node)) return false;
+              if (difficulty && Number(question.difficulty) !== Number(difficulty)) return false;
+              if (bankId) {
+                const value = question.bankId?._id || question.bankId || '';
+                if (String(value) !== String(bankId)) return false;
+              }
+              if (subjectCode && question.subjectCode && String(question.subjectCode) !== String(subjectCode)) return false;
+              return true;
+            }).map((x) => ({
+              id: x.id || x._id,
+              knowledgeNodeId: x.knowledgeNodeId,
+              content: x.content,
+              options: x.options || [],
+              difficulty: x.difficulty,
+              correctIndex: x.correctIndex ?? x.answerIndex ?? 0,
+              type: x.type || 'single',
+              answer: x.answer,
+              codingMeta: x.codingMeta || null,
+              explain: x.explain || '',
+            }));
+            const seen = new Set(recent.map((question) => String(question.id)));
+            ordered = [...recent, ...items.filter((question) => !seen.has(String(question.id)))].slice(0, size);
+          }
+        } catch {
+          ordered = items;
+        }
+
         setSid('local');
         try {
           localStorage.removeItem(STORAGE_KEYS.QUIZ_SESSION_ID);
         } catch (e) {
           console.warn('清除会话ID失败:', e);
         }
-        setQs(items);
+        setQs(ordered);
         setStatus('ongoing');
         setIdx(0);
         setAnswers({});
@@ -412,7 +449,7 @@ export default function QuizSession() {
     <div className="p-6 space-y-4">
       <PageHeader
         title="测验会话"
-        subtitle="支持会话管理的练习模式，可以保存进度、恢复会话"
+        subtitle="新会话先做本周错过的题，再补同知识点的新题。进度可以保存，下次接着做。"
       />
 
       {status === 'idle' && (

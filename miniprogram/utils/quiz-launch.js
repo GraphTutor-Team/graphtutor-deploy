@@ -70,6 +70,7 @@ function launchRecommendedPractice(limit) {
   return api.ensureValidAccessToken()
     .then(() => api.getRecommendedQuestions({
       limit: limit || 10,
+      strategy: 'weak_points',
       includeReasons: false,
     }))
     .then((list) => {
@@ -141,21 +142,49 @@ function launchFavoritePractice(folderId) {
     });
 }
 
+function recentNodeIds(items, nodeKey) {
+  const since = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  return (items || []).filter((item) => {
+    if (String(item.knowledgeNodeId || '') !== String(nodeKey)) return false;
+    if (!item.lastErrorAt) return true;
+    return new Date(item.lastErrorAt).getTime() >= since;
+  }).map(extractQuestionId);
+}
+
+function mergeIds(groups, limit) {
+  const seen = new Set();
+  const ids = [];
+  groups.flat().forEach((id) => {
+    const key = id ? String(id) : '';
+    if (!key || seen.has(key) || ids.length >= limit) return;
+    seen.add(key);
+    ids.push(key);
+  });
+  return ids;
+}
+
 function launchPathPractice(nodeKey, limit) {
   if (!nodeKey) {
     wx.showToast({ title: '知识点无效', icon: 'none' });
     return Promise.resolve(false);
   }
+  const cap = Math.min(20, Math.max(1, Number(limit) || 10));
   return api.ensureValidAccessToken()
-    .then(() => api.getRecommendedQuestions({
-      knowledgeNodeId: nodeKey,
-      limit: limit || 10,
-      includeReasons: false,
-    }))
-    .then((list) => {
-      const ids = (list || []).map((q) => q._id || q.id).filter(Boolean);
+    .then(() => Promise.all([
+      api.getWrongQuestions({
+        limit: 30,
+        masteryStatus: 'unmastered',
+        sortBy: 'lastErrorAt',
+        sortOrder: 'desc',
+      }).catch(() => ({ items: [] })),
+      api.getNodeQuestions(nodeKey, cap).catch(() => []),
+    ]))
+    .then(([wrongData, nodeQuestions]) => {
+      const recentIds = recentNodeIds((wrongData && wrongData.items) || [], nodeKey);
+      const fillIds = (nodeQuestions || []).map((question) => question._id || question.id);
+      const ids = mergeIds([recentIds, fillIds], cap);
       if (!ids.length) {
-        wx.showToast({ title: '该知识点暂无推荐题', icon: 'none' });
+        wx.showToast({ title: '该知识点暂无题目', icon: 'none' });
         return false;
       }
       return launchQuizWithIds(ids);

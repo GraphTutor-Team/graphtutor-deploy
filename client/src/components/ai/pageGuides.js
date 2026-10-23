@@ -13,7 +13,7 @@ const GUIDES = [
   { test: (p) => p === '/recommendations', type: 'recommendations' },
   { test: (p) => p === '/quiz' || p.startsWith('/quiz'), type: 'quiz' },
   { test: (p) => p === '/exam', type: 'exam' },
-  { test: (p) => p === '/review' || p.startsWith('/review'), type: 'review' },
+  { test: (p) => p === '/review' || p.startsWith('/review/'), type: 'review' },
   { test: (p) => p === '/result', type: 'result' },
   { test: (p) => p.includes('/questions/') && p.includes('/detail'), type: 'question_detail' },
   { test: (p) => p === '/community' || p.startsWith('/community'), type: 'community' },

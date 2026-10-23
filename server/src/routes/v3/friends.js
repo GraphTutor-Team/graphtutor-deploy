@@ -50,8 +50,8 @@ const router = express.Router();
 router.get('/', requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
-    const page = validateInt(req.query.page, 1);
-    const limit = validateInt(req.query.limit, 20);
+    const page = validateInt(req.query.page, { min: 1, defaultValue: 1 });
+    const limit = validateInt(req.query.limit, { min: 1, max: 100, defaultValue: 20 });
     const status = req.query.status || 'active';
 
     const result = await getFriendsList(userId, { page, limit, status });
@@ -83,8 +83,8 @@ router.get('/requests', requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
     const type = req.query.type || 'received';
-    const page = validateInt(req.query.page, 1);
-    const limit = validateInt(req.query.limit, 20);
+    const page = validateInt(req.query.page, { min: 1, defaultValue: 1 });
+    const limit = validateInt(req.query.limit, { min: 1, max: 100, defaultValue: 20 });
     const status = req.query.status || 'pending';
 
     const result = await getFriendRequests(userId, type, { page, limit, status });
@@ -344,8 +344,8 @@ router.get('/search', requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
     const keyword = req.query.keyword;
-    const page = validateInt(req.query.page, 1);
-    const limit = validateInt(req.query.limit, 20);
+    const page = validateInt(req.query.page, { min: 1, defaultValue: 1 });
+    const limit = validateInt(req.query.limit, { min: 1, max: 100, defaultValue: 20 });
 
     if (!keyword) {
       return res.status(400).json({
@@ -379,7 +379,7 @@ router.get('/search', requireAuth, async (req, res) => {
 router.get('/recommendations', requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
-    const limit = validateInt(req.query.limit, 10);
+    const limit = validateInt(req.query.limit, { min: 1, max: 50, defaultValue: 10 });
 
     const recommendations = await getRecommendedFriends(userId, { limit });
 
@@ -410,7 +410,7 @@ router.get('/:id/stats', requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
     const friendId = req.params.id;
-    const days = validateInt(req.query.days, 30);
+    const days = validateInt(req.query.days, { min: 1, max: 365, defaultValue: 30 });
 
     const stats = await getFriendLearningStats(userId, friendId, { days });
 
@@ -438,7 +438,7 @@ router.get('/:id/compare', requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
     const friendId = req.params.id;
-    const days = validateInt(req.query.days, 30);
+    const days = validateInt(req.query.days, { min: 1, max: 365, defaultValue: 30 });
 
     const comparison = await compareLearningData(userId, friendId, { days });
 
@@ -466,7 +466,7 @@ router.get('/:id/common', requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
     const friendId = req.params.id;
-    const limit = validateInt(req.query.limit, 20);
+    const limit = validateInt(req.query.limit, { min: 1, max: 100, defaultValue: 20 });
 
     const commonContent = await getCommonLearningContent(userId, friendId, { limit });
 
@@ -497,7 +497,7 @@ router.get('/leaderboard', requireAuth, async (req, res) => {
     const userId = req.user.id;
     const type = req.query.type || 'total';
     const period = req.query.period || 'all';
-    const limit = validateInt(req.query.limit, 50);
+    const limit = validateInt(req.query.limit, { min: 1, max: 100, defaultValue: 50 });
 
     const leaderboard = await getFriendsLeaderboard(userId, { type, period, limit });
 

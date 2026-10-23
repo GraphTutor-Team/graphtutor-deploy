@@ -36,6 +36,7 @@ router.get('/', sanitizeSearchQuery('q'), validatePagination(), async (req, res)
     const {
       q = '',
       node = '',
+      knowledgeNodeId = '',
       difficulty = '',
       skip = '0',
       limit = '20',
@@ -62,8 +63,9 @@ router.get('/', sanitizeSearchQuery('q'), validatePagination(), async (req, res)
     }
     
     // 清理并验证 node
-    if (node) {
-      const cleanedNode = sanitizeString(node, { maxLength: 100 });
+    const nodeKey = node || knowledgeNodeId;
+    if (nodeKey) {
+      const cleanedNode = sanitizeString(nodeKey, { maxLength: 100 });
       if (cleanedNode) {
         cond.knowledgeNodeId = cleanedNode;
       }

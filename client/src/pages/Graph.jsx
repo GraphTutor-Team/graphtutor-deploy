@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
 import SectionCard from '../components/SectionCard';
 import HelpHint from '../components/HelpHint.jsx';
@@ -544,6 +545,13 @@ export default function Graph() {
                     })()}
                   </td>
                   <td className="px-6 py-4">
+                    <div className="flex items-center gap-2">
+                    <Link
+                      to={`/quiz?knowledgeNodeId=${encodeURIComponent(x.key)}&nodeName=${encodeURIComponent(x.name || x.key)}`}
+                      className="text-sm text-blue-600 hover:underline"
+                    >
+                      去练习
+                    </Link>
                     <button
                       className="btn btn-danger btn-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-red-500 hover:bg-red-600 border-red-500 hover:border-red-600 text-white"
                       onClick={() => removeNode(x.key)}
@@ -554,6 +562,7 @@ export default function Graph() {
                       </svg>
                       删除
                     </button>
+                    </div>
                   </td>
                 </tr>
               ))}

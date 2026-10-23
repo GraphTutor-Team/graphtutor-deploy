@@ -19,13 +19,12 @@ export async function addOrUpdateWrongQuestion(userId, recordId, questionId, isC
   });
 
   if (!wrongQuestion) {
-    // 获取题目信息
+    if (isCorrect) return null;
     const question = await Question.findOne({ _id: questionId }).lean();
     if (!question) {
       throw new Error('题目不存在');
     }
 
-    // 创建新的错题记录
     wrongQuestion = await WrongQuestion.create({
       userId,
       questionId,
@@ -38,19 +37,13 @@ export async function addOrUpdateWrongQuestion(userId, recordId, questionId, isC
       errorCount: 1,
       reviewCount: 0,
       firstErrorAt: new Date(),
-      lastErrorAt: new Date(),
       lastRecordId: recordId,
     });
-  } else {
-    // 更新错题记录
-    wrongQuestion.lastRecordId = recordId;
-    if (!isCorrect) {
-      wrongQuestion.errorCount += 1;
-      wrongQuestion.lastErrorAt = new Date();
-    }
+    await wrongQuestion.updateMastery(false, { skipErrorIncrement: true });
+    return wrongQuestion;
   }
 
-  // 更新掌握度
+  wrongQuestion.lastRecordId = recordId;
   await wrongQuestion.updateMastery(isCorrect);
 
   return wrongQuestion;

@@ -613,10 +613,19 @@ export async function getForgettingCurveAlerts(userId, options = {}) {
     });
   }
 
-  return result
-    .filter((r) => r.suggestReviewToday)
+  const alerts = result
+    .filter((row) => row.suggestReviewToday)
     .sort((a, b) => b.forgetProbability7d - a.forgetProbability7d)
     .slice(0, limit);
+  const keys = alerts.map((row) => String(row.knowledgeNodeId)).filter(Boolean);
+  const named = keys.length
+    ? await KnowledgeNode.find({ key: { $in: keys } }).select('key name').lean()
+    : [];
+  const nameByKey = new Map(named.map((node) => [String(node.key), node.name || '']));
+  return alerts.map((row) => ({
+    ...row,
+    name: nameByKey.get(String(row.knowledgeNodeId)) || '',
+  }));
 }
 
 /** 时段标签（小时 0-23 → 中文） */
@@ -937,10 +946,23 @@ export async function getExamPrediction(userId, options = {}) {
   const { days = 30, totalQuestions = 20 } = options;
   const safeTotal = Math.max(5, Math.min(50, totalQuestions || 20));
 
+  const recentSince = new Date();
+  recentSince.setDate(recentSince.getDate() - 7);
+  const recentWrongRows = await WrongQuestion.find({
+    userId: String(userId),
+    lastErrorAt: { $gte: recentSince },
+    knowledgeNodeId: { $exists: true, $nin: [null, ''] },
+  }).select('knowledgeNodeId').lean();
+  const recentCount = new Map();
+  recentWrongRows.forEach((row) => {
+    const key = String(row.knowledgeNodeId);
+    recentCount.set(key, (recentCount.get(key) || 0) + 1);
+  });
+
   const mastery = await getKnowledgeMastery(userId, { days, minQuestions: 0 });
   const masteryList = mastery?.knowledgeNodes || [];
 
-  if (!masteryList.length) {
+  if (!masteryList.length && recentCount.size === 0) {
     return { targetQuestionCount: safeTotal, nodes: [] };
   }
 
@@ -975,26 +997,41 @@ export async function getExamPrediction(userId, options = {}) {
       const extraWrong = wrongByKey.get(String(key)) || 0;
       const combinedWrong = wrong + extraWrong;
 
-      if (total === 0 && combinedWrong === 0) return null;
+      const recentHits = recentCount.get(String(key)) || 0;
+      if (total === 0 && combinedWrong === 0 && recentHits === 0) return null;
 
       const gap = 100 - accuracy;
       const volume = Math.log(total + 1);
-      const riskScore = gap * (volume || 1) + combinedWrong * 10;
+      const riskScore = gap * (volume || 1) + combinedWrong * 10 + recentHits * 30;
 
-      // 过滤：明显薄弱或有错题记录
-      const isWeak = (total >= 3 && accuracy < 70) || (combinedWrong > 0 && total < 3);
+      // 明显薄弱，或本周刚错过（即使正确率仍高）
+      const isWeak = (total >= 3 && accuracy < 70) || (combinedWrong > 0 && total < 3) || recentHits > 0;
       if (!isWeak) return null;
 
       return {
         knowledgeNodeId: String(key),
         accuracy,
         total,
-        wrong: combinedWrong,
+        wrong: Math.max(combinedWrong, recentHits),
         riskScore,
+        justWrong: recentHits > 0,
       };
     })
-    .filter(Boolean)
-    .sort((a, b) => b.riskScore - a.riskScore);
+    .filter(Boolean);
+
+  recentCount.forEach((count, key) => {
+    if (riskyNodes.some((node) => node.knowledgeNodeId === key)) return;
+    riskyNodes.push({
+      knowledgeNodeId: key,
+      accuracy: 0,
+      total: 0,
+      wrong: count,
+      riskScore: 800 + count * 30,
+      justWrong: true,
+    });
+  });
+
+  riskyNodes.sort((a, b) => b.riskScore - a.riskScore);
 
   if (!riskyNodes.length) {
     return { targetQuestionCount: safeTotal, nodes: [] };
@@ -1023,7 +1060,9 @@ export async function getExamPrediction(userId, options = {}) {
   // 附加文案
   const nodesWithReason = nodesWithPlan.map((n) => {
     let reason = '';
-    if (n.total === 0) {
+    if (n.justWrong) {
+      reason = '本周刚错过，优先放进预测卷';
+    } else if (n.total === 0) {
       reason = '几乎未练习，考前建议重点补做';
     } else if (n.accuracy < 50) {
       reason = '正确率偏低且错题较多，属于高风险考点';
@@ -1035,9 +1074,17 @@ export async function getExamPrediction(userId, options = {}) {
     return { ...n, reason };
   });
 
+  const nameRows = await KnowledgeNode.find({
+    key: { $in: nodesWithReason.map((node) => node.knowledgeNodeId) },
+  }).select('key name').lean();
+  const nameByKey = new Map(nameRows.map((node) => [String(node.key), node.name || '']));
+
   return {
     targetQuestionCount: safeTotal,
-    nodes: nodesWithReason,
+    nodes: nodesWithReason.map((node) => ({
+      ...node,
+      name: nameByKey.get(String(node.knowledgeNodeId)) || '',
+    })),
   };
 }
 
