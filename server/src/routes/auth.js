@@ -833,6 +833,24 @@ router.post("/sms/login", async (req, res) => {
 });
 
 // ——— GitHub OAuth ———
+// 大陆服务器访问 github.com 存在间歇性阻断，直连 TCP 超时要挂约 90 秒。
+// 统一加短超时 + 有限重试：坏窗口内快速失败并多次尝试，避免单次回调长时间挂起。
+async function fetchWithRetry(url, options = {}, { retries = 2, timeoutMs = 8000 } = {}) {
+  let lastErr;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fetch(url, { ...options, signal: AbortSignal.timeout(timeoutMs) });
+    } catch (err) {
+      lastErr = err;
+      console.warn(`fetchWithRetry attempt ${attempt + 1}/${retries + 1} failed for ${url}: ${err.message}`);
+      if (attempt < retries) {
+        await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+      }
+    }
+  }
+  throw lastErr;
+}
+
 // 获取 GitHub 授权 URL；mode=bind 时须带 Authorization，将 GitHub 绑定到当前已登录账号
 router.get("/oauth/github/url", async (req, res) => {
   if (!GITHUB_CLIENT_ID) {
@@ -896,7 +914,7 @@ router.get("/oauth/github/callback", async (req, res) => {
 
   try {
     const redirectUri = `${req.protocol}://${req.get("host")}/api/auth/oauth/github/callback`;
-    const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
+    const tokenRes = await fetchWithRetry("https://github.com/login/oauth/access_token", {
       method: "POST",
       headers: { Accept: "application/json", "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -913,7 +931,7 @@ router.get("/oauth/github/callback", async (req, res) => {
     }
 
     const ghToken = tokenData.access_token;
-    const userRes = await fetch("https://api.github.com/user", {
+    const userRes = await fetchWithRetry("https://api.github.com/user", {
       headers: { Authorization: `Bearer ${ghToken}` },
     });
     if (!userRes.ok) {
@@ -925,7 +943,7 @@ router.get("/oauth/github/callback", async (req, res) => {
     let email = ghUser.email || null;
     if (!email && ghUser.email !== undefined) email = ghUser.email;
     if (!email) {
-      const emailRes = await fetch("https://api.github.com/user/emails", {
+      const emailRes = await fetchWithRetry("https://api.github.com/user/emails", {
         headers: { Authorization: `Bearer ${ghToken}` },
       });
       if (emailRes.ok) {
